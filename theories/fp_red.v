@@ -109,6 +109,12 @@ Module RRed.
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
 End RRed.
 
+Module ERedM.
+  Inductive R {n} (a : PTm n) : PTm n ->  Prop :=
+  | refl : R a a
+  | step b : ERed.R a b -> R a b.
+End ERedM.
+
 Inductive Wt {n} (Γ : fin n -> Ty) : PTm n -> Ty -> Prop :=
 | T_Var i :
   Wt Γ (VarPTm i) (Γ i)
@@ -229,7 +235,7 @@ Lemma eta_postponement n Γ a b c A :
   @Wt n Γ a A ->
   ERed.R a b ->
   RRed.R b c ->
-  exists d, rtc RRed.R a d /\ ERed.R d c.
+  exists d, rtc RRed.R a d /\  ERed.R d c.
 Proof.
   move => + h.
   move : Γ c A.
@@ -284,6 +290,10 @@ Proof.
   - move => n a b0 b1 hb ihb Γ c A hu hu'.
     elim /RRed.inv : hu' => //=_.
     + move => A0 a0 b2 [*]. subst.
+      move {ihb}.
+      eexists.
+      split. apply rtc_once.
+      apply RRed.AppAbs.
       admit.
     + sauto lq:on.
     + move => a0 b2 b3 hb0 [*]. subst.
