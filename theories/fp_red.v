@@ -83,10 +83,8 @@ Module RRed.
   | AppAbs A a b :
     R (PApp (PAbs A a) b)  (subst_PTm (scons b VarPTm) a)
 
-  | ProjPair p a0 a1 b0 b1 :
-    R a0 a1 ->
-    R b0 b1 ->
-    R (PProj p (PPair a0 b0)) (if p is PL then a1 else b1)
+  | ProjPair p a b :
+    R (PProj p (PPair a b)) (if p is PL then a else b)
 
   (*************** Congruence ********************)
   | AbsCong A a0 a1 :
@@ -317,8 +315,38 @@ Proof.
       exists (PPair a d).
       split. admit.
       sauto lq:on.
-  -
-
+  - move => n p a0 a1 ha iha Γ u A hu.
+    elim / RRed.inv => //=_.
+    + move => p0 a2 b0 [*]. subst.
+      inversion ha; subst.
+      * exfalso.
+        move : hu. clear. hauto q:on inv:Wt.
+      * exists (match p with
+                    | PL => a2
+                    | PR => b0
+           end).
+        split. apply : rtc_l.
+        apply RRed.ProjPair.
+        apply rtc_once. clear.
+        hauto lq:on use:RRed.ProjPair.
+        admit.
+      * eexists.
+        split. apply rtc_once.
+        apply RRed.ProjPair.
+        admit.
+      * eexists.
+        split. apply rtc_once.
+        apply RRed.ProjPair.
+        admit.
+    + move => p0 a2 a3 ha0 [*]. subst.
+      have [? [? ]] : exists Γ  A, @Wt n Γ a0 A by hauto lq:on inv:Wt.
+      move : iha ha0; repeat move/[apply].
+      move => [d [h0 h1]].
+      exists (PProj p d).
+      split.
+      admit.
+      sauto lq:on.
+Admitted.
 
 (* Trying my best to not write C style module_funcname *)
 Module Par.
