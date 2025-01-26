@@ -153,12 +153,17 @@ Scheme sne_ind := Induction for SNe Sort Prop
 
 Combined Scheme sn_mutual from sne_ind, sn_ind, sred_ind.
 
-Check sn_mutual.
+Inductive TRedSN' {n} (a : PTm n) : PTm n -> Prop :=
+| T_Refl :
+  TRedSN' a a
+| T_Once b :
+  TRedSN a b ->
+  TRedSN' a b.
 
 Lemma ered_sn_preservation n :
   (forall (a : PTm n) (s : SNe a), forall b, ERed.R a b -> SNe b) /\
   (forall (a : PTm n) (s : SN a), forall b, ERed.R a b -> SN b) /\
-  (forall (a b : PTm n) (_ : TRedSN a b), forall c, ERed.R a c -> exists d, TRedSN c d /\ ERed.R b d).
+  (forall (a b : PTm n) (_ : TRedSN a b), forall c, ERed.R a c -> exists d, TRedSN' c d /\ ERed.R b d).
 Proof.
   move : n. apply sn_mutual => n.
   - sauto lq:on.
@@ -182,7 +187,7 @@ Proof.
   - move => A a b ha iha c h0.
     inversion h0; subst.
     inversion H1; subst.
-    + exists (PApp a1 b1). split. admit.
+    + exists (PApp a1 b1). split.sfirstorder.
       asimpl.
       sauto lq:on.
     + have  {}/iha := H3 => iha.
@@ -197,7 +202,7 @@ Proof.
     elim  /ERed.inv :  ha => //= _.
     + move => a0 a2 ha [*]. subst.
       exists (PProj PL a1).
-      split. admit.
+      split. sauto.
       sauto lq:on.
     + sauto lq:on rew:off.
   - move => a b ha iha c.
@@ -206,7 +211,7 @@ Proof.
     elim /ERed.inv => //=_.
     + move => a0 a2 h [*]. subst.
       exists (PProj PR a1).
-      split. admit.
+      split. sauto.
       sauto lq:on.
     + sauto lq:on.
   - sauto lq:on.
