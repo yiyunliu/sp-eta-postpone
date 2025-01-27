@@ -25,10 +25,9 @@ Module ERed.
   | AppEta a0 a1 :
     R a0 a1 ->
     R (PAbs (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
-  | PairEta a0 b0 a1 :
+  | PairEta a0 a1 :
     R a0 a1 ->
-    R b0 a1 ->
-    R (PPair (PProj PL a0) (PProj PR b0)) a1
+    R (PPair (PProj PL a0) (PProj PR a0)) a1
   (*************** Congruence ********************)
   | AbsCong a0 a1 :
     R a0 a1 ->
@@ -230,7 +229,7 @@ Proof.
     elim /ERed.inv => //= _.
     move => p a0 a1 ha [*]. subst.
     elim  /ERed.inv :  ha => //= _.
-    + move => a0 b0 a2 ha ha' [*]. subst.
+    + move => a0 a2 ha' [*]. subst.
       exists (PProj PL a1).
       split. sauto.
       sauto lq:on.
@@ -239,7 +238,7 @@ Proof.
     elim /ERed.inv => //=_.
     move => p a0 a1 + [*]. subst.
     elim /ERed.inv => //=_.
-    + move => a0 b0 a2 h0 h1 [*]. subst.
+    + move => a0  a2 h1 [*]. subst.
       exists (PProj PR a1).
       split. sauto.
       sauto lq:on.
@@ -319,8 +318,17 @@ Function tstar {n} (a : PTm n) :=
   | PProj p a => PProj p (tstar a)
   end.
 
-Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b ->
-                                ERed.R c b.
+Lemma η_nf n (a b : PTm n) : ERed.R a b -> nf b -> ERed.R (tstar a) b.
+Proof.
+  move => h.
+  elim : n a b /h => n.
+  - move => a0 a1 ha iha.
+
+    move : ha. clear. best.
+    clear.
+  - sfirstorder.
+  -
+
 
 Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b -> RRed.R a c ->
                                 ERed.R c b.
