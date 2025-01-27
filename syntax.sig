@@ -9,7 +9,7 @@ Void : Ty
 PL : PTag
 PR : PTag
 
-PAbs : Ty -> (bind PTm in PTm) -> PTm
+PAbs : (bind PTm in PTm) -> PTm
 PApp : PTm -> PTm -> PTm
 PPair : PTm -> PTm -> PTm
 PProj : PTag -> PTm -> PTm

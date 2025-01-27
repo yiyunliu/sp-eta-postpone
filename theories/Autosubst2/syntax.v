@@ -19,43 +19,17 @@ Proof.
 exact (eq_refl).
 Qed.
 
-Inductive Ty : Type :=
-  | Fun : Ty -> Ty -> Ty
-  | Prod : Ty -> Ty -> Ty
-  | Void : Ty.
-
-Lemma congr_Fun {s0 : Ty} {s1 : Ty} {t0 : Ty} {t1 : Ty} (H0 : s0 = t0)
-  (H1 : s1 = t1) : Fun s0 s1 = Fun t0 t1.
-Proof.
-exact (eq_trans (eq_trans eq_refl (ap (fun x => Fun x s1) H0))
-         (ap (fun x => Fun t0 x) H1)).
-Qed.
-
-Lemma congr_Prod {s0 : Ty} {s1 : Ty} {t0 : Ty} {t1 : Ty} (H0 : s0 = t0)
-  (H1 : s1 = t1) : Prod s0 s1 = Prod t0 t1.
-Proof.
-exact (eq_trans (eq_trans eq_refl (ap (fun x => Prod x s1) H0))
-         (ap (fun x => Prod t0 x) H1)).
-Qed.
-
-Lemma congr_Void : Void = Void.
-Proof.
-exact (eq_refl).
-Qed.
-
 Inductive PTm (n_PTm : nat) : Type :=
   | VarPTm : fin n_PTm -> PTm n_PTm
-  | PAbs : Ty -> PTm (S n_PTm) -> PTm n_PTm
+  | PAbs : PTm (S n_PTm) -> PTm n_PTm
   | PApp : PTm n_PTm -> PTm n_PTm -> PTm n_PTm
   | PPair : PTm n_PTm -> PTm n_PTm -> PTm n_PTm
   | PProj : PTag -> PTm n_PTm -> PTm n_PTm.
 
-Lemma congr_PAbs {m_PTm : nat} {s0 : Ty} {s1 : PTm (S m_PTm)} {t0 : Ty}
-  {t1 : PTm (S m_PTm)} (H0 : s0 = t0) (H1 : s1 = t1) :
-  PAbs m_PTm s0 s1 = PAbs m_PTm t0 t1.
+Lemma congr_PAbs {m_PTm : nat} {s0 : PTm (S m_PTm)} {t0 : PTm (S m_PTm)}
+  (H0 : s0 = t0) : PAbs m_PTm s0 = PAbs m_PTm t0.
 Proof.
-exact (eq_trans (eq_trans eq_refl (ap (fun x => PAbs m_PTm x s1) H0))
-         (ap (fun x => PAbs m_PTm t0 x) H1)).
+exact (eq_trans eq_refl (ap (fun x => PAbs m_PTm x) H0)).
 Qed.
 
 Lemma congr_PApp {m_PTm : nat} {s0 : PTm m_PTm} {s1 : PTm m_PTm}
@@ -98,7 +72,7 @@ Fixpoint ren_PTm {m_PTm : nat} {n_PTm : nat}
 (xi_PTm : fin m_PTm -> fin n_PTm) (s : PTm m_PTm) {struct s} : PTm n_PTm :=
   match s with
   | VarPTm _ s0 => VarPTm n_PTm (xi_PTm s0)
-  | PAbs _ s0 s1 => PAbs n_PTm s0 (ren_PTm (upRen_PTm_PTm xi_PTm) s1)
+  | PAbs _ s0 => PAbs n_PTm (ren_PTm (upRen_PTm_PTm xi_PTm) s0)
   | PApp _ s0 s1 => PApp n_PTm (ren_PTm xi_PTm s0) (ren_PTm xi_PTm s1)
   | PPair _ s0 s1 => PPair n_PTm (ren_PTm xi_PTm s0) (ren_PTm xi_PTm s1)
   | PProj _ s0 s1 => PProj n_PTm s0 (ren_PTm xi_PTm s1)
@@ -122,7 +96,7 @@ Fixpoint subst_PTm {m_PTm : nat} {n_PTm : nat}
 :=
   match s with
   | VarPTm _ s0 => sigma_PTm s0
-  | PAbs _ s0 s1 => PAbs n_PTm s0 (subst_PTm (up_PTm_PTm sigma_PTm) s1)
+  | PAbs _ s0 => PAbs n_PTm (subst_PTm (up_PTm_PTm sigma_PTm) s0)
   | PApp _ s0 s1 =>
       PApp n_PTm (subst_PTm sigma_PTm s0) (subst_PTm sigma_PTm s1)
   | PPair _ s0 s1 =>
@@ -155,9 +129,9 @@ Fixpoint idSubst_PTm {m_PTm : nat} (sigma_PTm : fin m_PTm -> PTm m_PTm)
    : subst_PTm sigma_PTm s = s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
-        (idSubst_PTm (up_PTm_PTm sigma_PTm) (upId_PTm_PTm _ Eq_PTm) s1)
+  | PAbs _ s0 =>
+      congr_PAbs
+        (idSubst_PTm (up_PTm_PTm sigma_PTm) (upId_PTm_PTm _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (idSubst_PTm sigma_PTm Eq_PTm s0)
         (idSubst_PTm sigma_PTm Eq_PTm s1)
@@ -194,10 +168,10 @@ Fixpoint extRen_PTm {m_PTm : nat} {n_PTm : nat}
 ren_PTm xi_PTm s = ren_PTm zeta_PTm s :=
   match s with
   | VarPTm _ s0 => ap (VarPTm n_PTm) (Eq_PTm s0)
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (extRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
-           (upExtRen_PTm_PTm _ _ Eq_PTm) s1)
+           (upExtRen_PTm_PTm _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (extRen_PTm xi_PTm zeta_PTm Eq_PTm s0)
         (extRen_PTm xi_PTm zeta_PTm Eq_PTm s1)
@@ -235,10 +209,10 @@ Fixpoint ext_PTm {m_PTm : nat} {n_PTm : nat}
 subst_PTm sigma_PTm s = subst_PTm tau_PTm s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (ext_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
-           (upExt_PTm_PTm _ _ Eq_PTm) s1)
+           (upExt_PTm_PTm _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (ext_PTm sigma_PTm tau_PTm Eq_PTm s0)
         (ext_PTm sigma_PTm tau_PTm Eq_PTm s1)
@@ -275,10 +249,10 @@ Fixpoint compRenRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
 {struct s} : ren_PTm zeta_PTm (ren_PTm xi_PTm s) = ren_PTm rho_PTm s :=
   match s with
   | VarPTm _ s0 => ap (VarPTm l_PTm) (Eq_PTm s0)
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (compRenRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
-           (upRen_PTm_PTm rho_PTm) (up_ren_ren _ _ _ Eq_PTm) s1)
+           (upRen_PTm_PTm rho_PTm) (up_ren_ren _ _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (compRenRen_PTm xi_PTm zeta_PTm rho_PTm Eq_PTm s0)
         (compRenRen_PTm xi_PTm zeta_PTm rho_PTm Eq_PTm s1)
@@ -325,10 +299,10 @@ Fixpoint compRenSubst_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
 {struct s} : subst_PTm tau_PTm (ren_PTm xi_PTm s) = subst_PTm theta_PTm s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (compRenSubst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm tau_PTm)
-           (up_PTm_PTm theta_PTm) (up_ren_subst_PTm_PTm _ _ _ Eq_PTm) s1)
+           (up_PTm_PTm theta_PTm) (up_ren_subst_PTm_PTm _ _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (compRenSubst_PTm xi_PTm tau_PTm theta_PTm Eq_PTm s0)
         (compRenSubst_PTm xi_PTm tau_PTm theta_PTm Eq_PTm s1)
@@ -395,10 +369,10 @@ Fixpoint compSubstRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
 ren_PTm zeta_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (compSubstRen_PTm (up_PTm_PTm sigma_PTm) (upRen_PTm_PTm zeta_PTm)
-           (up_PTm_PTm theta_PTm) (up_subst_ren_PTm_PTm _ _ _ Eq_PTm) s1)
+           (up_PTm_PTm theta_PTm) (up_subst_ren_PTm_PTm _ _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (compSubstRen_PTm sigma_PTm zeta_PTm theta_PTm Eq_PTm s0)
         (compSubstRen_PTm sigma_PTm zeta_PTm theta_PTm Eq_PTm s1)
@@ -467,10 +441,10 @@ Fixpoint compSubstSubst_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
 subst_PTm tau_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (compSubstSubst_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
-           (up_PTm_PTm theta_PTm) (up_subst_subst_PTm_PTm _ _ _ Eq_PTm) s1)
+           (up_PTm_PTm theta_PTm) (up_subst_subst_PTm_PTm _ _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (compSubstSubst_PTm sigma_PTm tau_PTm theta_PTm Eq_PTm s0)
         (compSubstSubst_PTm sigma_PTm tau_PTm theta_PTm Eq_PTm s1)
@@ -580,10 +554,10 @@ Fixpoint rinst_inst_PTm {m_PTm : nat} {n_PTm : nat}
 (s : PTm m_PTm) {struct s} : ren_PTm xi_PTm s = subst_PTm sigma_PTm s :=
   match s with
   | VarPTm _ s0 => Eq_PTm s0
-  | PAbs _ s0 s1 =>
-      congr_PAbs (eq_refl s0)
+  | PAbs _ s0 =>
+      congr_PAbs
         (rinst_inst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm sigma_PTm)
-           (rinstInst_up_PTm_PTm _ _ Eq_PTm) s1)
+           (rinstInst_up_PTm_PTm _ _ Eq_PTm) s0)
   | PApp _ s0 s1 =>
       congr_PApp (rinst_inst_PTm xi_PTm sigma_PTm Eq_PTm s0)
         (rinst_inst_PTm xi_PTm sigma_PTm Eq_PTm s1)
@@ -661,6 +635,30 @@ Lemma varLRen'_PTm_pointwise {m_PTm : nat} {n_PTm : nat}
     (funcomp (VarPTm n_PTm) xi_PTm).
 Proof.
 exact (fun x => eq_refl).
+Qed.
+
+Inductive Ty : Type :=
+  | Fun : Ty -> Ty -> Ty
+  | Prod : Ty -> Ty -> Ty
+  | Void : Ty.
+
+Lemma congr_Fun {s0 : Ty} {s1 : Ty} {t0 : Ty} {t1 : Ty} (H0 : s0 = t0)
+  (H1 : s1 = t1) : Fun s0 s1 = Fun t0 t1.
+Proof.
+exact (eq_trans (eq_trans eq_refl (ap (fun x => Fun x s1) H0))
+         (ap (fun x => Fun t0 x) H1)).
+Qed.
+
+Lemma congr_Prod {s0 : Ty} {s1 : Ty} {t0 : Ty} {t1 : Ty} (H0 : s0 = t0)
+  (H1 : s1 = t1) : Prod s0 s1 = Prod t0 t1.
+Proof.
+exact (eq_trans (eq_trans eq_refl (ap (fun x => Prod x s1) H0))
+         (ap (fun x => Prod t0 x) H1)).
+Qed.
+
+Lemma congr_Void : Void = Void.
+Proof.
+exact (eq_refl).
 Qed.
 
 Class Up_PTm X Y :=

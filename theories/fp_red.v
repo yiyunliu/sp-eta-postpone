@@ -22,16 +22,17 @@ Ltac spec_refl := ltac2:(spec_refl ()).
 Module ERed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
   (****************** Eta ***********************)
-  | AppEta A a0 a1 :
+  | AppEta a0 a1 :
     R a0 a1 ->
-    R (PAbs A (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
-  | PairEta a0 a1 :
+    R (PAbs (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
+  | PairEta a0 b0 a1 :
     R a0 a1 ->
-    R (PPair (PProj PL a0) (PProj PR a0)) a1
+    R b0 a1 ->
+    R (PPair (PProj PL a0) (PProj PR b0)) a1
   (*************** Congruence ********************)
-  | AbsCong A a0 a1 :
+  | AbsCong a0 a1 :
     R a0 a1 ->
-    R (PAbs A a0) (PAbs A a1)
+    R (PAbs a0) (PAbs a1)
   | AppCong a0 a1 b0 b1 :
     R a0 a1 ->
     R b0 b1 ->
@@ -53,8 +54,8 @@ Module ERed.
 
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
 
-  Lemma AppEta' n A a0 a1 (u : PTm n) :
-    u = (PAbs A (PApp (ren_PTm shift a0) (VarPTm var_zero))) ->
+  Lemma AppEta' n a0 a1 (u : PTm n) :
+    u = (PAbs (PApp (ren_PTm shift a0) (VarPTm var_zero))) ->
     R a0 a1 ->
     R u a1.
   Proof. move => ->. apply AppEta. Qed.
@@ -65,8 +66,8 @@ Module ERed.
     move => h. move : m ξ.
     elim : n a b /h.
 
-    move => n A a0 a1 ha iha m ξ /=.
-    eapply AppEta' with (A := A); eauto. by asimpl.
+    move => n a0 a1 ha iha m ξ /=.
+    eapply AppEta'; eauto. by asimpl.
     all : qauto ctrs:R.
   Qed.
 
@@ -91,8 +92,8 @@ Module ERed.
     R a b -> R (subst_PTm ρ0 a) (subst_PTm ρ1 b).
   Proof.
     move => + h. move : m ρ0 ρ1. elim : n a b / h => n.
-    move => A a0 a1 ha iha m ρ0 ρ1 hρ /=.
-    eapply AppEta' with (A := A); eauto. by asimpl.
+    move => a0 a1 ha iha m ρ0 ρ1 hρ /=.
+    eapply AppEta'; eauto. by asimpl.
     all : hauto lq:on ctrs:R use:morphing_up.
   Qed.
 
@@ -120,9 +121,9 @@ with SN  {n} : PTm n -> Prop :=
   SN a ->
   SN b ->
   SN (PPair a b)
-| N_Abs A a :
+| N_Abs a :
   SN a ->
-  SN (PAbs A a)
+  SN (PAbs a)
 | N_SNe a :
   SNe a ->
   SN a
@@ -131,9 +132,9 @@ with SN  {n} : PTm n -> Prop :=
   SN b ->
   SN a
 with TRedSN {n} : PTm n -> PTm n -> Prop :=
-| N_β A a b :
+| N_β a b :
   SN b ->
-  TRedSN (PApp (PAbs A a) b) (subst_PTm (scons b VarPTm) a)
+  TRedSN (PApp (PAbs a) b) (subst_PTm (scons b VarPTm) a)
 | N_AppL a0 a1 b :
   TRedSN a0 a1 ->
   TRedSN (PApp a0 b) (PApp a1 b)
@@ -152,6 +153,27 @@ Scheme sne_ind := Induction for SNe Sort Prop
   with sred_ind := Induction for TRedSN Sort Prop.
 
 Combined Scheme sn_mutual from sne_ind, sn_ind, sred_ind.
+
+
+Fixpoint ne {n} (a : PTm n) :=
+  match a with
+  | VarPTm i => true
+  | PApp a b => ne a && nf b
+  | PAbs a => false
+  | PPair _ _ => false
+  | PProj _ a => ne a
+  end
+with nf {n} (a : PTm n) :=
+  match a with
+  | VarPTm i => true
+  | PApp a b => ne a && nf b
+  | PAbs a => nf a
+  | PPair a b => nf a && nf b
+  | PProj _ a => ne a
+end.
+
+Lemma ne_nf n a : @ne n a -> nf a.
+Proof. elim : a => //=. Qed.
 
 Inductive TRedSN' {n} (a : PTm n) : PTm n -> Prop :=
 | T_Refl :
@@ -182,7 +204,7 @@ Proof.
     + have /iha : (ERed.R (PProj PL a0) (PProj PL b0)) by sauto lq:on.
       sfirstorder use:SN_Proj.
     + sauto lq:on.
-  - move => A a ha iha b.
+  - move => a ha iha b.
     inversion 1; subst.
     + have : ERed.R (PApp (ren_PTm shift a0) (VarPTm var_zero))  (PApp (ren_PTm shift b) (VarPTm var_zero)).
       apply ERed.AppCong; eauto using ERed.refl.
@@ -192,7 +214,7 @@ Proof.
     + sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
-  - move => A a b ha iha c h0.
+  - move => a b ha iha c h0.
     inversion h0; subst.
     inversion H1; subst.
     + exists (PApp a1 b1). split. sfirstorder.
@@ -208,7 +230,7 @@ Proof.
     elim /ERed.inv => //= _.
     move => p a0 a1 ha [*]. subst.
     elim  /ERed.inv :  ha => //= _.
-    + move => a0 a2 ha [*]. subst.
+    + move => a0 b0 a2 ha ha' [*]. subst.
       exists (PProj PL a1).
       split. sauto.
       sauto lq:on.
@@ -217,7 +239,7 @@ Proof.
     elim /ERed.inv => //=_.
     move => p a0 a1 + [*]. subst.
     elim /ERed.inv => //=_.
-    + move => a0 a2 h [*]. subst.
+    + move => a0 b0 a2 h0 h1 [*]. subst.
       exists (PProj PR a1).
       split. sauto.
       sauto lq:on.
@@ -228,16 +250,16 @@ Admitted.
 Module RRed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
   (****************** Eta ***********************)
-  | AppAbs A a b :
-    R (PApp (PAbs A a) b)  (subst_PTm (scons b VarPTm) a)
+  | AppAbs a b :
+    R (PApp (PAbs a) b)  (subst_PTm (scons b VarPTm) a)
 
   | ProjPair p a b :
     R (PProj p (PPair a b)) (if p is PL then a else b)
 
   (*************** Congruence ********************)
-  | AbsCong A a0 a1 :
+  | AbsCong a0 a1 :
     R a0 a1 ->
-    R (PAbs A a0) (PAbs A a1)
+    R (PAbs a0) (PAbs a1)
   | AppCong0 a0 a1 b :
     R a0 a1 ->
     R (PApp a0 b) (PApp a1 b)
@@ -255,4 +277,112 @@ Module RRed.
     R (PProj p a0) (PProj p a1).
 
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
+
+
+  Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
+    R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
+  Proof.
+    move E : (ren_PTm ξ a) => u h.
+    move : n ξ a E. elim : m u b/h.
+    - move => n a b m ξ []//=. move => []//= t t0 [*]. subst.
+      eexists. split. apply AppAbs. by asimpl.
+    - move => n p a b m ξ []//=.
+      move => p0 []//=. hauto q:on ctrs:R.
+    - move => n a0 a1 ha iha m ξ []//=.
+      move => p [*]. subst.
+      spec_refl.
+      move : iha => [t [h0 h1]]. subst.
+      eexists. split. eauto using AbsCong.
+      by asimpl.
+    - move => n a0 a1 b ha iha m ξ []//=.
+      hauto lq:on ctrs:R.
+    - move => n a b0 b1 h ih m ξ []//=.
+      hauto lq:on ctrs:R.
+    - move => n a0 a1 b ha iha m ξ []//=.
+      hauto lq:on ctrs:R.
+    - move => n a b0 b1 h ih m ξ []//=.
+      hauto lq:on ctrs:R.
+    - move => n p a0 a1 ha iha m ξ []//=.
+      hauto lq:on ctrs:R.
+  Qed.
+
 End RRed.
+
+Function tstar {n} (a : PTm n) :=
+  match a with
+  | VarPTm i => a
+  | PAbs a => PAbs (tstar a)
+  | PApp (PAbs a) b => subst_PTm (scons (tstar b) VarPTm) (tstar a)
+  | PApp a b => PApp (tstar a) (tstar b)
+  | PPair a b => PPair (tstar a) (tstar b)
+  | PProj p (PPair a b) => if p is PL then (tstar a) else (tstar b)
+  | PProj p a => PProj p (tstar a)
+  end.
+
+Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b ->
+                                ERed.R c b.
+
+Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b -> RRed.R a c ->
+                                ERed.R c b.
+Proof.
+  move => h. move : c.
+  elim : n a b /h=>//=n.
+  - move => a0 a1 ha iha u hu.
+    elim /RRed.inv => //= _.
+    move => a2 a3 h [*]. subst.
+    elim / RRed.inv : h => //_.
+    + move => a2 b0 [h0 h1 h2]. subst.
+      case : a0 h0 ha iha =>//=.
+      move => u [?] ha iha. subst.
+      by asimpl.
+    + move => a2 b4 b0 h [*]. subst.
+      move /RRed.antirenaming : h.
+      hauto lq:on ctrs:ERed.R.
+    + move => a2 b0 b1 h [*]. subst.
+      inversion h.
+  - move => a0 b0 a1 ha iha hb ihb u hu.
+    elim /RRed.inv => //=_.
+    + move => a2 a3 b1 h0 [*]. subst.
+      elim /RRed.inv : h0 => //=_.
+      * move => p a2 b1 [*]. subst.
+        elim /ERed.inv : ha => //=_.
+        ** sauto lq:on.
+        ** move => a0 a2 b2 b3 h h' [*]. subst.
+
+
+Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b -> RRed.R a c ->
+                              ERed.R a c.
+Proof.
+  move => h. move : c.
+  elim : n a b /h=>//=.
+  - move => n A a0 a1 ha iha c ha1.
+    elim /RRed.inv => //=_.
+    move => A0 a2 a3 hr [*]. subst.
+    set u := a0 in hr *.
+    set q := a3 in hr *.
+    elim / RRed.inv : hr => //_.
+    + move => A0 a2 b0 [h0] h1 h2. subst.
+      subst u q.
+      rewrite h0. apply ERed.AppEta.
+      subst.
+      case : a0 ha iha h0 => //= B a ha iha [*]. subst.
+      asimpl.
+      admit.
+    + subst u q.
+      move => a2 a4 b0 hr [*]. subst.
+      move /RRed.antirenaming : hr => [b0 [h0 h1]]. subst.
+      hauto lq:on ctrs:ERed.R use:ERed.renaming.
+    + subst u q.
+      move => a2 b0 b1 h [*]. subst.
+      inversion h.
+  - move => n a0 a1 ha iha v hv.
+    elim /RRed.inv => //=_.
+    + move => a2 a3 b0 h [*]. subst.
+      elim /RRed.inv : h => //=_.
+      * move => p a2 b0 [*]. subst.
+        elim /ERed.inv : ha=>//= _.
+        move => a0 a2 h [*]. subst.
+        best.
+        apply ERed.PairEta.
+
+  -
