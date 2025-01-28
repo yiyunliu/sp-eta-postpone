@@ -105,6 +105,58 @@ Module ERed.
 
 End ERed.
 
+Module NeERed.
+  Inductive R_nonelim {n} : PTm n -> PTm n ->  Prop :=
+  (****************** Eta ***********************)
+  | AppEta A a0 a1 :
+    R_nonelim a0 a1 ->
+    R_nonelim (PAbs A (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
+  | PairEta a0 a1 :
+    R_nonelim a0 a1 ->
+    R_nonelim (PPair (PProj PL a0) (PProj PR a0)) a1
+  (*************** Congruence ********************)
+  | AbsCong A a0 a1 :
+    R_nonelim a0 a1 ->
+    R_nonelim (PAbs A a0) (PAbs A a1)
+  | AppCong a0 a1 b0 b1 :
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim (PApp a0 b0) (PApp a1 b1)
+  | PairCong a0 a1 b0 b1 :
+    R_nonelim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim (PPair a0 b0) (PPair a1 b1)
+  | ProjCong p a0 a1 :
+    R_elim a0 a1 ->
+    R_nonelim (PProj p a0) (PProj p a1)
+  | VarTm i :
+    R_nonelim (VarPTm i) (VarPTm i)
+  with R_elim {n} : PTm n -> PTm n -> Prop :=
+  | NAbsCong A a0 a1 :
+    R_nonelim a0 a1 ->
+    R_elim (PAbs A a0) (PAbs A a1)
+  | NAppCong a0 a1 b0 b1 :
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_elim (PApp a0 b0) (PApp a1 b1)
+  | NPairCong a0 a1 b0 b1 :
+    R_nonelim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_elim (PPair a0 b0) (PPair a1 b1)
+  | NProjCong p a0 a1 :
+    R_elim a0 a1 ->
+    R_elim (PProj p a0) (PProj p a1)
+  | NVarTm i :
+    R_elim (VarPTm i) (VarPTm i).
+
+  Scheme ered_elim_ind := Induction for R_elim Sort Prop
+      with ered_nonelim_ind := Induction for R_nonelim Sort Prop.
+
+  Combined Scheme ered_mutual from ered_elim_ind, ered_nonelim_ind.
+
+
+End NeERed.
+
 Inductive SNe {n} : PTm n -> Prop :=
 | N_Var i :
   SNe (VarPTm i)
