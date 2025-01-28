@@ -283,6 +283,17 @@ Module RRed.
   Proof.
     move => ->. by apply AppAbs. Qed.
 
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ.
+    elim : n a b /h.
+
+    move => n a b m ξ /=.
+    apply AppAbs'. by asimpl.
+    all : qauto ctrs:R.
+  Qed.
+
 
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
@@ -497,6 +508,13 @@ Module RReds.
     rtc RRed.R a0 a1 ->
     rtc RRed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
+
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    rtc RRed.R a b -> rtc RRed.R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ. elim : a b /h; hauto lq:on ctrs:rtc use:RRed.renaming.
+  Qed.
+
 End RReds.
 
 
@@ -599,8 +617,39 @@ Module NeERed.
     - hauto lq:on rew:off inv:R_elim.
   Qed.
 
+  Lemma R_nonelim_nothf n (a b : PTm n) :
+    R_nonelim a b ->
+    ~~ ishf a ->
+    R_elim a b.
+  Proof.
+    move => h. elim : n a b /h=>//=; hauto lq:on ctrs:R_elim.
+  Qed.
 
 End NeERed.
+
+Lemma bool_dec (a : bool) : a \/ ~~ a.
+Proof. hauto lq:on inv:bool. Qed.
+
+Lemma η_split n (a0 a1 : PTm n) :
+  ERed.R a0 a1 ->
+  exists b, rtc RRed.R a0 b /\ NeERed.R_nonelim b a1.
+Proof.
+  move => h. elim : n a0 a1 /h .
+  - move => n a0 a1 ha [b [ih0 ih1]].
+    case : (bool_dec (ishf b)); cycle 1.
+    exists (PAbs (PApp (ren_PTm shift b) (VarPTm var_zero))).
+    split. apply RReds.AbsCong. apply RReds.AppCong; auto using rtc_refl.
+    by eauto using RReds.renaming.
+    apply NeERed.AppEta=>//.
+    sfirstorder use:NeERed.R_nonelim_nothf.
+
+    case : b ih0 ih1 => //=.
+    + move => p ih0 ih1 _.
+      inversion ih1; subst.
+
+    (* Violates SN *)
+    + admit.
+
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
   ERed'.R a0 a1 -> nf a0 -> ~~ ne a0 -> ne a1 ->
