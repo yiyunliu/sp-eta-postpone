@@ -105,58 +105,6 @@ Module ERed.
 
 End ERed.
 
-Module NeERed.
-  Inductive R_nonelim {n} : PTm n -> PTm n ->  Prop :=
-  (****************** Eta ***********************)
-  | AppEta A a0 a1 :
-    R_nonelim a0 a1 ->
-    R_nonelim (PAbs A (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
-  | PairEta a0 a1 :
-    R_nonelim a0 a1 ->
-    R_nonelim (PPair (PProj PL a0) (PProj PR a0)) a1
-  (*************** Congruence ********************)
-  | AbsCong A a0 a1 :
-    R_nonelim a0 a1 ->
-    R_nonelim (PAbs A a0) (PAbs A a1)
-  | AppCong a0 a1 b0 b1 :
-    R_elim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_nonelim (PApp a0 b0) (PApp a1 b1)
-  | PairCong a0 a1 b0 b1 :
-    R_nonelim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_nonelim (PPair a0 b0) (PPair a1 b1)
-  | ProjCong p a0 a1 :
-    R_elim a0 a1 ->
-    R_nonelim (PProj p a0) (PProj p a1)
-  | VarTm i :
-    R_nonelim (VarPTm i) (VarPTm i)
-  with R_elim {n} : PTm n -> PTm n -> Prop :=
-  | NAbsCong A a0 a1 :
-    R_nonelim a0 a1 ->
-    R_elim (PAbs A a0) (PAbs A a1)
-  | NAppCong a0 a1 b0 b1 :
-    R_elim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_elim (PApp a0 b0) (PApp a1 b1)
-  | NPairCong a0 a1 b0 b1 :
-    R_nonelim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_elim (PPair a0 b0) (PPair a1 b1)
-  | NProjCong p a0 a1 :
-    R_elim a0 a1 ->
-    R_elim (PProj p a0) (PProj p a1)
-  | NVarTm i :
-    R_elim (VarPTm i) (VarPTm i).
-
-  Scheme ered_elim_ind := Induction for R_elim Sort Prop
-      with ered_nonelim_ind := Induction for R_nonelim Sort Prop.
-
-  Combined Scheme ered_mutual from ered_elim_ind, ered_nonelim_ind.
-
-
-End NeERed.
-
 Inductive SNe {n} : PTm n -> Prop :=
 | N_Var i :
   SNe (VarPTm i)
@@ -563,6 +511,96 @@ Lemma ne_ered n (a b : PTm n) (h : ERed'.R a b ) :
 Proof.
   elim : n a b /h=>//=; hauto qb:on use:ne_nf_ren, ne_nf.
 Qed.
+
+Definition ishf {n} (a : PTm n) :=
+  match a with
+  | PPair _ _ => true
+  | PAbs _ => true
+  | _ => false
+  end.
+
+Module NeERed.
+  Inductive R_nonelim {n} : PTm n -> PTm n ->  Prop :=
+  (****************** Eta ***********************)
+  | AppEta a0 a1 :
+    ~~ ishf a0 ->
+    R_elim a0 a1 ->
+    R_nonelim (PAbs (PApp (ren_PTm shift a0) (VarPTm var_zero))) a1
+  | PairEta a0 a1 :
+    ~~ ishf a0 ->
+    R_elim a0 a1 ->
+    R_nonelim (PPair (PProj PL a0) (PProj PR a0)) a1
+  (*************** Congruence ********************)
+  | AbsCong a0 a1 :
+    R_nonelim a0 a1 ->
+    R_nonelim (PAbs a0) (PAbs a1)
+  | AppCong a0 a1 b0 b1 :
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim (PApp a0 b0) (PApp a1 b1)
+  | PairCong a0 a1 b0 b1 :
+    R_nonelim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim (PPair a0 b0) (PPair a1 b1)
+  | ProjCong p a0 a1 :
+    R_elim a0 a1 ->
+    R_nonelim (PProj p a0) (PProj p a1)
+  | VarTm i :
+    R_nonelim (VarPTm i) (VarPTm i)
+  with R_elim {n} : PTm n -> PTm n -> Prop :=
+  | NAbsCong a0 a1 :
+    R_nonelim a0 a1 ->
+    R_elim (PAbs a0) (PAbs a1)
+  | NAppCong a0 a1 b0 b1 :
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_elim (PApp a0 b0) (PApp a1 b1)
+  | NPairCong a0 a1 b0 b1 :
+    R_nonelim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_elim (PPair a0 b0) (PPair a1 b1)
+  | NProjCong p a0 a1 :
+    R_elim a0 a1 ->
+    R_elim (PProj p a0) (PProj p a1)
+  | NVarTm i :
+    R_elim (VarPTm i) (VarPTm i).
+
+  Scheme ered_elim_ind := Induction for R_elim Sort Prop
+      with ered_nonelim_ind := Induction for R_nonelim Sort Prop.
+
+  Combined Scheme ered_mutual from ered_elim_ind, ered_nonelim_ind.
+
+  Lemma R_elim_nf n :
+    (forall (a b : PTm n), R_elim a b -> nf b -> nf a) /\
+      (forall (a b : PTm n), R_nonelim a b -> nf b -> nf a).
+  Proof.
+    move : n. apply ered_mutual => n //=.
+    - move => a0 a1 b0 b1 h ih h' ih' /andP [h0 h1].
+      have hb0 : nf b0 by eauto.
+      suff : ne a0 by qauto b:on.
+      qauto l:on inv:R_elim.
+    - hauto lb:on.
+    - hauto lq:on inv:R_elim.
+    - move => a0 a1 /negP ha' ha ih ha1.
+      have {ih} := ih ha1.
+      move => ha0.
+      suff : ne a0 by hauto lb:on drew:off use:ne_nf_ren.
+      inversion ha; subst => //=.
+    - move => a0 a1 /negP ha' ha ih ha1.
+      have {}ih := ih ha1.
+      have : ne a0 by hauto lq:on inv:PTm.
+      qauto lb:on.
+    - move => a0 a1 b0 b1 ha iha hb ihb /andP [h0 h1].
+      have {}ihb := ihb h1.
+      have {}iha := iha ltac:(eauto using ne_nf).
+      suff : ne a0 by hauto lb:on.
+      move : ha h0. hauto lq:on inv:R_elim.
+    - hauto lb: on drew: off.
+    - hauto lq:on rew:off inv:R_elim.
+  Qed.
+
+
+End NeERed.
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
   ERed'.R a0 a1 -> nf a0 -> ~~ ne a0 -> ne a1 ->
