@@ -147,6 +147,26 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
   TRedSN a b ->
   TRedSN (PProj p a) (PProj p b).
 
+Lemma PProjAbs_imp n p (a : PTm (S n)) :
+  ~ SN (PProj p (PAbs a)).
+Proof.
+  move E : (PProj p (PAbs a)) => u hu.
+  move : p a E.
+  elim : n u / hu=>//=.
+  hauto lq:on inv:SNe.
+  hauto lq:on inv:TRedSN.
+Qed.
+
+Lemma PProjPair_imp n (a b0 b1 : PTm n ) :
+  ~ SN (PApp (PPair b0 b1) a).
+Proof.
+  move E : (PApp (PPair b0 b1) a) => u hu.
+  move : a b0 b1 E.
+  elim : n u / hu=>//=.
+  hauto lq:on inv:SNe.
+  hauto lq:on inv:TRedSN.
+Qed.
+
 Scheme sne_ind := Induction for SNe Sort Prop
   with sn_ind := Induction for SN Sort Prop
   with sred_ind := Induction for TRedSN Sort Prop.
@@ -530,6 +550,8 @@ Proof.
   - sfirstorder b:on.
   - scongruence b:on.
 Qed.
+
+
 
 Lemma η_nf'' n (a b : PTm n) : ERed'.R a b -> nf b -> nf a \/ rtc RRed.R a b.
 Proof.
