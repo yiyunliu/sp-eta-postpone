@@ -625,6 +625,12 @@ Module NeERed.
     move => h. elim : n a b /h=>//=; hauto lq:on ctrs:R_elim.
   Qed.
 
+  Lemma R_elim_nonelim n (a b : PTm n) :
+    R_elim a b ->
+    R_nonelim a b.
+    move => h. elim : n a b /h=>//=; hauto lq:on ctrs:R_nonelim.
+  Qed.
+
 End NeERed.
 
 Lemma bool_dec (a : bool) : a \/ ~~ a.
@@ -636,7 +642,7 @@ Lemma η_split n (a0 a1 : PTm n) :
 Proof.
   move => h. elim : n a0 a1 /h .
   - move => n a0 a1 ha [b [ih0 ih1]].
-    case : (bool_dec (ishf b)); cycle 1.
+    case /orP : (orNb (ishf b)).
     exists (PAbs (PApp (ren_PTm shift b) (VarPTm var_zero))).
     split. apply RReds.AbsCong. apply RReds.AppCong; auto using rtc_refl.
     by eauto using RReds.renaming.
@@ -645,11 +651,39 @@ Proof.
 
     case : b ih0 ih1 => //=.
     + move => p ih0 ih1 _.
-      inversion ih1; subst.
-
-    (* Violates SN *)
+      set q := PAbs _.
+      suff : rtc RRed.R q (PAbs p) by sfirstorder.
+      subst q.
+      apply : rtc_r.
+      apply RReds.AbsCong. apply RReds.AppCong.
+      by eauto using RReds.renaming.
+      apply rtc_refl.
+      apply : RRed.AbsCong => /=.
+      apply RRed.AppAbs'. by asimpl.
+    (* violates SN *)
     + admit.
+  - move => n a0 a1 h.
+    move => [b [ih0 ih1]].
+    case /orP : (orNb (ishf b)).
+    exists (PPair (PProj PL b) (PProj PR b)).
+    split. sfirstorder use:RReds.PairCong,RReds.ProjCong.
+    hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
 
+    case : b ih0 ih1 => //=.
+    (* violates SN *)
+    + admit.
+    + move => t0 t1 ih0 h1 _.
+      exists (PPair t0 t1).
+      split => //=.
+      apply RReds.PairCong.
+      apply : rtc_r; eauto using RReds.ProjCong.
+      apply RRed.ProjPair.
+      apply : rtc_r; eauto using RReds.ProjCong.
+      apply RRed.ProjPair.
+  - move => n a0 a1 ha [b [ih0 ih1]].
+    best ctrs:rtc use:NeERed.R_nonelim use:RReds.AbsCong.
+
+Admitted.
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
   ERed'.R a0 a1 -> nf a0 -> ~~ ne a0 -> ne a1 ->
