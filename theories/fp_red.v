@@ -680,9 +680,27 @@ Proof.
       apply RRed.ProjPair.
       apply : rtc_r; eauto using RReds.ProjCong.
       apply RRed.ProjPair.
-  - move => n a0 a1 ha [b [ih0 ih1]].
-    best ctrs:rtc use:NeERed.R_nonelim use:RReds.AbsCong.
+  - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.AbsCong.
+  - move => n a0 a1 b0 b1 ha [a2 [iha0 iha1]] hb [b2 [ihb0 ihb1]].
+    case /orP : (orNb (ishf a2)) => [h|].
+    + exists (PApp a2 b2). split; first by eauto using RReds.AppCong.
+      hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
+    + case : a2 iha0 iha1 => //=.
+      * move => p h0 h1 _.
+        inversion h1; subst.
+        ** exists (PApp a2 b2).
+           split.
+           apply : rtc_r.
+           apply RReds.AppCong; eauto.
+           apply RRed.AppAbs'. by asimpl.
+           hauto lq:on ctrs:NeERed.R_nonelim.
+        ** hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.AppCong.
+      (* Impossible *)
+      * admit.
+  - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong.
+  - move => n p a0 a1 ha [a2 [iha0 iha1]].
 
+  - hauto lq:on ctrs:rtc, NeERed.R_nonelim.
 Admitted.
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
