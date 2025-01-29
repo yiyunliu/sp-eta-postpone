@@ -699,7 +699,23 @@ Proof.
       * admit.
   - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong.
   - move => n p a0 a1 ha [a2 [iha0 iha1]].
+    case /orP : (orNb (ishf a2)) => [h|].
+    exists (PProj p a2).
+    split.  eauto using RReds.ProjCong.
+    qauto l:on ctrs:NeERed.R_nonelim, NeERed.R_elim use:NeERed.R_nonelim_nothf.
 
+    case : a2 iha0 iha1 => //=.
+    + move => u iha0 iha1 _.
+      (* Impossible by SN *)
+      admit.
+    + move => u0 u1 iha0 iha1 _.
+      inversion iha1; subst.
+      * exists (PProj p a2). split.
+        apply : rtc_r.
+        apply RReds.ProjCong; eauto.
+        clear. hauto l:on inv:PTag.
+        hauto lq:on ctrs:NeERed.R_nonelim.
+      * hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.ProjCong.
   - hauto lq:on ctrs:rtc, NeERed.R_nonelim.
 Admitted.
 
