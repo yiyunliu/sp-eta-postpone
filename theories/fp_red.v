@@ -426,6 +426,12 @@ Module RPar.
     hauto q:on inv:option ctrs:R.
   Qed.
 
+  Lemma FromRRed n (a b : PTm n) :
+    RRed.R a b -> RPar.R a b.
+  Proof.
+    induction 1; qauto l:on use:RPar.refl ctrs:RPar.R.
+  Qed.
+
 End RPar.
 
 Lemma red_sn_preservation n :
@@ -788,6 +794,11 @@ Module SN_NoForbid : NoForbid.
   Proof. sfirstorder use:ered_sn_preservation. Qed.
 
   Lemma P_RRed : forall n (a b : PTm n), RRed.R a b -> P a -> P b.
+  Proof. hauto q:on use:red_sn_preservation, RPar.FromRRed. Qed.
+
+  Lemma P_AppPair : forall n (a b c : PTm n), ~ P (PApp (PPair a b) c).
+  Proof.
+
 
 Lemma bool_dec (a : bool) : a \/ ~~ a.
 Proof. hauto lq:on inv:bool. Qed.
