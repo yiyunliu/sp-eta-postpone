@@ -204,6 +204,55 @@ Proof.
   elim : n u / h => n //=; sauto.
 Qed.
 
+Lemma N_β' n a (b : PTm n) u :
+  u = (subst_PTm (scons b VarPTm) a) ->
+  SN b ->
+  TRedSN (PApp (PAbs a) b) u.
+Proof. move => ->. apply N_β. Qed.
+
+Lemma sn_renaming n :
+  (forall (a : PTm n) (s : SNe a), forall m (ξ : fin n -> fin m), SNe (ren_PTm ξ a)) /\
+  (forall (a : PTm n) (s : SN a), forall m (ξ : fin n -> fin m), SN (ren_PTm ξ a)) /\
+  (forall (a b : PTm n) (_ : TRedSN a b), forall m (ξ : fin n -> fin m), TRedSN (ren_PTm ξ a) (ren_PTm ξ b)).
+Proof.
+  move : n. apply sn_mutual => n; try qauto ctrs:SN, SNe, TRedSN depth:1.
+  move => a b ha iha m ξ /=.
+  apply N_β'. by asimpl. eauto.
+Qed.
+
+#[export]Hint Constructors SN SNe TRedSN : sn.
+
+Ltac2 rec solve_anti_ren () :=
+  let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
+  intro $x;
+  lazy_match! Constr.type (Control.hyp x) with
+  | fin ?x -> fin ?y => (ltac1:(case;qauto depth:2 db:sn))
+  | _ => solve_anti_ren ()
+  end.
+
+Ltac solve_anti_ren := ltac2:(Control.enter solve_anti_ren).
+
+Lemma sn_antirenaming n :
+  (forall (a : PTm n) (s : SNe a), forall m (ξ : fin m -> fin n) b, a = ren_PTm ξ b -> SNe b) /\
+  (forall (a : PTm n) (s : SN a), forall m (ξ : fin m -> fin n) b, a = ren_PTm ξ b -> SN b) /\
+  (forall (a b : PTm n) (_ : TRedSN a b), forall m (ξ : fin m -> fin n) a0,
+      a = ren_PTm ξ a0 -> exists b0, TRedSN a0 b0 /\ b = ren_PTm ξ b0).
+Proof.
+  move : n. apply sn_mutual => n; try solve_anti_ren.
+
+  move => a b ha iha m ξ []//= u u0 [+ ?]. subst.
+  case : u => //= => u [*]. subst.
+  spec_refl. eexists. split. apply N_β=>//. by asimpl.
+
+  move => a b hb ihb m ξ[]//= p p0 [? +]. subst.
+  case : p0 => //= p p0 [*]. subst.
+  spec_refl. by eauto with sn.
+
+  move => a b ha iha m ξ[]//= u u0 [? ]. subst.
+  case : u0 => //=. move => p p0 [*]. subst.
+  spec_refl. by eauto with sn.
+Qed.
+
 Lemma ered_sn_preservation n :
   (forall (a : PTm n) (s : SNe a), forall b, ERed.R a b -> SNe b) /\
   (forall (a : PTm n) (s : SN a), forall b, ERed.R a b -> SN b) /\
