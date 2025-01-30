@@ -324,7 +324,122 @@ Module RRed.
 
 End RRed.
 
+Module RPar.
+  Inductive R {n} : PTm n -> PTm n ->  Prop :=
+  (****************** Beta ***********************)
+  | AppAbs a0 a1 b0 b1 :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PApp (PAbs a0) b0)  (subst_PTm (scons b1 VarPTm) a1)
 
+  | ProjPair p a0 a1 b0 b1 :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PProj p (PPair a0 b0)) (if p is PL then a1 else b1)
+
+  (*************** Congruence ********************)
+  | AbsCong a0 a1 :
+    R a0 a1 ->
+    R (PAbs a0) (PAbs a1)
+  | AppCong a0 a1 b0 b1 :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PApp a0 b0) (PApp a1 b1)
+  | PairCong a0 a1 b0 b1 :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PPair a0 b0) (PPair a1 b1)
+  | ProjCong p a0 a1 :
+    R a0 a1 ->
+    R (PProj p a0) (PProj p a1)
+  | VarTm i :
+    R (VarPTm i) (VarPTm i).
+
+  Lemma refl n (a : PTm n) : R a a.
+  Proof.
+    elim : n / a; hauto lq:on ctrs:R.
+  Qed.
+
+  Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
+
+  Lemma AppAbs' n a0 a1 (b0 b1 : PTm n) u :
+    u = (subst_PTm (scons b1 VarPTm) a1) ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PApp (PAbs a0) b0)  u.
+  Proof. move => ->. apply AppAbs. Qed.
+
+  Lemma ProjPair' n p u (a0 a1 b0 b1 : PTm n) :
+    u = (if p is PL then a1 else b1) ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PProj p (PPair a0 b0)) u.
+  Proof. move => ->. apply ProjPair. Qed.
+
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ.
+    elim : n a b /h.
+
+    move => n a0 a1 b0 b1 ha iha hb ihb m ξ /=.
+    eapply AppAbs'; eauto. by asimpl.
+    all : qauto ctrs:R use:ProjPair'.
+  Qed.
+
+  Lemma morphing_ren n m p (ρ0 ρ1 : fin n -> PTm m) (ξ : fin m -> fin p) :
+    (forall i, R (ρ0 i) (ρ1 i)) ->
+    (forall i, R ((funcomp (ren_PTm ξ) ρ0) i) ((funcomp (ren_PTm ξ) ρ1) i)).
+  Proof. eauto using renaming. Qed.
+
+  Lemma morphing_ext n m (ρ0 ρ1 : fin n -> PTm m) a b  :
+    R a b ->
+    (forall i, R (ρ0 i) (ρ1 i)) ->
+    (forall i, R ((scons a ρ0) i) ((scons b ρ1) i)).
+  Proof. hauto q:on inv:option. Qed.
+
+  Lemma morphing_up n m (ρ0 ρ1 : fin n -> PTm m) :
+    (forall i, R (ρ0 i) (ρ1 i)) ->
+    (forall i, R (up_PTm_PTm ρ0 i) (up_PTm_PTm ρ1 i)).
+  Proof. hauto l:on ctrs:R use:morphing_ext, morphing_ren unfold:up_PTm_PTm. Qed.
+
+  Lemma morphing n m (a b : PTm n) (ρ0 ρ1 : fin n -> PTm m) :
+    (forall i, R (ρ0 i) (ρ1 i)) ->
+    R a b -> R (subst_PTm ρ0 a) (subst_PTm ρ1 b).
+  Proof.
+    move => + h. move : m ρ0 ρ1. elim : n a b / h => n.
+    move => a0 a1 b0 b1 ha iha hb ihb m ρ0 ρ1 hρ /=.
+    eapply AppAbs'; eauto; cycle 1. sfirstorder use:morphing_up.
+    by asimpl.
+    all : hauto lq:on ctrs:R use:morphing_up, ProjPair'.
+  Qed.
+
+  Lemma substing n m (a : PTm n) b (ρ : fin n -> PTm m) :
+    R a b ->
+    R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    hauto l:on use:morphing, refl.
+  Qed.
+
+End RPar.
+
+Lemma red_sn_preservation n :
+  (forall (a : PTm n) (s : SNe a), forall b, RPar.R a b -> SNe b) /\
+  (forall (a : PTm n) (s : SN a), forall b, RPar.R a b -> SN b) /\
+  (forall (a b : PTm n) (_ : TRedSN a b), forall c, RPar.R a c -> exists d, TRedSN' c d /\ RPar.R b d).
+Proof.
+  move : n. apply sn_mutual => n.
+  - hauto l:on inv:RPar.R.
+  - qauto l:on inv:RPar.R,SNe,SN ctrs:SNe.
+  - hauto lq:on inv:RPar.R, SNe ctrs:SNe.
+  - qauto l:on ctrs:SN inv:RPar.R.
+  - hauto lq:on ctrs:SN inv:RPar.R.
+  - hauto lq:on ctrs:SN.
+  - hauto q:on ctrs:SN inv:SN, TRedSN'.
+  -
+  - admit.
+  - sauto q:on.
+  -
 
 Function tstar {n} (a : PTm n) :=
   match a with
@@ -632,6 +747,26 @@ Module NeERed.
   Qed.
 
 End NeERed.
+
+Module Type NoForbid.
+  Parameter P : forall n, PTm n -> Prop.
+  Arguments P {n}.
+
+  Axiom P_ERed : forall n (a b : PTm n), ERed.R a b -> P a -> P b.
+  Axiom P_RRed : forall n (a b : PTm n), RRed.R a b -> P a -> P b.
+  Axiom P_AppPair : forall n (a b c : PTm n), ~ P (PApp (PPair a b) c).
+  Axiom P_ProjAbs : forall n p (a : PTm (S n)), ~ P (PProj p (PAbs a)).
+
+End NoForbid.
+
+Module SN_NoForbid : NoForbid.
+  Definition P := @SN.
+  Arguments P {n}.
+
+  Lemma P_ERed : forall n (a b : PTm n), ERed.R a b -> P a -> P b.
+  Proof. sfirstorder use:ered_sn_preservation. Qed.
+
+  Lemma P_RRed : forall n (a b : PTm n), RRed.R a b -> P a -> P b.
 
 Lemma bool_dec (a : bool) : a \/ ~~ a.
 Proof. hauto lq:on inv:bool. Qed.
