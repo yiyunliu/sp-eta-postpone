@@ -142,12 +142,31 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
+Lemma PProjAbs_imp n p (a : PTm (S n)) :
+  ~ SN (PProj p (PAbs a)).
+Proof.
+  move E : (PProj p (PAbs a)) => u hu.
+  move : p a E.
+  elim : n u / hu=>//=.
+  hauto lq:on inv:SNe.
+  hauto lq:on inv:TRedSN.
+Qed.
+
+Lemma PProjPair_imp n (a b0 b1 : PTm n ) :
+  ~ SN (PApp (PPair b0 b1) a).
+Proof.
+  move E : (PApp (PPair b0 b1) a) => u hu.
+  move : a b0 b1 E.
+  elim : n u / hu=>//=.
+  hauto lq:on inv:SNe.
+  hauto lq:on inv:TRedSN.
+Qed.
+
 Scheme sne_ind := Induction for SNe Sort Prop
   with sn_ind := Induction for SN Sort Prop
   with sred_ind := Induction for TRedSN Sort Prop.
 
 Combined Scheme sn_mutual from sne_ind, sn_ind, sred_ind.
-
 
 Fixpoint ne {n} (a : PTm n) :=
   match a with
@@ -797,8 +816,12 @@ Module SN_NoForbid : NoForbid.
   Proof. hauto q:on use:red_sn_preservation, RPar.FromRRed. Qed.
 
   Lemma P_AppPair : forall n (a b c : PTm n), ~ P (PApp (PPair a b) c).
-  Proof.
+  Proof. sfirstorder use:PProjPair_imp. Qed.
 
+  Lemma P_ProjAbs : forall n p (a : PTm (S n)), ~ P (PProj p (PAbs a)).
+  Proof. sfirstorder use:PProjAbs_imp. Qed.
+
+End SN_NoForbid.
 
 Lemma bool_dec (a : bool) : a \/ ~~ a.
 Proof. hauto lq:on inv:bool. Qed.
@@ -904,6 +927,8 @@ Proof.
   - sfirstorder b:on.
   - scongruence b:on.
 Qed.
+
+
 
 Lemma η_nf'' n (a b : PTm n) : ERed'.R a b -> nf b -> nf a \/ rtc RRed.R a b.
 Proof.
