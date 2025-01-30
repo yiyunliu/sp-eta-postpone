@@ -96,13 +96,6 @@ Module ERed.
     all : hauto lq:on ctrs:R use:morphing_up.
   Qed.
 
-  Lemma substing n m (a : PTm n) b (ρ : fin n -> PTm m) :
-    R a b ->
-    R (subst_PTm ρ a) (subst_PTm ρ b).
-  Proof.
-    hauto l:on use:morphing, refl.
-  Qed.
-
 End ERed.
 
 Inductive SNe {n} : PTm n -> Prop :=
@@ -146,6 +139,8 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
 | N_ProjCong p a b :
   TRedSN a b ->
   TRedSN (PProj p a) (PProj p b).
+
+Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
 Scheme sne_ind := Induction for SNe Sort Prop
   with sn_ind := Induction for SN Sort Prop
@@ -421,6 +416,16 @@ Module RPar.
     hauto l:on use:morphing, refl.
   Qed.
 
+
+  Lemma cong n (a0 a1 : PTm (S n)) b0 b1  :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (subst_PTm (scons b0 VarPTm) a0) (subst_PTm (scons b1 VarPTm) a1).
+  Proof.
+    move => h0 h1. apply morphing=>//.
+    hauto q:on inv:option ctrs:R.
+  Qed.
+
 End RPar.
 
 Lemma red_sn_preservation n :
@@ -436,10 +441,26 @@ Proof.
   - hauto lq:on ctrs:SN inv:RPar.R.
   - hauto lq:on ctrs:SN.
   - hauto q:on ctrs:SN inv:SN, TRedSN'.
-  -
-  - admit.
-  - sauto q:on.
-  -
+  - move => a b ha iha hb ihb.
+    elim /RPar.inv : ihb => //=_.
+    + move => a0 a1 b0 b1 ha0 hb0 [*]. subst.
+      eauto using RPar.cong, T_Refl.
+    + move => a0 a1 b0 b1 h0 h1 [*]. subst.
+      elim /RPar.inv : h0 => //=_.
+      move => a0 a2 h [*]. subst.
+      eexists. split. apply T_Once. hauto lq:on ctrs:TRedSN.
+      eauto using RPar.cong.
+  - move => a0 a1 b ha iha c.
+    elim /RPar.inv => //=_.
+    + qauto l:on inv:TRedSN.
+    + move => a2 a3 b0 b1 h0 h1 [*]. subst.
+      have {}/iha := h0.
+      move => [d [iha0 iha1]].
+      hauto lq:on rew:off inv:TRedSN' ctrs:TRedSN, RPar.R, TRedSN'.
+  - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
+  - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
+  - sauto.
+Qed.
 
 Function tstar {n} (a : PTm n) :=
   match a with
