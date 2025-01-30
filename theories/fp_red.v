@@ -578,34 +578,6 @@ Module ERed'.
     (forall i, R ((funcomp (ren_PTm ξ) ρ0) i) ((funcomp (ren_PTm ξ) ρ1) i)).
   Proof. eauto using renaming. Qed.
 
-  (* Lemma morphing_ext n m (ρ0 ρ1 : fin n -> PTm m) a b  : *)
-  (*   R a b -> *)
-  (*   (forall i, R (ρ0 i) (ρ1 i)) -> *)
-  (*   (forall i, R ((scons a ρ0) i) ((scons b ρ1) i)). *)
-  (* Proof. hauto q:on inv:option. Qed. *)
-
-  (* Lemma morphing_up n m (ρ0 ρ1 : fin n -> PTm m) : *)
-  (*   (forall i, R (ρ0 i) (ρ1 i)) -> *)
-  (*   (forall i, R (up_PTm_PTm ρ0 i) (up_PTm_PTm ρ1 i)). *)
-  (* Proof. hauto l:on ctrs:R use:morphing_ext, morphing_ren unfold:up_PTm_PTm. Qed. *)
-
-  (* Lemma morphing n m (a b : PTm n) (ρ0 ρ1 : fin n -> PTm m) : *)
-  (*   (forall i, R (ρ0 i) (ρ1 i)) -> *)
-  (*   R a b -> R (subst_PTm ρ0 a) (subst_PTm ρ1 b). *)
-  (* Proof. *)
-  (*   move => + h. move : m ρ0 ρ1. elim : n a b / h => n. *)
-  (*   move => a0 a1 ha iha m ρ0 ρ1 hρ /=. *)
-  (*   eapply AppEta'; eauto. by asimpl. *)
-  (*   all : hauto lq:on ctrs:R use:morphing_up. *)
-  (* Qed. *)
-
-  (* Lemma substing n m (a : PTm n) b (ρ : fin n -> PTm m) : *)
-  (*   R a b -> *)
-  (*   R (subst_PTm ρ a) (subst_PTm ρ b). *)
-  (* Proof. *)
-  (*   hauto l:on use:morphing, refl. *)
-  (* Qed. *)
-
 End ERed'.
 
 Module EReds.
@@ -806,6 +778,8 @@ Module Type NoForbid.
 
   Axiom P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
   Axiom P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
+  Axiom P_PairInv : forall n (a b : PTm n), P (PPair a b) -> P a /\ P b.
+  Axiom P_ProjInv : forall n p (a : PTm n), P (PProj p a) -> P a.
   Axiom P_renaming : forall n m (ξ : fin n -> fin m) a , P (ren_PTm ξ a) <-> P a.
 
 End NoForbid.
@@ -849,6 +823,13 @@ Module SN_NoForbid : NoForbid.
   Proof. sfirstorder use:PProjAbs_imp. Qed.
 
   Lemma P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
+  Admitted.
+
+  Lemma P_PairInv : forall n (a b : PTm n), P (PPair a b) -> P a /\ P b.
+    move => n a b. move E : (PPair a b) => u h.
+    move : a b E. elim : n u / h; sauto lq:on rew:off. Qed.
+
+  Lemma P_ProjInv : forall n p (a : PTm n), P (PProj p a) -> P a.
   Admitted.
 
   Lemma P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
@@ -906,7 +887,9 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
 
         move : P_RReds. repeat move/[apply] => /=.
         hauto l:on use:P_AppPair.
-    - move => n a0 a1 h.
+    - move => n a0 a1 h ih /[dup] hP.
+      move /P_PairInv => [/P_ProjInv + _].
+      move : ih => /[apply].
       move => [b [ih0 ih1]].
       case /orP : (orNb (ishf b)).
       exists (PPair (PProj PL b) (PProj PR b)).
@@ -915,7 +898,12 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
 
       case : b ih0 ih1 => //=.
       (* violates SN *)
-      + admit.
+      + move => p ?. exfalso.
+        have {}hP : P (PProj PL a0) by sfirstorder use:P_PairInv.
+        have : rtc RRed.R (PProj PL a0) (PProj PL (PAbs p))
+          by eauto using RReds.ProjCong.
+        move : P_RReds hP. repeat move/[apply] => /=.
+        sfirstorder use:P_ProjAbs.
       + move => t0 t1 ih0 h1 _.
         exists (PPair t0 t1).
         split => //=.
@@ -924,8 +912,11 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         apply RRed.ProjPair.
         apply : rtc_r; eauto using RReds.ProjCong.
         apply RRed.ProjPair.
-    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.AbsCong.
-    - move => n a0 a1 b0 b1 ha [a2 [iha0 iha1]] hb [b2 [ihb0 ihb1]].
+    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.AbsCong, P_AbsInv.
+    - move => n a0 a1 b0 b1 ha iha hb ihb.
+      move => /[dup] hP /P_AppInv [hP0 hP1].
+      have {iha} [a2 [iha0 iha1]]  := iha hP0.
+      have {ihb} [b2 [ihb0 ihb1]]  := ihb hP1.
       case /orP : (orNb (ishf a2)) => [h|].
       + exists (PApp a2 b2). split; first by eauto using RReds.AppCong.
         hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
@@ -940,18 +931,25 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
              hauto lq:on ctrs:NeERed.R_nonelim.
           ** hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.AppCong.
         (* Impossible *)
-        * admit.
-    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong.
-    - move => n p a0 a1 ha [a2 [iha0 iha1]].
+        * move => u0 u1 h. exfalso.
+          have : rtc RRed.R (PApp a0 b0) (PApp (PPair u0 u1) b0)
+            by hauto lq:on ctrs:rtc use:RReds.AppCong.
+          move : P_RReds hP; repeat move/[apply].
+          sfirstorder use:P_AppPair.
+    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong, P_PairInv.
+    - move => n p a0 a1 ha ih /[dup] hP /P_ProjInv.
+      move : ih => /[apply]. move => [a2 [iha0 iha1]].
       case /orP : (orNb (ishf a2)) => [h|].
       exists (PProj p a2).
       split.  eauto using RReds.ProjCong.
       qauto l:on ctrs:NeERed.R_nonelim, NeERed.R_elim use:NeERed.R_nonelim_nothf.
 
       case : a2 iha0 iha1 => //=.
-      + move => u iha0 iha1 _.
-        (* Impossible by SN *)
-        admit.
+      + move => u iha0. exfalso.
+        have : rtc RRed.R (PProj p a0) (PProj p (PAbs u))
+          by sfirstorder use:RReds.ProjCong ctrs:rtc.
+        move : P_RReds hP. repeat move/[apply].
+        sfirstorder use:P_ProjAbs.
       + move => u0 u1 iha0 iha1 _.
         inversion iha1; subst.
         * exists (PProj p a2). split.
@@ -961,12 +959,9 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           hauto lq:on ctrs:NeERed.R_nonelim.
         * hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.ProjCong.
     - hauto lq:on ctrs:rtc, NeERed.R_nonelim.
-  Admitted.
-
-
+  Qed.
 
 End UniqueNF.
-
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
   ERed'.R a0 a1 -> nf a0 -> ~~ ne a0 -> ne a1 ->
@@ -986,309 +981,3 @@ Proof.
   - sfirstorder b:on.
   - scongruence b:on.
 Qed.
-
-
-
-Lemma η_nf'' n (a b : PTm n) : ERed'.R a b -> nf b -> nf a \/ rtc RRed.R a b.
-Proof.
-  move => h.
-  elim : n a b / h.
-  - move => n a.
-    case : a => //=.
-    * tauto.
-    * move => p hp. right.
-      apply rtc_once.
-      apply RRed.AbsCong.
-      apply RRed.AppAbs'. by asimpl.
-    * hauto lb:on use:ne_nf_ren.
-    * move => p p0 /andP [h0 h1].
-      right.
-      (* violates SN *)
-      admit.
-    * move => p u h.
-      hauto lb:on use:ne_nf_ren.
-  - move => n a ha.
-    case : a ha => //=.
-    * tauto.
-    * move => p hp. right.
-      (* violates SN *)
-      admit.
-    * sfirstorder b:on.
-    * hauto lq:on ctrs:rtc,RRed.R.
-    * qauto b:on.
-  - move => n a0 a1 ha h0 /= h1.
-    specialize h0 with (1 := h1).
-    case : h0. tauto.
-    eauto using RReds.AbsCong.
-  - move => n a0 a1 b ha h /= /andP [h0 h1].
-    have h2 : nf a1 by sfirstorder use:ne_nf.
-    have {}h := h h2.
-    case : h => h.
-    + have : ne a0 \/ ~~ ne a0 by sauto lq:on.
-      case; first by sfirstorder b:on.
-      move : η_nf_to_ne (ha) h h0; repeat move/[apply].
-      case => ?; subst.
-      * simpl.
-        right.
-        apply rtc_once.
-        apply : RRed.AppAbs'.
-        by asimpl.
-      * simpl.
-        (* violates SN *)
-        admit.
-    + right.
-      hauto lq:on ctrs:rtc use:RReds.AppCong.
-  - move => n a b0 b1 h h0 /=.
-    move /andP => [h1 h2].
-    have {h0} := h0 h2.
-    case => h3.
-    + sfirstorder b:on.
-    + right.
-      hauto lq:on ctrs:rtc use:RReds.AppCong.
-  - hauto lqb:on drew:off use:RReds.PairCong.
-  - hauto lqb:on drew:off use:RReds.PairCong.
-  - move => n p a0 a1 h0 h1 h2.
-    simpl in h2.
-    have : nf a1 by sfirstorder use:ne_nf.
-    move : h1 => /[apply].
-    case=> h.
-    + have : ne a0 \/ ~~ ne a0 by sauto lq:on.
-      case;first by tauto.
-      move : η_nf_to_ne (h0) h h2; repeat move/[apply].
-      case => ?. subst => //=.
-      * right.
-        (* violates SN *)
-        admit.
-      * right.
-        subst.
-        apply rtc_once.
-        sauto lq:on rew:off ctrs:RRed.R.
-    + hauto lq:on use:RReds.ProjCong.
-Admitted.
-
-Lemma η_nf' n (a b : PTm n) : ERed'.R a b -> rtc ERed'.R (tstar a) (tstar b).
-Proof.
-  move => h.
-  elim : n a b /h.
-  - move => n a /=.
-    set p := (X in (PAbs X)).
-    have : (exists a1, ren_PTm shift a = PAbs a1 /\ p = subst_PTm (scons (VarPTm var_zero) VarPTm) (tstar a1)) \/
-             p = PApp (tstar (ren_PTm shift a)) (VarPTm var_zero) by hauto lq:on rew:off.
-    case.
-    + move => [a2 [+]].
-      subst p.
-      case : a   => //=.
-      move => p [h0]  . subst => _.
-      rewrite TStar.renaming. asimpl.
-      sfirstorder.
-    + move => ->.
-      rewrite TStar.renaming.
-      hauto lq:on ctrs:ERed'.R, rtc.
-  - move => n a.
-    case : (tstar_proj n a).
-    + move => [_ h].
-      rewrite TStar.pair.
-      rewrite !h.
-      hauto lq:on ctrs:ERed'.R, rtc.
-    + move => [a2][b0][?]. subst.
-      move => h.
-      rewrite TStar.pair.
-      rewrite !h.
-      sfirstorder.
-  - (* easy *)
-    eauto using EReds.AbsCong.
-    (* hard application cases *)
-  - admit.
-  - admit.
-  (* Trivial congruence cases *)
-  - move => n a0 a1 b ha iha.
-    hauto lq:on ctrs:rtc use:EReds.PairCong.
-  - hauto lq:on ctrs:rtc use:EReds.PairCong.
-  (* hard projection cases *)
-  - move => n p a0 a1 h0 h1.
-    case : (tstar_proj n a0).
-    + move => [ha0 ->].
-      case : (tstar_proj n a1).
-      * move => [ha1 ->].
-        (* Trivial by proj cong *)
-        hauto lq:on use:EReds.ProjCong.
-      * move => [a2][b0][?]. subst.
-        move => ->.
-        elim /ERed'.inv : h0 => //_.
-        ** move => a1 a3 ? *. subst.
-           (* Contradiction *)
-           admit.
-        ** hauto lqb:on.
-        ** hauto lqb:on.
-        ** hauto lqb:on.
-    + move => [a2][b0][?] ->. subst.
-      case : (tstar_proj n a1).
-      * move => [ha1 ->].
-        simpl in h1.
-        inversion h0; subst.
-        ** hauto lq:on.
-        ** hauto lqb:on.
-        ** hauto lqb:on.
-      * move => [a0][b1][?]. subst => ->.
-        rewrite !TStar.pair in h1.
-        inversion h0; subst.
-        ** admit.
-        ** best.
-
-Lemma η_nf n (a b : PTm n) : ERed.R a b -> ERed.R (tstar a) (tstar b).
-Proof.
-  move => h.
-  elim : n a b /h.
-  - move => n a0 a1 h h0 /=.
-    set p := (X in (PAbs X)).
-    have : (exists a1, ren_PTm shift a0 = PAbs a1 /\ p = subst_PTm (scons (VarPTm var_zero) VarPTm) (tstar a1)) \/
-             p = PApp (tstar (ren_PTm shift a0)) (VarPTm var_zero) by hauto lq:on rew:off.
-    case.
-    + move => [a2 [+]].
-      subst p.
-      case : a0 h h0  => //=.
-      move => p h0 h1 [?]. subst => _.
-      rewrite TStar.renaming. by asimpl.
-    + move => ->.
-      rewrite TStar.renaming.
-      hauto lq:on ctrs:ERed.R.
-  - move => n a0 a1 ha iha.
-    case : (tstar_proj n a0).
-    + move => [_ h].
-      change (tstar (PPair (PProj PL a0) (PProj PR a0))) with
-        (PPair (tstar (PProj PL a0)) (tstar (PProj PR a0))).
-      rewrite !h.
-      hauto lq:on ctrs:ERed.R.
-    + move => [a2][b0][?]. subst.
-      move => h.
-      rewrite TStar.pair.
-      rewrite !h.
-      sfirstorder.
-  - hauto lq:on ctrs:ERed.R.
-  - admit.
-  - hauto lq:on ctrs:ERed.R.
-  - move => n p a0 a1 h0 h1.
-    case : (tstar_proj n a0).
-    + move => [ha0 ->].
-      case : (tstar_proj n a1).
-      * move => [ha1 ->].
-        hauto lq:on ctrs:ERed.R.
-      * move => [a2][b0][?]. subst.
-        move => ->.
-        elim /ERed.inv : h0 => //_.
-        ** move => a1 a3 ? *. subst.
-           (* Contradiction *)
-           admit.
-        ** hauto lqb:on.
-        ** hauto lqb:on.
-    + move => [a2][b0][?] ->. subst.
-      case : (tstar_proj n a1).
-      * move => [ha1 ->].
-        inversion h0; subst.
-        ** admit.
-        ** scongruence.
-      * move => [a0][b1][?]. subst => ->.
-        rewrite !TStar.pair in h1.
-        inversion h1; subst.
-        **
-        ** hauto lq:on.
-
-
-
-
-  move : b.
-  apply tstar_ind => {}n {}a => //=.
-  - hauto lq:on ctrs:ERed.R inv:ERed.R.
-  - move => a0 ? ih. subst.
-    move => b hb.
-    elim /ERed.inv : hb => //=_.
-    + move => a1 a2 ha [*]. subst.
-      simpl.
-      case : a1 ih ha => //=.
-
-
-  - move => a0 ? ih u. subst.
-    elim /ERed.inv => //=_.
-    + move => a1 a2 h [? ?]. subst.
-      have : ERed.R (PApp (ren_PTm shift a1) (VarPTm var_zero)) (PApp (ren_PTm shift u) (VarPTm var_zero))
-        by hauto lq:on ctrs:ERed.R use:ERed.renaming.
-      move /ih.
-
-      move => h0. simpl.
-
-  move => h.
-  elim : n a b /h => n.
-  - move => a0 a1 ha iha.
-    simpl.
-    move => h.
-    move /iha : (h) {iha}.
-    move : ha. clear. best.
-    clear.
-  - sfirstorder.
-  -
-
-
-Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b -> RRed.R a c ->
-                                ERed.R c b.
-Proof.
-  move => h. move : c.
-  elim : n a b /h=>//=n.
-  - move => a0 a1 ha iha u hu.
-    elim /RRed.inv => //= _.
-    move => a2 a3 h [*]. subst.
-    elim / RRed.inv : h => //_.
-    + move => a2 b0 [h0 h1 h2]. subst.
-      case : a0 h0 ha iha =>//=.
-      move => u [?] ha iha. subst.
-      by asimpl.
-    + move => a2 b4 b0 h [*]. subst.
-      move /RRed.antirenaming : h.
-      hauto lq:on ctrs:ERed.R.
-    + move => a2 b0 b1 h [*]. subst.
-      inversion h.
-  - move => a0 b0 a1 ha iha hb ihb u hu.
-    elim /RRed.inv => //=_.
-    + move => a2 a3 b1 h0 [*]. subst.
-      elim /RRed.inv : h0 => //=_.
-      * move => p a2 b1 [*]. subst.
-        elim /ERed.inv : ha => //=_.
-        ** sauto lq:on.
-        ** move => a0 a2 b2 b3 h h' [*]. subst.
-
-
-Lemma η_nf n (a b c : PTm n) : ERed.R a b -> nf b -> RRed.R a c ->
-                              ERed.R a c.
-Proof.
-  move => h. move : c.
-  elim : n a b /h=>//=.
-  - move => n A a0 a1 ha iha c ha1.
-    elim /RRed.inv => //=_.
-    move => A0 a2 a3 hr [*]. subst.
-    set u := a0 in hr *.
-    set q := a3 in hr *.
-    elim / RRed.inv : hr => //_.
-    + move => A0 a2 b0 [h0] h1 h2. subst.
-      subst u q.
-      rewrite h0. apply ERed.AppEta.
-      subst.
-      case : a0 ha iha h0 => //= B a ha iha [*]. subst.
-      asimpl.
-      admit.
-    + subst u q.
-      move => a2 a4 b0 hr [*]. subst.
-      move /RRed.antirenaming : hr => [b0 [h0 h1]]. subst.
-      hauto lq:on ctrs:ERed.R use:ERed.renaming.
-    + subst u q.
-      move => a2 b0 b1 h [*]. subst.
-      inversion h.
-  - move => n a0 a1 ha iha v hv.
-    elim /RRed.inv => //=_.
-    + move => a2 a3 b0 h [*]. subst.
-      elim /RRed.inv : h => //=_.
-      * move => p a2 b0 [*]. subst.
-        elim /ERed.inv : ha=>//= _.
-        move => a0 a2 h [*]. subst.
-        best.
-        apply ERed.PairEta.
-
-  -
