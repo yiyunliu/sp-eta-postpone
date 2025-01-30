@@ -1,5 +1,6 @@
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
+
 Import Ltac2.Control.
 Require Import ssreflect ssrbool.
 Require Import FunInd.
@@ -803,7 +804,33 @@ Module Type NoForbid.
   Axiom P_AppPair : forall n (a b c : PTm n), ~ P (PApp (PPair a b) c).
   Axiom P_ProjAbs : forall n p (a : PTm (S n)), ~ P (PProj p (PAbs a)).
 
+  Axiom P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
+  Axiom P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
+  Axiom P_renaming : forall n m (ξ : fin n -> fin m) a , P (ren_PTm ξ a) <-> P a.
+
 End NoForbid.
+
+Module Type NoForbid_FactSig (M : NoForbid).
+
+  Axiom P_EReds : forall n (a b : PTm n), rtc ERed.R a b -> M.P a -> M.P b.
+
+  Axiom P_RReds : forall n (a b : PTm n), rtc RRed.R a b -> M.P a -> M.P b.
+
+End NoForbid_FactSig.
+
+Module NoForbid_Fact (M : NoForbid) : NoForbid_FactSig M.
+  Import M.
+
+  Lemma P_EReds : forall n (a b : PTm n), rtc ERed.R a b -> P a -> P b.
+  Proof.
+    induction 1; eauto using P_ERed, rtc_l, rtc_refl.
+  Qed.
+
+  Lemma P_RReds : forall n (a b : PTm n), rtc RRed.R a b -> P a -> P b.
+  Proof.
+    induction 1; eauto using P_RRed, rtc_l, rtc_refl.
+  Qed.
+End NoForbid_Fact.
 
 Module SN_NoForbid : NoForbid.
   Definition P := @SN.
@@ -821,93 +848,125 @@ Module SN_NoForbid : NoForbid.
   Lemma P_ProjAbs : forall n p (a : PTm (S n)), ~ P (PProj p (PAbs a)).
   Proof. sfirstorder use:PProjAbs_imp. Qed.
 
+  Lemma P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
+  Admitted.
+
+  Lemma P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
+  Proof.
+    move => n a. move E : (PAbs a) => u h.
+    move : E. move : a.
+    induction h; sauto lq:on rew:off.
+  Qed.
+
+  Lemma P_renaming : forall n m (ξ : fin n -> fin m) a , P (ren_PTm ξ a) <-> P  a.
+  Admitted.
+
 End SN_NoForbid.
 
-Lemma bool_dec (a : bool) : a \/ ~~ a.
-Proof. hauto lq:on inv:bool. Qed.
+Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
+  Import M MFacts.
+  #[local]Hint Resolve P_ERed P_RRed P_AppPair P_ProjAbs : forbid.
 
-Lemma η_split n (a0 a1 : PTm n) :
-  ERed.R a0 a1 ->
-  exists b, rtc RRed.R a0 b /\ NeERed.R_nonelim b a1.
-Proof.
-  move => h. elim : n a0 a1 /h .
-  - move => n a0 a1 ha [b [ih0 ih1]].
-    case /orP : (orNb (ishf b)).
-    exists (PAbs (PApp (ren_PTm shift b) (VarPTm var_zero))).
-    split. apply RReds.AbsCong. apply RReds.AppCong; auto using rtc_refl.
-    by eauto using RReds.renaming.
-    apply NeERed.AppEta=>//.
-    sfirstorder use:NeERed.R_nonelim_nothf.
-
-    case : b ih0 ih1 => //=.
-    + move => p ih0 ih1 _.
-      set q := PAbs _.
-      suff : rtc RRed.R q (PAbs p) by sfirstorder.
-      subst q.
-      apply : rtc_r.
-      apply RReds.AbsCong. apply RReds.AppCong.
+  Lemma η_split n (a0 a1 : PTm n) :
+    ERed.R a0 a1 ->
+    P a0 ->
+    exists b, rtc RRed.R a0 b /\ NeERed.R_nonelim b a1.
+  Proof.
+    move => h. elim : n a0 a1 /h .
+    - move => n a0 a1 ha ih /[dup] hP.
+      move /P_AbsInv /P_AppInv => [/P_renaming ha0 _].
+      have {ih} := ih ha0.
+      move => [b [ih0 ih1]].
+      case /orP : (orNb (ishf b)).
+      exists (PAbs (PApp (ren_PTm shift b) (VarPTm var_zero))).
+      split. apply RReds.AbsCong. apply RReds.AppCong; auto using rtc_refl.
       by eauto using RReds.renaming.
-      apply rtc_refl.
-      apply : RRed.AbsCong => /=.
-      apply RRed.AppAbs'. by asimpl.
-    (* violates SN *)
-    + admit.
-  - move => n a0 a1 h.
-    move => [b [ih0 ih1]].
-    case /orP : (orNb (ishf b)).
-    exists (PPair (PProj PL b) (PProj PR b)).
-    split. sfirstorder use:RReds.PairCong,RReds.ProjCong.
-    hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
+      apply NeERed.AppEta=>//.
+      sfirstorder use:NeERed.R_nonelim_nothf.
 
-    case : b ih0 ih1 => //=.
-    (* violates SN *)
-    + admit.
-    + move => t0 t1 ih0 h1 _.
-      exists (PPair t0 t1).
-      split => //=.
-      apply RReds.PairCong.
-      apply : rtc_r; eauto using RReds.ProjCong.
-      apply RRed.ProjPair.
-      apply : rtc_r; eauto using RReds.ProjCong.
-      apply RRed.ProjPair.
-  - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.AbsCong.
-  - move => n a0 a1 b0 b1 ha [a2 [iha0 iha1]] hb [b2 [ihb0 ihb1]].
-    case /orP : (orNb (ishf a2)) => [h|].
-    + exists (PApp a2 b2). split; first by eauto using RReds.AppCong.
-      hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
-    + case : a2 iha0 iha1 => //=.
-      * move => p h0 h1 _.
-        inversion h1; subst.
-        ** exists (PApp a2 b2).
-           split.
-           apply : rtc_r.
-           apply RReds.AppCong; eauto.
-           apply RRed.AppAbs'. by asimpl.
-           hauto lq:on ctrs:NeERed.R_nonelim.
-        ** hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.AppCong.
-      (* Impossible *)
-      * admit.
-  - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong.
-  - move => n p a0 a1 ha [a2 [iha0 iha1]].
-    case /orP : (orNb (ishf a2)) => [h|].
-    exists (PProj p a2).
-    split.  eauto using RReds.ProjCong.
-    qauto l:on ctrs:NeERed.R_nonelim, NeERed.R_elim use:NeERed.R_nonelim_nothf.
-
-    case : a2 iha0 iha1 => //=.
-    + move => u iha0 iha1 _.
-      (* Impossible by SN *)
-      admit.
-    + move => u0 u1 iha0 iha1 _.
-      inversion iha1; subst.
-      * exists (PProj p a2). split.
+      case : b ih0 ih1 => //=.
+      + move => p ih0 ih1 _.
+        set q := PAbs _.
+        suff : rtc RRed.R q (PAbs p) by sfirstorder.
+        subst q.
         apply : rtc_r.
-        apply RReds.ProjCong; eauto.
-        clear. hauto l:on inv:PTag.
-        hauto lq:on ctrs:NeERed.R_nonelim.
-      * hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.ProjCong.
-  - hauto lq:on ctrs:rtc, NeERed.R_nonelim.
-Admitted.
+        apply RReds.AbsCong. apply RReds.AppCong.
+        by eauto using RReds.renaming.
+        apply rtc_refl.
+        apply : RRed.AbsCong => /=.
+        apply RRed.AppAbs'. by asimpl.
+      (* violates SN *)
+      + move => p p0 h. exfalso.
+        have : P (PApp (ren_PTm shift a0) (VarPTm var_zero))
+          by sfirstorder use:P_AbsInv.
+
+        have : rtc RRed.R (PApp (ren_PTm shift a0) (VarPTm var_zero))
+                 (PApp (ren_PTm shift (PPair p p0)) (VarPTm var_zero))
+          by hauto lq:on use:RReds.AppCong, RReds.renaming, rtc_refl.
+
+        move : P_RReds. repeat move/[apply] => /=.
+        hauto l:on use:P_AppPair.
+    - move => n a0 a1 h.
+      move => [b [ih0 ih1]].
+      case /orP : (orNb (ishf b)).
+      exists (PPair (PProj PL b) (PProj PR b)).
+      split. sfirstorder use:RReds.PairCong,RReds.ProjCong.
+      hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
+
+      case : b ih0 ih1 => //=.
+      (* violates SN *)
+      + admit.
+      + move => t0 t1 ih0 h1 _.
+        exists (PPair t0 t1).
+        split => //=.
+        apply RReds.PairCong.
+        apply : rtc_r; eauto using RReds.ProjCong.
+        apply RRed.ProjPair.
+        apply : rtc_r; eauto using RReds.ProjCong.
+        apply RRed.ProjPair.
+    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.AbsCong.
+    - move => n a0 a1 b0 b1 ha [a2 [iha0 iha1]] hb [b2 [ihb0 ihb1]].
+      case /orP : (orNb (ishf a2)) => [h|].
+      + exists (PApp a2 b2). split; first by eauto using RReds.AppCong.
+        hauto lq:on ctrs:NeERed.R_nonelim use:NeERed.R_nonelim_nothf.
+      + case : a2 iha0 iha1 => //=.
+        * move => p h0 h1 _.
+          inversion h1; subst.
+          ** exists (PApp a2 b2).
+             split.
+             apply : rtc_r.
+             apply RReds.AppCong; eauto.
+             apply RRed.AppAbs'. by asimpl.
+             hauto lq:on ctrs:NeERed.R_nonelim.
+          ** hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.AppCong.
+        (* Impossible *)
+        * admit.
+    - hauto lq:on ctrs:NeERed.R_nonelim use:RReds.PairCong.
+    - move => n p a0 a1 ha [a2 [iha0 iha1]].
+      case /orP : (orNb (ishf a2)) => [h|].
+      exists (PProj p a2).
+      split.  eauto using RReds.ProjCong.
+      qauto l:on ctrs:NeERed.R_nonelim, NeERed.R_elim use:NeERed.R_nonelim_nothf.
+
+      case : a2 iha0 iha1 => //=.
+      + move => u iha0 iha1 _.
+        (* Impossible by SN *)
+        admit.
+      + move => u0 u1 iha0 iha1 _.
+        inversion iha1; subst.
+        * exists (PProj p a2). split.
+          apply : rtc_r.
+          apply RReds.ProjCong; eauto.
+          clear. hauto l:on inv:PTag.
+          hauto lq:on ctrs:NeERed.R_nonelim.
+        * hauto lq:on ctrs:NeERed.R_nonelim,NeERed.R_elim use:RReds.ProjCong.
+    - hauto lq:on ctrs:rtc, NeERed.R_nonelim.
+  Admitted.
+
+
+
+End UniqueNF.
+
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
   ERed'.R a0 a1 -> nf a0 -> ~~ ne a0 -> ne a1 ->
