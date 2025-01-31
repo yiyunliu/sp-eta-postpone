@@ -129,6 +129,7 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
   SN b ->
   TRedSN (PApp (PAbs a) b) (subst_PTm (scons b VarPTm) a)
 | N_AppL a0 a1 b :
+  SN b ->
   TRedSN a0 a1 ->
   TRedSN (PApp a0 b) (PApp a1 b)
 | N_ProjPairL a b  :
@@ -142,6 +143,16 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
   TRedSN (PProj p a) (PProj p b).
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
+
+Inductive SNe' {n} : PTm n -> Prop :=
+| N_Var' i :
+  SNe' (VarPTm i)
+| N_App' a b :
+  SNe a ->
+  SNe' (PApp a b)
+| N_Proj' p a :
+  SNe a ->
+  SNe' (PProj p a).
 
 Lemma PProjAbs_imp n p (a : PTm (S n)) :
   ~ SN (PProj p (PAbs a)).
@@ -226,7 +237,7 @@ Ltac2 rec solve_anti_ren () :=
   let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
   intro $x;
   lazy_match! Constr.type (Control.hyp x) with
-  | fin ?x -> fin ?y => (ltac1:(case;qauto depth:2 db:sn))
+  | fin ?x -> _ ?y => (ltac1:(case;qauto depth:2 db:sn))
   | _ => solve_anti_ren ()
   end.
 
@@ -253,6 +264,57 @@ Proof.
   spec_refl. by eauto with sn.
 Qed.
 
+Lemma sn_unmorphing n :
+  (forall (a : PTm n) (s : SNe a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SNe b) /\
+  (forall (a : PTm n) (s : SN a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SN b) /\
+  (forall (a b : PTm n) (_ : TRedSN a b), forall m (ρ : fin m -> PTm n) a0,
+      a = subst_PTm ρ a0 -> (exists b0, b = subst_PTm ρ b0 /\ TRedSN a0 b0) \/ SNe a0).
+Proof.
+  move : n. apply sn_mutual => n; try solve_anti_ren.
+  - move => a b ha iha  m ξ b0.
+    case : b0 => //=.
+    + hauto lq:on rew:off db:sn.
+    + move => p p0 [+ ?]. subst.
+      case : p => //=.
+      hauto lq:on db:sn.
+      move => p [?]. subst.
+      asimpl. left.
+      spec_refl.
+      eexists. split; last by eauto using N_β.
+      by asimpl.
+  - move => a0 a1 b hb ihb ha iha m ρ []//=.
+    + hauto lq:on rew:off db:sn.
+    + move => t0  t1 [*]. subst.
+      spec_refl.
+      case : iha.
+      * move => [u [? hu]]. subst.
+        left. eexists. split; eauto using N_AppL.
+        reflexivity.
+      * move => h.
+        right.
+        apply N_App => //.
+  - move => a b hb ihb m ρ []//=.
+    + hauto l:on ctrs:TRedSN.
+    + move => p p0 [?]. subst.
+      case : p0 => //=.
+      * hauto lq:on rew:off db:sn.
+      * move => p p0 [*]. subst.
+        hauto lq:on db:sn.
+  - move => a b ha iha m ρ []//=; first by hauto l:on db:sn.
+    hauto q:on inv:PTm db:sn.
+  - move => p a b ha iha m ρ []//=; first by hauto l:on db:sn.
+    move => t0 t1 [*]. subst.
+    spec_refl.
+    case : iha.
+    + move => [b0 [? h]]. subst.
+      left. eexists. split; last by eauto with sn.
+      reflexivity.
+    + hauto lq:on db:sn.
+Qed.
+
+Lemma SN_AppInv : forall n (a b : PTm n), SN (PApp a b) -> SN a /\ SN b.
+Admitted.
+
 Lemma ered_sn_preservation n :
   (forall (a : PTm n) (s : SNe a), forall b, ERed.R a b -> SNe b) /\
   (forall (a : PTm n) (s : SN a), forall b, ERed.R a b -> SN b) /\
@@ -273,7 +335,8 @@ Proof.
       apply ERed.AppCong; eauto using ERed.refl.
       sfirstorder use:ERed.renaming.
       move /iha.
-      admit.
+      move /SN_AppInv => [+ _].
+      hauto l:on use:sn_antirenaming.
     + sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
@@ -308,7 +371,7 @@ Proof.
       sauto lq:on.
     + sauto lq:on.
   - sauto.
-Admitted.
+Qed.
 
 Module RRed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -525,7 +588,7 @@ Proof.
       move => a0 a2 h [*]. subst.
       eexists. split. apply T_Once. hauto lq:on ctrs:TRedSN.
       eauto using RPar.cong.
-  - move => a0 a1 b ha iha c.
+  - move => a0 a1 b hb ihb ha iha c.
     elim /RPar.inv => //=_.
     + qauto l:on inv:TRedSN.
     + move => a2 a3 b0 b1 h0 h1 [*]. subst.
@@ -872,7 +935,7 @@ Module SN_NoForbid : NoForbid.
   Proof. sfirstorder use:PProjAbs_imp. Qed.
 
   Lemma P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
-  Admitted.
+  Proof. sfirstorder use:SN_AppInv. Qed.
 
   Lemma P_PairInv : forall n (a b : PTm n), P (PPair a b) -> P a /\ P b.
     move => n a b. move E : (PPair a b) => u h.
