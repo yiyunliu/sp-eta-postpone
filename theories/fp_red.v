@@ -888,7 +888,7 @@ Module NeEPar.
   Lemma ToEPar : forall n, (forall (a b : PTm n), R_elim a b -> EPar.R a b) /\
                  (forall (a b : PTm n), R_nonelim a b -> EPar.R a b).
   Proof.
-    apply ered_mutual; qauto l:on ctrs:EPar.R.
+    apply epar_mutual; qauto l:on ctrs:EPar.R.
   Qed.
 
 End NeEPar.
@@ -1092,9 +1092,9 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
 
   Lemma eta_postponement n a b c :
     @P n a ->
-    ERed.R a b ->
+    EPar.R a b ->
     RRed.R b c ->
-    exists d, rtc RRed.R a d /\ ERed.R d c.
+    exists d, rtc RRed.R a d /\ EPar.R d c.
   Proof.
     move => + h.
     move : c.
@@ -1104,17 +1104,17 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
       move => [d [h0 h1]].
       exists  (PAbs (PApp (ren_PTm shift d) (VarPTm var_zero))).
       split. hauto lq:on rew:off ctrs:rtc use:RReds.AbsCong, RReds.AppCong, RReds.renaming.
-      hauto lq:on ctrs:ERed.R.
+      hauto lq:on ctrs:EPar.R.
     - move => n a0 a1 ha iha c /P_PairInv [/P_ProjInv + _].
       move /iha => /[apply].
       move => [d [h0 h1]].
       exists (PPair (PProj PL d) (PProj PR d)).
-      hauto lq:on ctrs:ERed.R use:RReds.PairCong, RReds.ProjCong.
+      hauto lq:on ctrs:EPar.R use:RReds.PairCong, RReds.ProjCong.
     - move => n a0 a1 ha iha c  /P_AbsInv /[swap].
       elim /RRed.inv => //=_.
       move => a2 a3 + [? ?]. subst.
       move : iha; repeat move/[apply].
-      hauto lq:on use:RReds.AbsCong ctrs:ERed.R.
+      hauto lq:on use:RReds.AbsCong ctrs:EPar.R.
     - move => n a0 a1 b0 b1 ha iha hb ihb c hP.
       elim /RRed.inv => //= _.
       + move => a2 b2 [*]. subst.
@@ -1125,7 +1125,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         inversion h1; subst.
         * inversion H0; subst.
           exists (subst_PTm (scons b0 VarPTm) a3).
-          split; last by scongruence use:ERed.morphing.
+          split; last by scongruence use:EPar.morphing.
           apply : relations.rtc_transitive.
           apply RReds.AppCong.
           eassumption.
@@ -1145,22 +1145,22 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           split.
           apply : rtc_r; last by apply RRed.AppAbs.
           hauto lq:on ctrs:rtc use:RReds.AppCong.
-          hauto l:on inv:option use:ERed.morphing,NeERed.ToERed.
+          hauto l:on inv:option use:EPar.morphing,NeEPar.ToEPar.
       + move => a2 a3 b2 ha2 [*]. subst.
         move : iha (ha2) {ihb} => /[apply].
         have : P a0 by sfirstorder use:P_AppInv.
         move /[swap]/[apply].
         move => [d [h0 h1]].
         exists (PApp d b0).
-        hauto lq:on ctrs:ERed.R, rtc use:RReds.AppCong.
+        hauto lq:on ctrs:EPar.R, rtc use:RReds.AppCong.
       + move => a2 b2 b3 hb2 [*]. subst.
         move {iha}.
         have : P b0 by sfirstorder use:P_AppInv.
         move : ihb hb2; repeat move /[apply].
-        hauto lq:on rew:off ctrs:ERed.R, rtc use:RReds.AppCong.
+        hauto lq:on rew:off ctrs:EPar.R, rtc use:RReds.AppCong.
     - move => n a0 a1 b0 b1 ha iha hb ihb c /P_PairInv [hP hP'].
       elim /RRed.inv => //=_;
-        hauto lq:on rew:off ctrs:ERed.R, rtc use:RReds.PairCong.
+        hauto lq:on rew:off ctrs:EPar.R, rtc use:RReds.PairCong.
     - move => n p a0 a1 ha iha c /[dup] hP /P_ProjInv hP'.
       elim / RRed.inv => //= _.
       + move => p0 a2 b0 [*]. subst.
@@ -1170,7 +1170,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         * qauto l:on ctrs:rtc use:RReds.ProjCong, P_ProjAbs, P_RReds.
         * inversion H0; subst.
           exists (if p is PL then a1 else b1).
-          split; last by scongruence use:NeERed.ToERed.
+          split; last by scongruence use:NeEPar.ToEPar.
           apply : relations.rtc_transitive.
           apply RReds.ProjCong; eauto.
           apply : rtc_l.
@@ -1183,22 +1183,22 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           apply RRed.ProjPair.
           apply rtc_once. apply RRed.ProjPair.
         * exists (if p is PL then a3 else b1).
-          split; last by hauto lq:on use:NeERed.ToERed.
+          split; last by hauto lq:on use:NeEPar.ToEPar.
           apply : relations.rtc_transitive.
           eauto using RReds.ProjCong.
           apply rtc_once.
           apply RRed.ProjPair.
       + move => p0 a2 a3 h0 [*]. subst.
         move : iha hP' h0;repeat move/[apply].
-        hauto lq:on ctrs:rtc, ERed.R use:RReds.ProjCong.
+        hauto lq:on ctrs:rtc, EPar.R use:RReds.ProjCong.
     - hauto lq:on inv:RRed.R.
   Qed.
 
   Lemma η_postponement_star n a b c :
     @P n a ->
-    ERed.R a b ->
+    EPar.R a b ->
     rtc RRed.R b c ->
-    exists d, rtc RRed.R a d /\ ERed.R d c.
+    exists d, rtc RRed.R a d /\ EPar.R d c.
   Proof.
     move => + + h. move : a.
     elim : b c / h.
@@ -1213,12 +1213,12 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
 
   Lemma η_postponement_star' n a b c :
     @P n a ->
-    ERed.R a b ->
+    EPar.R a b ->
     rtc RRed.R b c ->
-    exists d, rtc RRed.R a d /\ NeERed.R_nonelim d c.
+    exists d, rtc RRed.R a d /\ NeEPar.R_nonelim d c.
   Proof.
     move => h0 h1 h2.
-    have : exists d, rtc RRed.R a d /\ ERed.R d c by eauto using η_postponement_star.
+    have : exists d, rtc RRed.R a d /\ EPar.R d c by eauto using η_postponement_star.
     move => [d [h3 /η_split]].
     move /(_ ltac:(eauto using P_RReds)).
     sfirstorder use:@relations.rtc_transitive.
