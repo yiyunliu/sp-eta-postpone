@@ -313,7 +313,25 @@ Proof.
 Qed.
 
 Lemma SN_AppInv : forall n (a b : PTm n), SN (PApp a b) -> SN a /\ SN b.
-Admitted.
+Proof.
+  move => n a b. move E : (PApp a b) => u hu. move : a b E.
+  elim : n u /hu=>//=.
+  hauto lq:on rew:off inv:SNe db:sn.
+  move => n a b ha hb ihb a0 b0 ?. subst.
+  inversion ha; subst.
+  move {ihb}.
+  hecrush use:sn_unmorphing.
+  hauto lq:on db:sn.
+Qed.
+
+Lemma SN_ProjInv : forall n p (a : PTm n), SN (PProj p a) -> SN a.
+Proof.
+  move => n p a. move E : (PProj p a) => u hu.
+  move : p a E.
+  elim : n u / hu => //=.
+  hauto lq:on rew:off inv:SNe db:sn.
+  hauto lq:on rew:off inv:TRedSN db:sn.
+Qed.
 
 Lemma ered_sn_preservation n :
   (forall (a : PTm n) (s : SNe a), forall b, ERed.R a b -> SNe b) /\
@@ -942,7 +960,7 @@ Module SN_NoForbid : NoForbid.
     move : a b E. elim : n u / h; sauto lq:on rew:off. Qed.
 
   Lemma P_ProjInv : forall n p (a : PTm n), P (PProj p a) -> P a.
-  Admitted.
+  Proof. sfirstorder use:SN_ProjInv. Qed.
 
   Lemma P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
   Proof.
@@ -952,7 +970,7 @@ Module SN_NoForbid : NoForbid.
   Qed.
 
   Lemma P_renaming : forall n m (ξ : fin n -> fin m) a , P (ren_PTm ξ a) <-> P  a.
-  Admitted.
+  Proof. hauto lq:on use:sn_antirenaming, sn_renaming. Qed.
 
 End SN_NoForbid.
 
