@@ -1151,75 +1151,46 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         move => [d [h0 h1]].
         exists (PApp d b0).
         hauto lq:on ctrs:ERed.R, rtc use:RReds.AppCong.
-      + move => a2 b0 b1 hb [*]. subst.
-        sauto lq:on.
-    - move => n a b0 b1 hb ihb Γ c A hu hu'.
-      elim /RRed.inv : hu' => //=_.
-      + move => A0 a0 b2 [*]. subst.
-        admit.
-      + sauto lq:on.
-      + move => a0 b2 b3 hb0 [*]. subst.
-        have [? [? ]] : exists Γ  A, @Wt n Γ b0 A by hauto lq:on inv:Wt.
-        move : ihb hb0. repeat move/[apply].
-        move => [d [h0 h1]].
-        exists (PApp a d).
-        split. admit.
-        sauto lq:on.
-    - move => n a0 a1 b ha iha Γ u A hu.
+      + move => a2 b2 b3 hb2 [*]. subst.
+        move {iha}.
+        have : P b0 by sfirstorder use:P_AppInv.
+        move : ihb hb2; repeat move /[apply].
+        hauto lq:on rew:off ctrs:ERed.R, rtc use:RReds.AppCong.
+    - move => n a0 a1 b0 b1 ha iha hb ihb c /P_PairInv [hP hP'].
+      elim /RRed.inv => //=_;
+        hauto lq:on rew:off ctrs:ERed.R, rtc use:RReds.PairCong.
+    - move => n p a0 a1 ha iha c /[dup] hP /P_ProjInv hP'.
       elim / RRed.inv => //= _.
-      + move => a2 a3 b0 h [*]. subst.
-        have [? [? ]] : exists Γ  A, @Wt n Γ a0 A by hauto lq:on inv:Wt.
-        move : iha h. repeat move/[apply].
-        move => [d [h0 h1]].
-        exists (PPair d b).
-        split. admit.
-        sauto lq:on.
-      + move => a2 b0 b1 h [*]. subst.
-        sauto lq:on.
-    - move => n a b0 b1 hb ihb Γ c A hu.
-      elim / RRed.inv => //=_.
-      move => a0 a1 b2 ha [*]. subst.
-      + sauto lq:on.
-      + move => a0 b2 b3 hb0 [*]. subst.
-        have [? [? ]] : exists Γ  A, @Wt n Γ b0 A by hauto lq:on inv:Wt.
-        move : ihb hb0. repeat move/[apply].
-        move => [d [h0 h1]].
-        exists (PPair a d).
-        split. admit.
-        sauto lq:on.
-    - move => n p a0 a1 ha iha Γ u A hu.
-      elim / RRed.inv => //=_.
       + move => p0 a2 b0 [*]. subst.
-        inversion ha; subst.
-        * exfalso.
-          move : hu. clear. hauto q:on inv:Wt.
-        * exists (match p with
-             | PL => a2
-             | PR => b0
-             end).
-          split. apply : rtc_l.
+        move : η_split hP'  ha; repeat move/[apply].
+        move => [a1 [h0 h1]].
+        inversion h1; subst.
+        * qauto l:on ctrs:rtc use:RReds.ProjCong, P_ProjAbs, P_RReds.
+        * inversion H0; subst.
+          exists (if p is PL then a1 else b1).
+          split; last by scongruence use:NeERed.ToERed.
+          apply : relations.rtc_transitive.
+          apply RReds.ProjCong; eauto.
+          apply : rtc_l.
+          apply RRed.ProjCong.
+          apply RRed.PairCong0.
           apply RRed.ProjPair.
-          apply rtc_once. clear.
-          hauto lq:on use:RRed.ProjPair.
-          admit.
-        * eexists.
-          split. apply rtc_once.
+          apply : rtc_l.
+          apply RRed.ProjCong.
+          apply RRed.PairCong1.
           apply RRed.ProjPair.
-          admit.
-        * eexists.
-          split. apply rtc_once.
+          apply rtc_once. apply RRed.ProjPair.
+        * exists (if p is PL then a3 else b1).
+          split; last by hauto lq:on use:NeERed.ToERed.
+          apply : relations.rtc_transitive.
+          eauto using RReds.ProjCong.
+          apply rtc_once.
           apply RRed.ProjPair.
-          admit.
-      + move => p0 a2 a3 ha0 [*]. subst.
-        have [? [? ]] : exists Γ  A, @Wt n Γ a0 A by hauto lq:on inv:Wt.
-        move : iha ha0; repeat move/[apply].
-        move => [d [h0 h1]].
-        exists (PProj p d).
-        split.
-        admit.
-        sauto lq:on.
-  Admitted.
-
+      + move => p0 a2 a3 h0 [*]. subst.
+        move : iha hP' h0;repeat move/[apply].
+        hauto lq:on ctrs:rtc, ERed.R use:RReds.ProjCong.
+    - hauto lq:on inv:RRed.R.
+  Qed.
 
 End UniqueNF.
 
