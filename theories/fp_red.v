@@ -144,16 +144,6 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
-Inductive SNe' {n} : PTm n -> Prop :=
-| N_Var' i :
-  SNe' (VarPTm i)
-| N_App' a b :
-  SNe a ->
-  SNe' (PApp a b)
-| N_Proj' p a :
-  SNe a ->
-  SNe' (PProj p a).
-
 Lemma PProjAbs_imp n p (a : PTm (S n)) :
   ~ SN (PProj p (PAbs a)).
 Proof.
