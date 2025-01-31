@@ -1192,6 +1192,36 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto lq:on inv:RRed.R.
   Qed.
 
+  Lemma η_postponement_star n a b c :
+    @P n a ->
+    ERed.R a b ->
+    rtc RRed.R b c ->
+    exists d, rtc RRed.R a d /\ ERed.R d c.
+  Proof.
+    move => + + h. move : a.
+    elim : b c / h.
+    - sfirstorder.
+    - move => a0 a1 a2 ha ha' iha u hu hu'.
+      move : eta_postponement (hu) ha hu'; repeat move/[apply].
+      move => [d [h0 h1]].
+      have : P d by sfirstorder use:P_RReds.
+      move : iha h1; repeat move/[apply].
+      sfirstorder use:@relations.rtc_transitive.
+  Qed.
+
+  Lemma η_postponement_star' n a b c :
+    @P n a ->
+    ERed.R a b ->
+    rtc RRed.R b c ->
+    exists d, rtc RRed.R a d /\ NeERed.R_nonelim d c.
+  Proof.
+    move => h0 h1 h2.
+    have : exists d, rtc RRed.R a d /\ ERed.R d c by eauto using η_postponement_star.
+    move => [d [h3 /η_split]].
+    move /(_ ltac:(eauto using P_RReds)).
+    sfirstorder use:@relations.rtc_transitive.
+  Qed.
+
 End UniqueNF.
 
 Lemma η_nf_to_ne n (a0 a1 : PTm n) :
