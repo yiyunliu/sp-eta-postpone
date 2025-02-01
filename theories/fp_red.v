@@ -4,9 +4,9 @@ Import Ltac2.Notations.
 Import Ltac2.Control.
 Require Import ssreflect ssrbool.
 Require Import FunInd.
-Require Import Arith.Wf_nat.
+Require Import Arith.Wf_nat (well_founded_lt_compat).
 Require Import Psatz.
-From stdpp Require Import relations (rtc (..), rtc_once, rtc_r).
+From stdpp Require Import relations (rtc (..), rtc_once, rtc_r, sn).
 From Hammer Require Import Tactics.
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax.
 Require Import Btauto.
@@ -1438,4 +1438,35 @@ Module LoReds.
       have : ~~ ishf a by inversion h.
       hauto lq:on ctrs:LoRed.R.
   Qed.
+
 End LoReds.
+
+
+Fixpoint size_PTm {n} (a : PTm n) :=
+  match a with
+  | VarPTm _ => 1
+  | PAbs a => 1 + size_PTm a
+  | PApp a b => 1 + Nat.add (size_PTm a) (size_PTm b)
+  | PProj p a => 1 + size_PTm a
+  | PPair a b => 1 + Nat.add (size_PTm a) (size_PTm b)
+  end.
+
+Lemma size_PTm_ren n m (ξ : fin n -> fin m) a : size_PTm (ren_PTm ξ a) = size_PTm a.
+Proof.
+  move : m ξ. elim : n / a => //=; scongruence.
+Qed.
+
+#[export]Hint Rewrite size_PTm_ren : sizetm.
+
+Lemma ered_size {n} (a b : PTm n) :
+  ERed.R a b ->
+  size_PTm b < size_PTm a.
+Proof.
+  move => h. elim : n a b /h; hauto l:on rew:db:sizetm.
+Qed.
+
+Lemma ered_sn n (a : PTm n) : sn ERed.R a.
+Proof.
+  hauto lq:on rew:off use:size_PTm_ren, ered_size,
+          well_founded_lt_compat unfold:well_founded.
+Qed.
