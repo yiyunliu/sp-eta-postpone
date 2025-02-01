@@ -9,6 +9,8 @@ Require Import Psatz.
 From stdpp Require Import relations (rtc (..), rtc_once, rtc_r).
 From Hammer Require Import Tactics.
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax.
+Require Import Btauto.
+Require Import Cdcl.Itauto.
 
 Ltac2 spec_refl () :=
   List.iter
@@ -1317,3 +1319,123 @@ Module RERed.
   Qed.
 
 End RERed.
+
+Module LoRed.
+  Inductive R {n} : PTm n -> PTm n ->  Prop :=
+  (****************** Beta ***********************)
+  | AppAbs a b :
+    R (PApp (PAbs a) b)  (subst_PTm (scons b VarPTm) a)
+
+  | ProjPair p a b :
+    R (PProj p (PPair a b)) (if p is PL then a else b)
+
+  (*************** Congruence ********************)
+  | AbsCong a0 a1 :
+    R a0 a1 ->
+    R (PAbs a0) (PAbs a1)
+  | AppCong0 a0 a1 b :
+    ~~ ishf a0 ->
+    R a0 a1 ->
+    R (PApp a0 b) (PApp a1 b)
+  | AppCong1 a b0 b1 :
+    ne a ->
+    R b0 b1 ->
+    R (PApp a b0) (PApp a b1)
+  | PairCong0 a0 a1 b :
+    R a0 a1 ->
+    R (PPair a0 b) (PPair a1 b)
+  | PairCong1 a b0 b1 :
+    nf a ->
+    R b0 b1 ->
+    R (PPair a b0) (PPair a b1)
+  | ProjCong p a0 a1 :
+    ~~ ishf a0 ->
+    R a0 a1 ->
+    R (PProj p a0) (PProj p a1).
+
+  Lemma hf_preservation n (a b : PTm n) :
+    LoRed.R a b ->
+    ishf a ->
+    ishf b.
+  Proof.
+    move => h. elim : n a b /h=>//=.
+  Qed.
+
+End LoRed.
+
+Module LoReds.
+  Lemma hf_preservation n (a b : PTm n) :
+    rtc LoRed.R a b ->
+    ishf a ->
+    ishf b.
+  Proof.
+    induction 1; eauto using LoRed.hf_preservation.
+  Qed.
+
+  Lemma hf_ne_imp n (a b : PTm n) :
+    rtc LoRed.R a b ->
+    ne b ->
+    ~~ ishf a.
+  Proof.
+    move : hf_preservation. repeat move/[apply].
+    case : a; case : b => //=; itauto.
+  Qed.
+
+  #[local]Ltac solve_s_rec :=
+  move => *; eapply rtc_l; eauto;
+         hauto lq:on ctrs:LoRed.R, rtc use:hf_ne_imp.
+
+  #[local]Ltac solve_s :=
+    repeat (induction 1; last by solve_s_rec); (move => *; apply rtc_refl).
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    rtc LoRed.R a b ->
+    rtc LoRed.R (PAbs a) (PAbs b).
+  Proof. solve_s. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    rtc LoRed.R a0 a1 ->
+    rtc LoRed.R b0 b1 ->
+    ne a1 ->
+    rtc LoRed.R (PApp a0 b0) (PApp a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
+    rtc LoRed.R a0 a1 ->
+    rtc LoRed.R b0 b1 ->
+    nf a1 ->
+    rtc LoRed.R (PPair a0 b0) (PPair a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma ProjCong n p (a0 a1  : PTm n) :
+    rtc LoRed.R a0 a1 ->
+    ne a1 ->
+    rtc LoRed.R (PProj p a0) (PProj p a1).
+  Proof. solve_s. Qed.
+
+  Local Ltac triv := simpl in *; itauto.
+
+  Lemma FromSN : forall n,
+    (forall (a : PTm n) (_ : SNe a), exists v, rtc LoRed.R a v /\ ne v) /\
+    (forall (a : PTm n) (_ : SN a), exists v, rtc LoRed.R a v /\ nf v) /\
+    (forall (a b : PTm n) (_ : TRedSN a b), LoRed.R a b).
+  Proof.
+    apply sn_mutual.
+    - hauto lq:on ctrs:rtc.
+    - hauto lq:on rew:off use:LoReds.AppCong solve+:triv.
+    - hauto l:on use:LoReds.ProjCong solve+:triv.
+    - hauto q:on use:LoReds.PairCong solve+:triv.
+    - hauto q:on use:LoReds.AbsCong solve+:triv.
+    - sfirstorder use:ne_nf.
+    - hauto lq:on ctrs:rtc.
+    - qauto ctrs:LoRed.R.
+    - move => n a0 a1 b hb ihb h.
+      have : ~~ ishf a0 by inversion h.
+      hauto lq:on ctrs:LoRed.R.
+    - qauto ctrs:LoRed.R.
+    - qauto ctrs:LoRed.R.
+    - move => n p a b h.
+      have : ~~ ishf a by inversion h.
+      hauto lq:on ctrs:LoRed.R.
+  Qed.
+End LoReds.
