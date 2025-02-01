@@ -1282,7 +1282,7 @@ Module ERed.
   (*   destruct a. *)
   (*   exact (ξ f). *)
 
-
+  (* Need to generalize to injective renaming *)
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
   Proof.
@@ -1298,10 +1298,14 @@ Module ERed.
       case : i => //= _ h.
       apply f_equal with (f := subst_PTm (scons (PAbs (VarPTm var_zero)) VarPTm)) in h.
       move : h. asimpl. move => ?. subst.
+      admit.
+    - move => n a m ξ []//=.
+      move => u u0 [].
+      case : u => //=.
+      case : u0 => //=.
+      move => p p0 p1 p2 [? ?] [? ?]. subst.
 
-      rewrite -/var_zero.
-      eexists. split. apply AppEta.
-      move : h. asimpl => ?.  subst.
+
 
 
 
