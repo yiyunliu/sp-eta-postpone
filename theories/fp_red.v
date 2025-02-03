@@ -452,6 +452,11 @@ Module RRed.
       move => p0 []//=. hauto q:on ctrs:R.
   Qed.
 
+  Lemma nf_imp n (a b : PTm n) :
+    nf a ->
+    R a b -> False.
+  Proof. move/[swap]. induction 1; hauto qb:on inv:PTm. Qed.
+
 End RRed.
 
 Module RPar.
@@ -727,6 +732,7 @@ Module EPars.
     rtc EPar'.R a0 a1 ->
     rtc EPar'.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
+
 End EPars.
 
 Module RReds.
@@ -786,6 +792,10 @@ Module RReds.
     induction 1; hauto l:on ctrs:rtc use:RPar.FromRRed, @relations.rtc_transitive.
     induction 1; hauto l:on ctrs:rtc use:FromRPar, @relations.rtc_transitive.
   Qed.
+
+  Lemma nf_refl n (a b : PTm n) :
+    rtc RRed.R a b -> nf a -> a = b.
+  Proof. induction 1; sfirstorder use:RRed.nf_imp. Qed.
 
 End RReds.
 
@@ -1320,7 +1330,21 @@ Module ERed.
     hauto l:on.
   Qed.
 
-(* forall i j : fin m, ξ i = ξ j -> i = j *)
+  Lemma AppEta' n a u :
+    u = (@PApp (S n) (ren_PTm shift a) (VarPTm var_zero)) ->
+    R (PAbs u) a.
+  Proof. move => ->. apply AppEta. Qed.
+
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ.
+    elim : n a b /h.
+
+    move => n a m ξ /=.
+    apply AppEta'; eauto. by asimpl.
+    all : qauto ctrs:R.
+  Qed.
 
   (* Need to generalize to injective renaming *)
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
@@ -1392,6 +1416,24 @@ Module EReds.
     rtc ERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof. induction 1; hauto l:on use:ERed.renaming ctrs:rtc. Qed.
+
+  Lemma FromEPar n (a b : PTm n) :
+    EPar.R a b ->
+    rtc ERed.R a b.
+  Proof.
+    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl.
+    - move => n a0 a1 _ h.
+      have {}h : rtc ERed.R (ren_PTm shift a0) (ren_PTm shift a1) by apply renaming.
+      apply : rtc_r. apply AbsCong. apply AppCong; eauto. apply rtc_refl.
+      apply ERed.AppEta.
+    - move => n a0 a1 _ h.
+      apply : rtc_r.
+      apply PairCong; eauto using ProjCong.
+      apply ERed.PairEta.
+  Qed.
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
@@ -1437,6 +1479,14 @@ Module RERed.
     ERed.R a b \/ RRed.R a b.
   Proof. induction 1; hauto lq:on db:red. Qed.
 
+  Lemma FromBeta n (a b : PTm n) :
+    RRed.R a b -> RERed.R a b.
+  Proof. induction 1; qauto l:on ctrs:R. Qed.
+
+  Lemma FromEta n (a b : PTm n) :
+    ERed.R a b -> RERed.R a b.
+  Proof. induction 1; qauto l:on ctrs:R. Qed.
+
   Lemma ToBetaEtaPar n (a b : PTm n) :
     R a b ->
     EPar.R a b \/ RRed.R a b.
@@ -1451,6 +1501,25 @@ Module RERed.
   Proof. hauto q:on use:ToBetaEtaPar, epar_sn_preservation, red_sn_preservation, RPar.FromRRed. Qed.
 
 End RERed.
+
+Module REReds.
+  Lemma sn_preservation n (a b : PTm n) :
+    rtc RERed.R a b ->
+    SN a ->
+    SN b.
+  Proof. induction 1; eauto using RERed.sn_preservation. Qed.
+
+  Lemma FromRReds n (a b : PTm n) :
+    rtc RRed.R a b ->
+    rtc RERed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromBeta. Qed.
+
+  Lemma FromEReds n (a b : PTm n) :
+    rtc ERed.R a b ->
+    rtc RERed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromEta. Qed.
+
+End REReds.
 
 Module LoRed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -1492,6 +1561,11 @@ Module LoRed.
   Proof.
     move => h. elim : n a b /h=>//=.
   Qed.
+
+  Lemma ToRRed n (a b : PTm n) :
+    LoRed.R a b ->
+    RRed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
 
 End LoRed.
 
@@ -1547,7 +1621,7 @@ Module LoReds.
 
   Local Ltac triv := simpl in *; itauto.
 
-  Lemma FromSN : forall n,
+  Lemma FromSN_mutual : forall n,
     (forall (a : PTm n) (_ : SNe a), exists v, rtc LoRed.R a v /\ ne v) /\
     (forall (a : PTm n) (_ : SN a), exists v, rtc LoRed.R a v /\ nf v) /\
     (forall (a b : PTm n) (_ : TRedSN a b), LoRed.R a b).
@@ -1570,6 +1644,12 @@ Module LoReds.
       have : ~~ ishf a by inversion h.
       hauto lq:on ctrs:LoRed.R.
   Qed.
+
+  Lemma FromSN : forall n a, @SN n a -> exists v, rtc LoRed.R a v /\ nf v.
+  Proof. firstorder using FromSN_mutual. Qed.
+
+  Lemma ToRReds : forall n (a b : PTm n), rtc LoRed.R a b -> rtc RRed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:rtc use:LoRed.ToRRed. Qed.
 
 End LoReds.
 
@@ -1686,6 +1766,34 @@ Lemma red_confluence n (a b c : PTm n) :
   eauto using RPar.diamond.
 Qed.
 
+Lemma red_uniquenf n (a b c : PTm n) :
+  rtc RRed.R a b ->
+  rtc RRed.R a c ->
+  nf b ->
+  nf c ->
+  b = c.
+Proof.
+  move : red_confluence; repeat move/[apply].
+  move => [d [h0 h1]].
+  move => *.
+  suff [] : b = d /\ c = d by congruence.
+  sfirstorder use:RReds.nf_refl.
+Qed.
+
+Module NeEPars.
+  Lemma R_nonelim_nf n (a b : PTm n) :
+    rtc NeEPar.R_nonelim a b ->
+    nf b ->
+    nf a.
+  Proof. induction 1; sfirstorder use:NeEPar.R_elim_nf. Qed.
+
+  Lemma ToEReds : forall n, (forall (a b : PTm n), rtc NeEPar.R_nonelim a b -> rtc ERed.R a b).
+  Proof.
+    induction 1; hauto l:on use:NeEPar.ToEPar, EReds.FromEPar, @relations.rtc_transitive.
+  Qed.
+End NeEPars.
+
+
 Lemma rered_standardization n (a c : PTm n) :
   SN a ->
   rtc RERed.R a c ->
@@ -1710,7 +1818,30 @@ Lemma rered_confluence n (a b c : PTm n) :
   exists d, rtc RERed.R b d  /\ rtc RERed.R c d.
 Proof.
   move => hP hb hc.
+  have [] : SN b /\ SN c by qauto use:REReds.sn_preservation.
+  move => /LoReds.FromSN [bv [/LoReds.ToRReds /REReds.FromRReds hbv  hbv']].
+  move => /LoReds.FromSN [cv [/LoReds.ToRReds /REReds.FromRReds hcv  hcv']].
+  have [] : SN b /\ SN c by sfirstorder use:REReds.sn_preservation.
+  move : rered_standardization hbv; repeat move/[apply]. move => [bv' [hb0 hb1]].
+  move : rered_standardization hcv; repeat move/[apply]. move => [cv' [hc0 hc1]].
 
+  have [] : rtc RERed.R a bv' /\ rtc RERed.R a cv'
+    by sfirstorder use:@relations.rtc_transitive, REReds.FromRReds.
+  move : rered_standardization (hP). repeat move/[apply]. move => [bv'' [hb3 hb4]].
+  move : rered_standardization (hP). repeat move/[apply]. move => [cv'' [hc3 hc4]].
+  have hb2 : rtc NeEPar.R_nonelim bv'' bv by hauto lq:on use:@relations.rtc_transitive.
+  have hc2 : rtc NeEPar.R_nonelim cv'' cv by hauto lq:on use:@relations.rtc_transitive.
+  have [hc5 hb5] : nf cv'' /\ nf bv'' by sfirstorder use:NeEPars.R_nonelim_nf.
+  have ? : bv'' = cv'' by sfirstorder use:red_uniquenf. subst.
+  apply NeEPars.ToEReds in hb2, hc2.
+  move : ered_confluence (hb2) (hc2); repeat move/[apply].
+  move => [v [hv hv']].
+  exists v. split.
+  move /NeEPars.ToEReds /REReds.FromEReds : hb1.
+  move /REReds.FromRReds : hb0. move /REReds.FromEReds : hv. eauto using relations.rtc_transitive.
+  move /NeEPars.ToEReds /REReds.FromEReds : hc1.
+  move /REReds.FromRReds : hc0. move /REReds.FromEReds : hv'. eauto using relations.rtc_transitive.
+Qed.
 
 (* "Declarative" Joinability *)
 Module DJoin.
