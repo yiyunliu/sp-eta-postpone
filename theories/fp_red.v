@@ -1846,4 +1846,19 @@ Qed.
 (* "Declarative" Joinability *)
 Module DJoin.
   Definition R {n} (a b : PTm n) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
+
+  Lemma refl n (a : PTm n) : R a a.
+  Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
+
+  Lemma symmetric n (a b : PTm n) : R a b -> R b a.
+  Proof. sfirstorder unfold:R. Qed.
+
+  Lemma transitive n (a b c : PTm n) : SN b -> R a b -> R b c -> R a c.
+  Proof.
+    rewrite /R.
+    move => + [ab [ha +]] [bc [+ hc]].
+    move : rered_confluence; repeat move/[apply].
+    move => [v [h0 h1]].
+    exists v. sfirstorder use:@relations.rtc_transitive.
+  Qed.
 End DJoin.
