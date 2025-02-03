@@ -567,6 +567,48 @@ Module RPar.
     induction 1; qauto l:on use:RPar.refl ctrs:RPar.R.
   Qed.
 
+  Function tstar {n} (a : PTm n) :=
+    match a with
+    | VarPTm i => a
+    | PAbs a => PAbs (tstar a)
+    | PApp (PAbs a) b => subst_PTm (scons (tstar b) VarPTm) (tstar a)
+    | PApp a b => PApp (tstar a) (tstar b)
+    | PPair a b => PPair (tstar a) (tstar b)
+    | PProj p (PPair a b) => if p is PL then (tstar a) else (tstar b)
+    | PProj p a => PProj p (tstar a)
+    end.
+
+  Lemma triangle n (a b : PTm n) :
+    RPar.R a b -> RPar.R b (tstar a).
+  Proof.
+    move : b.
+    apply tstar_ind => {}n{}a.
+    - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on rew:off inv:R use:cong ctrs:R.
+    - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
+    - move => p a0 b ? ? ih b0. subst.
+      elim /inv => //=_.
+      + move => p a1 a2 b1 b2 h0 h1[*]. subst.
+        by apply ih.
+      + move => p a1 a2 ha [*]. subst.
+        elim /inv : ha => //=_.
+        move => a1 a3 b0 b1 h0 h1 [*]. subst.
+        apply : ProjPair'; eauto using refl.
+    - move => p a0 b ? p0 ?. subst.
+      case : p0 => //= _.
+      move => ih b0. elim /inv => //=_.
+      + hauto l:on.
+      + move => p a1 a2 ha [*]. subst.
+        elim /inv : ha => //=_ > ? ? [*]. subst.
+        apply : ProjPair'; eauto using refl.
+    - hauto lq:on ctrs:R inv:R.
+  Qed.
+
+  Lemma diamond n (a b c : PTm n) :
+    R a b -> R a c -> exists d, R b d /\ R c d.
+  Proof. eauto using triangle. Qed.
 End RPar.
 
 Lemma red_sn_preservation n :
@@ -602,46 +644,6 @@ Proof.
   - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
   - sauto.
 Qed.
-
-Function tstar {n} (a : PTm n) :=
-  match a with
-  | VarPTm i => a
-  | PAbs a => PAbs (tstar a)
-  | PApp (PAbs a) b => subst_PTm (scons (tstar b) VarPTm) (tstar a)
-  | PApp a b => PApp (tstar a) (tstar b)
-  | PPair a b => PPair (tstar a) (tstar b)
-  | PProj p (PPair a b) => if p is PL then (tstar a) else (tstar b)
-  | PProj p a => PProj p (tstar a)
-  end.
-
-Module TStar.
-  Lemma renaming n m (ξ : fin n -> fin m) (a : PTm n) :
-    tstar (ren_PTm ξ a) = ren_PTm ξ (tstar a).
-  Proof.
-    move : m ξ.
-    apply tstar_ind => {}n {}a => //=.
-    - hauto lq:on.
-    - scongruence.
-    - move => a0 b ? h ih m ξ.
-      rewrite ih.
-      asimpl; congruence.
-    - qauto l:on.
-    - scongruence.
-    - hauto q:on.
-    - qauto l:on.
-  Qed.
-
-  Lemma pair n (a b : PTm n) :
-    tstar (PPair a b) = PPair (tstar a) (tstar b).
-    reflexivity. Qed.
-End TStar.
-
-Definition isPair {n} (a : PTm n) := if a is PPair _ _ then true else false.
-
-Lemma tstar_proj n (a : PTm n) :
-  ((~~ isPair a) /\ forall p, tstar (PProj p a) = PProj p (tstar a)) \/
-    exists a0 b0, a = PPair a0 b0 /\ forall p, tstar (PProj p a) = (if p is PL then (tstar a0) else (tstar b0)).
-Proof. sauto lq:on. Qed.
 
 Module EPar'.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -762,6 +764,27 @@ Module RReds.
     rtc RRed.R a b -> rtc RRed.R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
     move => h. move : m ξ. elim : a b /h; hauto lq:on ctrs:rtc use:RRed.renaming.
+  Qed.
+
+  Lemma FromRPar n (a b : PTm n) (h : RPar.R a b) :
+    rtc RRed.R a b.
+  Proof.
+    elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl.
+    move => n a0 a1 b0 b1 ha iha hb ihb.
+    apply : rtc_r; last by apply RRed.AppAbs.
+    by eauto using AppCong, AbsCong.
+
+    move => n p a0 a1 b0 b1 ha iha hb ihb.
+    apply : rtc_r; last by apply RRed.ProjPair.
+    by eauto using PairCong, ProjCong.
+  Qed.
+
+  Lemma RParIff n (a b : PTm n) :
+    rtc RRed.R a b <-> rtc RPar.R a b.
+  Proof.
+    split.
+    induction 1; hauto l:on ctrs:rtc use:RPar.FromRRed, @relations.rtc_transitive.
+    induction 1; hauto l:on ctrs:rtc use:FromRPar, @relations.rtc_transitive.
   Qed.
 
 End RReds.
@@ -1645,3 +1668,19 @@ Lemma ered_confluence n (a b c : PTm n) :
 Proof.
   sfirstorder use:relations.locally_confluent_confluent, ered_sn, ered_local_confluence.
 Qed.
+
+Lemma red_confluence n (a b c : PTm n) :
+  rtc RRed.R a b ->
+  rtc RRed.R a c ->
+  exists d, rtc RRed.R b d  /\ rtc RRed.R c d.
+  suff : rtc RPar.R a b -> rtc RPar.R a c -> exists d : PTm n, rtc RPar.R b d /\ rtc RPar.R c d
+             by hauto lq:on use:RReds.RParIff.
+  apply relations.diamond_confluent.
+  rewrite /relations.diamond.
+  eauto using RPar.diamond.
+Qed.
+
+(* "Declarative" Joinability *)
+Module DJoin.
+  Definition R {n} (a b : PTm n) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
+End DJoin.
