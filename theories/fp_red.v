@@ -1282,28 +1282,52 @@ Module ERed.
   (*   destruct a. *)
   (*   exact (ξ f). *)
 
+  Lemma ren_injective n m (a b : PTm n) (ξ : fin n -> fin m) :
+    (forall i j, ξ i = ξ j -> i = j) ->
+    ren_PTm ξ a = ren_PTm ξ b ->
+    a = b.
+  Proof.
+    move : m ξ b.
+    elim : n / a => //; try solve_anti_ren.
+
+    move => n a iha m ξ []//=.
+    move => u hξ [h].
+    apply iha in h. by subst.
+    destruct i, j=>//=.
+    hauto l:on.
+  Qed.
+
+(* forall i j : fin m, ξ i = ξ j -> i = j *)
+
   (* Need to generalize to injective renaming *)
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
+    (forall i j, ξ i = ξ j -> i = j) ->
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
   Proof.
+    move => hξ.
     move E : (ren_PTm ξ a) => u hu.
-    move : n ξ a E.
+    move : n ξ hξ a E.
     elim : m u b / hu; try solve_anti_ren.
-    - move => n a m ξ []//=.
+    - move => n a m ξ hξ []//=.
       move => u [].
       case : u => //=.
       move => u0 u1 [].
       case : u1 => //=.
       move => i /[swap] [].
       case : i => //= _ h.
-      apply f_equal with (f := subst_PTm (scons (PAbs (VarPTm var_zero)) VarPTm)) in h.
-      move : h. asimpl. move => ?. subst.
+      move : h. asimpl.
+      apply f_equal with (f := ren_PTm (scons var_zero id)) in h.
+      move : h. asimpl.
+      Check scons var_zero shift.
       admit.
-    - move => n a m ξ []//=.
+    - move => n a m ξ hξ []//=.
       move => u u0 [].
       case : u => //=.
       case : u0 => //=.
-      move => p p0 p1 p2 [? ?] [? ?]. subst.
+      move => p p0 p1 p2 [? ?] [? h]. subst.
+      have ? : p0 = p2 by eauto using ren_injective. subst.
+      hauto l:on.
+    -
 
 
 

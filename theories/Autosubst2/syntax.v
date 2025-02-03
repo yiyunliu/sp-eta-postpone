@@ -804,9 +804,9 @@ Arguments PApp {n_PTm}.
 
 Arguments PAbs {n_PTm}.
 
-#[global]Hint Opaque subst_PTm: rewrite.
+#[global] Hint Opaque subst_PTm: rewrite.
 
-#[global]Hint Opaque ren_PTm: rewrite.
+#[global] Hint Opaque ren_PTm: rewrite.
 
 End Extra.
 
