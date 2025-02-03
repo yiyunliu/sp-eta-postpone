@@ -1272,7 +1272,7 @@ Module ERed.
     let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
     intro $x;
     lazy_match! Constr.type (Control.hyp x) with
-    | fin ?x -> _ ?y => (ltac1:(case;qauto depth:2 ctrs:ERed.R))
+    | fin ?x -> _ ?y => (ltac1:(case;hauto q:on depth:2 ctrs:ERed.R))
     | _ => solve_anti_ren ()
     end.
 
@@ -1281,6 +1281,13 @@ Module ERed.
   (* Definition down n m (ξ : fin n -> fin m) (a : fin (S n)) : fin m. *)
   (*   destruct a. *)
   (*   exact (ξ f). *)
+
+  Lemma up_injective n m (ξ : fin n -> fin m) :
+    (forall i j, ξ i = ξ j -> i = j) ->
+    forall i j, (upRen_PTm_PTm ξ)  i = (upRen_PTm_PTm ξ) j -> i = j.
+  Proof.
+    sblast inv:option.
+  Qed.
 
   Lemma ren_injective n m (a b : PTm n) (ξ : fin n -> fin m) :
     (forall i j, ξ i = ξ j -> i = j) ->
@@ -1306,32 +1313,34 @@ Module ERed.
   Proof.
     move => hξ.
     move E : (ren_PTm ξ a) => u hu.
-    move : n ξ hξ a E.
+    move : n ξ a hξ E.
     elim : m u b / hu; try solve_anti_ren.
-    - move => n a m ξ hξ []//=.
-      move => u [].
+    - move => n a m ξ []//=.
+      move => u hξ [].
       case : u => //=.
       move => u0 u1 [].
       case : u1 => //=.
       move => i /[swap] [].
       case : i => //= _ h.
+      have : exists p, ren_PTm shift p = u0 by admit.
+      move => [p ?]. subst.
       move : h. asimpl.
-      apply f_equal with (f := ren_PTm (scons var_zero id)) in h.
-      move : h. asimpl.
-      Check scons var_zero shift.
-      admit.
-    - move => n a m ξ hξ []//=.
-      move => u u0 [].
+      replace (ren_PTm (funcomp shift ξ) p) with
+        (ren_PTm shift (ren_PTm ξ p)); last by asimpl.
+      move /ren_injective.
+      move /(_ ltac:(hauto l:on)).
+      move => ?. subst.
+      exists p. split=>//. apply AppEta.
+    - move => n a m ξ [] //=.
+      move => u u0 hξ [].
       case : u => //=.
       case : u0 => //=.
       move => p p0 p1 p2 [? ?] [? h]. subst.
       have ? : p0 = p2 by eauto using ren_injective. subst.
       hauto l:on.
-    -
-
-
-
-
+    - move => n a0 a1 ha iha m ξ []//= p hξ [?]. subst.
+      sauto lq:on use:up_injective.
+  Admitted.
 
 
 End ERed.
