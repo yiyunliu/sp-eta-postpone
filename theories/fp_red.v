@@ -229,7 +229,7 @@ Ltac2 rec solve_anti_ren () :=
   let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
   intro $x;
   lazy_match! Constr.type (Control.hyp x) with
-  | fin ?x -> _ ?y => (ltac1:(case;qauto depth:2 db:sn))
+  | fin _ -> _ _ => (ltac1:(case;qauto depth:2 db:sn))
   | _ => solve_anti_ren ()
   end.
 
@@ -431,32 +431,25 @@ Module RRed.
     all : qauto ctrs:R.
   Qed.
 
+  Ltac2 rec solve_anti_ren () :=
+    let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
+    intro $x;
+    lazy_match! Constr.type (Control.hyp x) with
+    | fin _ -> _ _ => (ltac1:(case;hauto q:on depth:2 ctrs:RRed.R))
+    | _ => solve_anti_ren ()
+    end.
+
+  Ltac solve_anti_ren := ltac2:(Control.enter solve_anti_ren).
 
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
   Proof.
     move E : (ren_PTm ξ a) => u h.
-    move : n ξ a E. elim : m u b/h.
+    move : n ξ a E. elim : m u b/h; try solve_anti_ren.
     - move => n a b m ξ []//=. move => []//= t t0 [*]. subst.
       eexists. split. apply AppAbs. by asimpl.
     - move => n p a b m ξ []//=.
       move => p0 []//=. hauto q:on ctrs:R.
-    - move => n a0 a1 ha iha m ξ []//=.
-      move => p [*]. subst.
-      spec_refl.
-      move : iha => [t [h0 h1]]. subst.
-      eexists. split. eauto using AbsCong.
-      by asimpl.
-    - move => n a0 a1 b ha iha m ξ []//=.
-      hauto lq:on ctrs:R.
-    - move => n a b0 b1 h ih m ξ []//=.
-      hauto lq:on ctrs:R.
-    - move => n a0 a1 b ha iha m ξ []//=.
-      hauto lq:on ctrs:R.
-    - move => n a b0 b1 h ih m ξ []//=.
-      hauto lq:on ctrs:R.
-    - move => n p a0 a1 ha iha m ξ []//=.
-      hauto lq:on ctrs:R.
   Qed.
 
 End RRed.
@@ -767,45 +760,6 @@ Module RReds.
 
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     rtc RRed.R a b -> rtc RRed.R (ren_PTm ξ a) (ren_PTm ξ b).
-  Proof.
-    move => h. move : m ξ. elim : a b /h; hauto lq:on ctrs:rtc use:RRed.renaming.
-  Qed.
-
-End RReds.
-
-Module EReds.
-
-  #[local]Ltac solve_s_rec :=
-  move => *; eapply rtc_l; eauto;
-         hauto lq:on ctrs:ERed.R.
-
-  #[local]Ltac solve_s :=
-    repeat (induction 1; last by solve_s_rec); apply rtc_refl.
-
-  Lemma AbsCong n (a b : PTm (S n)) :
-    rtc ERed.R a b ->
-    rtc ERed.R (PAbs a) (PAbs b).
-  Proof. solve_s. Qed.
-
-  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
-    rtc ERed.R a0 a1 ->
-    rtc ERed.R b0 b1 ->
-    rtc ERed.R (PApp a0 b0) (PApp a1 b1).
-  Proof. solve_s. Qed.
-
-  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
-    rtc ERed.R a0 a1 ->
-    rtc ERed.R b0 b1 ->
-    rtc ERed.R (PPair a0 b0) (PPair a1 b1).
-  Proof. solve_s. Qed.
-
-  Lemma ProjCong n p (a0 a1  : PTm n) :
-    rtc ERed.R a0 a1 ->
-    rtc ERed.R (PProj p a0) (PProj p a1).
-  Proof. solve_s. Qed.
-
-  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
-    rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
     move => h. move : m ξ. elim : a b /h; hauto lq:on ctrs:rtc use:RRed.renaming.
   Qed.
@@ -1311,7 +1265,7 @@ Module ERed.
     let x := Fresh.in_goal (Option.get (Ident.of_string "x")) in
     intro $x;
     lazy_match! Constr.type (Control.hyp x) with
-    | fin ?x -> _ ?y => (ltac1:(case;hauto q:on depth:2 ctrs:ERed.R))
+    | fin _ -> _ _ => (ltac1:(case;hauto q:on depth:2 ctrs:ERed.R))
     | _ => solve_anti_ren ()
     end.
 
@@ -1383,6 +1337,39 @@ Module ERed.
 
 
 End ERed.
+
+Module EReds.
+
+  #[local]Ltac solve_s_rec :=
+  move => *; eapply rtc_l; eauto;
+         hauto lq:on ctrs:ERed.R.
+
+  #[local]Ltac solve_s :=
+    repeat (induction 1; last by solve_s_rec); apply rtc_refl.
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    rtc ERed.R a b ->
+    rtc ERed.R (PAbs a) (PAbs b).
+  Proof. solve_s. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R b0 b1 ->
+    rtc ERed.R (PApp a0 b0) (PApp a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R b0 b1 ->
+    rtc ERed.R (PPair a0 b0) (PPair a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma ProjCong n p (a0 a1  : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R (PProj p a0) (PProj p a1).
+  Proof. solve_s. Qed.
+
+End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
 
@@ -1627,42 +1614,34 @@ Proof.
         exists a0. split; last by apply relations.rtc_once.
         apply relations.rtc_once. apply ERed.AppEta.
       * hauto q:on inv:ERed.R.
-    + best use:EReds.AbsCong.
+    + hauto lq:on use:EReds.AbsCong.
   - move => a0 a1 b ha iha c.
     elim /ERed.inv => //= _.
     + hauto lq:on ctrs:rtc use:EReds.AppCong.
     + hauto lq:on use:@relations.rtc_once ctrs:ERed.R.
   - move => a b0 b1 hb ihb c.
     elim /ERed.inv => //=_.
-    + move => a0 a1 a2 ha ? [*]. subst.
-      move {ihb}. exists (App a0 b0).
+    + move => a0 a1 a2 ha [*]. subst.
+      move {ihb}. exists (PApp a1 b1).
       hauto lq:on use:@relations.rtc_once ctrs:ERed.R.
     + hauto lq:on ctrs:rtc use:EReds.AppCong.
   - move => a0 a1 b ha iha c.
     elim /ERed.inv => //= _.
-    + move => ? ?[*]. subst.
-      elim /ERed.inv : ha => //= _ p a1 a2 h ? [*]. subst.
-      exists a1. split; last by apply relations.rtc_once.
-      apply : rtc_l. apply ERed.PairEta.
-      apply relations.rtc_once. hauto lq:on ctrs:ERed.R.
+    + sauto lq:on.
     + hauto lq:on ctrs:rtc use:EReds.PairCong.
     + hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
   - move => a b0 b1 hb hc c. elim /ERed.inv => //= _.
-    + move => ? ? [*]. subst.
-      elim /ERed.inv : hb => //= _ p a0 a1 ha ? [*]. subst.
-      move {hc}.
-      exists a0. split; last by apply relations.rtc_once.
-      apply : rtc_l; first by apply ERed.PairEta.
-      hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
+    + move => ? [*]. subst.
+      sauto lq:on.
     + hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
     + hauto lq:on ctrs:rtc use:EReds.PairCong.
   - qauto l:on inv:ERed.R use:EReds.ProjCong.
-  - move => p A0 A1 B hA ihA.
-    move => c. elim/ERed.inv => //=.
-    + hauto lq:on ctrs:rtc use:EReds.BindCong.
-    + hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
-  - move => p A B0 B1 hB ihB c.
-    elim /ERed.inv => //=.
-    + hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
-    + hauto lq:on ctrs:rtc use:EReds.BindCong.
-Admitted.
+Qed.
+
+Lemma ered_confluence n (a b c : PTm n) :
+  rtc ERed.R a b ->
+  rtc ERed.R a c ->
+  exists d, rtc ERed.R b d  /\ rtc ERed.R c d.
+Proof.
+  sfirstorder use:relations.locally_confluent_confluent, ered_sn, ered_local_confluence.
+Qed.
