@@ -773,6 +773,45 @@ Module RReds.
 
 End RReds.
 
+Module EReds.
+
+  #[local]Ltac solve_s_rec :=
+  move => *; eapply rtc_l; eauto;
+         hauto lq:on ctrs:ERed.R.
+
+  #[local]Ltac solve_s :=
+    repeat (induction 1; last by solve_s_rec); apply rtc_refl.
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    rtc ERed.R a b ->
+    rtc ERed.R (PAbs a) (PAbs b).
+  Proof. solve_s. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R b0 b1 ->
+    rtc ERed.R (PApp a0 b0) (PApp a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R b0 b1 ->
+    rtc ERed.R (PPair a0 b0) (PPair a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma ProjCong n p (a0 a1  : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R (PProj p a0) (PProj p a1).
+  Proof. solve_s. Qed.
+
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ. elim : a b /h; hauto lq:on ctrs:rtc use:RRed.renaming.
+  Qed.
+
+End RReds.
+
 
 Lemma ne_nf_ren n m (a : PTm n) (ξ : fin n -> fin m) :
   (ne a <-> ne (ren_PTm ξ a)) /\ (nf a <-> nf (ren_PTm ξ a)).
@@ -1564,39 +1603,31 @@ Proof.
     + move => a0 a1 ha [*]. subst.
       elim /ERed.inv : ha => //= _.
       * move => a0 a2 b0 ha [*]. subst. rename a2 into a1.
-        have [a2 [h0 h1]] : exists a2, ERed.R a2 a /\ a1 = ren_PTm shift a2 by admit. subst.
-        eexists. split; cycle 1.
-        apply : relations.rtc_r; cycle 1.
-        apply ERed.AppEta.
-        apply rtc_refl.
-        eauto using relations.rtc_once.
+        move /ERed.antirenaming : ha.
+        move /(_ ltac:(hauto lq:on)) => [a' [h0 h1]]. subst.
+        hauto lq:on ctrs:rtc, ERed.R.
       * hauto q:on ctrs:rtc, ERed.R inv:ERed.R.
   - move => a c ha.
     elim /ERed.inv : ha => //= _.
     + hauto l:on.
-    + move => a0 a1 b0 ha ? [*]. subst.
+    + move => a0 a1 b0 ha [*]. subst.
       elim /ERed.inv : ha => //= _.
-      move => p a1 a2 ha ? [*]. subst.
-      exists a1. split. by apply relations.rtc_once.
-      apply : rtc_l. apply ERed.PairEta.
-      apply : rtc_l. apply ERed.PairCong1. eauto using ERed.ProjCong.
-      apply rtc_refl.
-    + move => a0 b0 b1 ha ? [*]. subst.
-      elim /ERed.inv : ha => //= _ p a0 a1 h ? [*]. subst.
-      exists a0. split; first by apply relations.rtc_once.
-      apply : rtc_l; first by apply ERed.PairEta.
-      apply relations.rtc_once.
-      hauto lq:on ctrs:ERed.R.
+      move => p a0 a2 ha [*]. subst.
+      hauto q:on ctrs:rtc, ERed.R.
+    + move => a0 b0 b1 ha [*]. subst.
+      elim /ERed.inv : ha => //= _.
+      move => p a0 a2 ha [*]. subst.
+      hauto q:on ctrs:rtc, ERed.R.
   - move => a0 a1 ha iha c.
     elim /ERed.inv => //= _.
-    + move => a2 ? [*]. subst.
+    + move => a2 [*]. subst.
       elim /ERed.inv : ha => //=_.
-      * move => a1 a2 b0 ha ? [*] {iha}. subst.
-        have [a0 [h0 h1]] : exists a0, ERed.R a0 c /\ a1 = ren_Tm shift a0 by admit. subst.
+      * move => a0 a2 b0 ha [*] {iha}. subst.
+        have [a0 [h0 h1]] : exists a0, ERed.R c a0 /\ a2 = ren_PTm shift a0 by hauto lq:on use:ERed.antirenaming. subst.
         exists a0. split; last by apply relations.rtc_once.
         apply relations.rtc_once. apply ERed.AppEta.
       * hauto q:on inv:ERed.R.
-    + hauto l:on use:EReds.AbsCong.
+    + best use:EReds.AbsCong.
   - move => a0 a1 b ha iha c.
     elim /ERed.inv => //= _.
     + hauto lq:on ctrs:rtc use:EReds.AppCong.
