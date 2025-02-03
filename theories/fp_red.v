@@ -1444,6 +1444,12 @@ Module RERed.
     hauto q:on use:ERed.ToEPar, ToBetaEta.
   Qed.
 
+  Lemma sn_preservation n (a b : PTm n) :
+    R a b ->
+    SN a ->
+    SN b.
+  Proof. hauto q:on use:ToBetaEtaPar, epar_sn_preservation, red_sn_preservation, RPar.FromRRed. Qed.
+
 End RERed.
 
 Module LoRed.
@@ -1679,6 +1685,32 @@ Lemma red_confluence n (a b c : PTm n) :
   rewrite /relations.diamond.
   eauto using RPar.diamond.
 Qed.
+
+Lemma rered_standardization n (a c : PTm n) :
+  SN a ->
+  rtc RERed.R a c ->
+  exists b, rtc RRed.R a b /\ rtc NeEPar.R_nonelim b c.
+Proof.
+  move => + h. elim : a c /h.
+  by eauto using rtc_refl.
+  move => a b c.
+  move /RERed.ToBetaEtaPar.
+  case.
+  - move => h0 h1 ih hP.
+    have  : SN b by qauto use:epar_sn_preservation.
+    move => {}/ih [b' [ihb0 ihb1]].
+    hauto lq:on ctrs:rtc use:SN_UniqueNF.η_postponement_star'.
+  - hauto lq:on ctrs:rtc use:red_sn_preservation, RPar.FromRRed.
+Qed.
+
+Lemma rered_confluence n (a b c : PTm n) :
+  SN a ->
+  rtc RERed.R a b ->
+  rtc RERed.R a c ->
+  exists d, rtc RERed.R b d  /\ rtc RERed.R c d.
+Proof.
+  move => hP hb hc.
+
 
 (* "Declarative" Joinability *)
 Module DJoin.
