@@ -1,0 +1,42 @@
+* Church Rosser, surjective pairing, and strong normalization
+This repository contains a mechanized proof that the lambda calculus
+with beta and eta rules for functions and pairs is in fact confluent
+for the subset of terms that are "strongly $\beta$-normalizing".
+
+Our notion of $\beta$-strong normalization, based on Abel's POPLMark
+Reloaded survey, is inductively defined
+and captures a strict subset of the usual notion of strong
+normalization in the sense that ill-formed terms such as $\pi_1
+\lambda x . x$ are rejected.
+
+* Joinability: A transitive equational relation
+The joinability relation $a \Leftrightarrow b$, which is true exactly
+when $\exists c, a \leadsto_{\beta\eta} c \wedge b
+\leadsto_{\beta\eta} c$, is transitive on the set of strongly
+normalizing terms thanks to the Church-Rosser theorem proven in this
+repository.
+
+** Joinability and logical predicates
+
+When building a logical predicate where adequacy ensures beta strong
+normalization, we can then show that two types $A \Leftrightarrow B$
+share the same meaning if both are semantically well-formed. The
+strong normalization constraint can be extracted from adequacy so we
+have transitivity of $A \Leftrightarrow B$ available in the proof that
+the logical predicate is functional over joinable terms.
+
+** Joinability and typed equality
+
+For systems with a type-directed equality, the same joinability
+relation can be used to model the equality. The fundamental theorem
+for the judgmental equality would take the following form: $\vdash a
+\equiv b \in A$ implies $\vDash a, b \in A$ and $a \Leftrightarrow b$.
+
+Note that such a result does not immediately give us the decidability
+of type conversion because the algorithm of beta-eta normalization
+may identify more terms when eta is not type-preserving. However, I
+believe Coquand's algorithm can be proven correct using the method
+described in [[https://www.researchgate.net/publication/226663076_Justifying_Algorithms_for_be-Conversion][Goguen 2005]]. We have all the ingredients needed:
+- Strong normalization of beta (needed for the termination metric)
+- Church-Rosser for $\beta$-SN terms (the disciplined expansion of
+  Coquand's algorithm preserves both SN and typing)

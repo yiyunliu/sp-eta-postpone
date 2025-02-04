@@ -1434,6 +1434,7 @@ Module EReds.
       apply PairCong; eauto using ProjCong.
       apply ERed.PairEta.
   Qed.
+
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
@@ -1518,6 +1519,35 @@ Module REReds.
     rtc ERed.R a b ->
     rtc RERed.R a b.
   Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromEta. Qed.
+
+  #[local]Ltac solve_s_rec :=
+  move => *; eapply rtc_l; eauto;
+         hauto lq:on ctrs:RERed.R.
+
+  #[local]Ltac solve_s :=
+    repeat (induction 1; last by solve_s_rec); apply rtc_refl.
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    rtc RERed.R a b ->
+    rtc RERed.R (PAbs a) (PAbs b).
+  Proof. solve_s. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    rtc RERed.R a0 a1 ->
+    rtc RERed.R b0 b1 ->
+    rtc RERed.R (PApp a0 b0) (PApp a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
+    rtc RERed.R a0 a1 ->
+    rtc RERed.R b0 b1 ->
+    rtc RERed.R (PPair a0 b0) (PPair a1 b1).
+  Proof. solve_s. Qed.
+
+  Lemma ProjCong n p (a0 a1  : PTm n) :
+    rtc RERed.R a0 a1 ->
+    rtc RERed.R (PProj p a0) (PProj p a1).
+  Proof. solve_s. Qed.
 
 End REReds.
 
@@ -1861,4 +1891,27 @@ Module DJoin.
     move => [v [h0 h1]].
     exists v. sfirstorder use:@relations.rtc_transitive.
   Qed.
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    R a b ->
+    R (PAbs a) (PAbs b).
+  Proof. hauto lq:on use:REReds.AbsCong unfold:R. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PApp a0 b0) (PApp a1 b1).
+  Proof. hauto lq:on use:REReds.AppCong unfold:R. Qed.
+
+  Lemma PairCong n (a0 a1 b0 b1 : PTm n) :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PPair a0 b0) (PPair a1 b1).
+  Proof. hauto q:on use:REReds.PairCong. Qed.
+
+  Lemma ProjCong n p (a0 a1  : PTm n) :
+    R a0 a1 ->
+    R (PProj p a0) (PProj p a1).
+  Proof. hauto q:on use:REReds.ProjCong. Qed.
+
 End DJoin.
