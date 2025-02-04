@@ -911,7 +911,7 @@ Module NeEPar.
     - move => a0 a1 b0 b1 h ih h' ih' /andP [h0 h1].
       have hb0 : nf b0 by eauto.
       suff : ne a0 by qauto b:on.
-      qauto l:on inv:R_elim.
+      hauto q:on inv:R_elim.
     - hauto lb:on.
     - hauto lq:on inv:R_elim.
     - hauto b:on.
@@ -1218,7 +1218,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           have : rtc RRed.R (PApp a0 b0) (PApp (PPair (PProj PL a1) (PProj PR a1)) b0)
             by qauto l:on ctrs:rtc use:RReds.AppCong.
           move : P_RReds hP. repeat move/[apply].
-          sfirstorder use:P_AppPair.
+          sfirstorder use:PAbs_imp.
         * exists (subst_PTm (scons b0 VarPTm) a1).
           split.
           apply : rtc_r; last by apply RRed.AppAbs.
@@ -1245,7 +1245,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         move : η_split hP'  ha; repeat move/[apply].
         move => [a1 [h0 h1]].
         inversion h1; subst.
-        * qauto l:on ctrs:rtc use:RReds.ProjCong, P_ProjAbs, P_RReds.
+        * sauto q:on ctrs:rtc use:RReds.ProjCong, PProj_imp, P_RReds.
         * inversion H0; subst.
           exists (if p is PL then a1 else b1).
           split; last by scongruence use:NeEPar.ToEPar.
@@ -1270,6 +1270,8 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         move : iha hP' h0;repeat move/[apply].
         hauto lq:on ctrs:rtc, EPar.R use:RReds.ProjCong.
     - hauto lq:on inv:RRed.R.
+    - hauto lq:on inv:RRed.R ctrs:rtc.
+    - sauto lq:on ctrs:EPar.R, rtc use:RReds.BindCong, P_BindInv, @relations.rtc_transitive.
   Qed.
 
   Lemma η_postponement_star n a b c :
@@ -1306,7 +1308,6 @@ End UniqueNF.
 
 Module SN_UniqueNF := UniqueNF SN_NoForbid NoForbid_FactSN.
 
-
 Module ERed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
 
@@ -1334,7 +1335,13 @@ Module ERed.
     R (PPair a b0) (PPair a b1)
   | ProjCong p a0 a1 :
     R a0 a1 ->
-    R (PProj p a0) (PProj p a1).
+    R (PProj p a0) (PProj p a1)
+  | BindCong0 p A0 A1 B :
+    R A0 A1 ->
+    R (PBind p A0 B) (PBind p A1 B)
+  | BindCong1 p A B0 B1 :
+    R B0 B1 ->
+    R (PBind p A B0) (PBind p A B1).
 
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
 
@@ -1378,6 +1385,13 @@ Module ERed.
     apply iha in h. by subst.
     destruct i, j=>//=.
     hauto l:on.
+
+    move => n p A ihA B ihB m ξ []//=.
+    move => b A0 B0  hξ [?]. subst.
+    move => ?. have ? : A0 = A by firstorder. subst.
+    move => ?. have : B = B0. apply : ihB; eauto.
+    sauto.
+    congruence.
   Qed.
 
   Lemma AppEta' n a u :
@@ -1430,8 +1444,13 @@ Module ERed.
       hauto l:on.
     - move => n a0 a1 ha iha m ξ []//= p hξ [?]. subst.
       sauto lq:on use:up_injective.
+    - move => n p A B0 B1 hB ihB m ξ + hξ.
+      case => //= p' A2 B2 [*]. subst.
+      have : (forall i j, (upRen_PTm_PTm ξ) i = (upRen_PTm_PTm ξ) j -> i = j) by sauto.
+      move => {}/ihB => ihB.
+      spec_refl.
+      sauto lq:on.
   Admitted.
-
 
 End ERed.
 
@@ -1466,6 +1485,13 @@ Module EReds.
     rtc ERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+    rtc ERed.R A0 A1 ->
+    rtc ERed.R B0 B1 ->
+    rtc ERed.R (PBind p A0 B0) (PBind p A1 B1).
+  Proof. solve_s. Qed.
+
+
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof. induction 1; hauto l:on use:ERed.renaming ctrs:rtc. Qed.
@@ -1474,7 +1500,7 @@ Module EReds.
     EPar.R a b ->
     rtc ERed.R a b.
   Proof.
-    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl.
+    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong.
     - move => n a0 a1 _ h.
       have {}h : rtc ERed.R (ren_PTm shift a0) (ren_PTm shift a1) by apply renaming.
       apply : rtc_r. apply AbsCong. apply AppCong; eauto. apply rtc_refl.
@@ -1523,7 +1549,13 @@ Module RERed.
     R (PPair a b0) (PPair a b1)
   | ProjCong p a0 a1 :
     R a0 a1 ->
-    R (PProj p a0) (PProj p a1).
+    R (PProj p a0) (PProj p a1)
+  | BindCong0 p A0 A1 B :
+    R A0 A1 ->
+    R (PBind p A0 B) (PBind p A1 B)
+  | BindCong1 p A B0 B1 :
+    R B0 B1 ->
+    R (PBind p A B0) (PBind p A B1).
 
   Lemma ToBetaEta n (a b : PTm n) :
     R a b ->
@@ -1599,6 +1631,12 @@ Module REReds.
     rtc RERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+    rtc RERed.R A0 A1 ->
+    rtc RERed.R B0 B1 ->
+    rtc RERed.R (PBind p A0 B0) (PBind p A1 B1).
+  Proof. solve_s. Qed.
+
 End REReds.
 
 Module LoRed.
@@ -1632,7 +1670,14 @@ Module LoRed.
   | ProjCong p a0 a1 :
     ~~ ishf a0 ->
     R a0 a1 ->
-    R (PProj p a0) (PProj p a1).
+    R (PProj p a0) (PProj p a1)
+  | BindCong0 p A0 A1 B :
+    R A0 A1 ->
+    R (PBind p A0 B) (PBind p A1 B)
+  | BindCong1 p A B0 B1 :
+    nf A ->
+    R B0 B1 ->
+    R (PBind p A B0) (PBind p A B1).
 
   Lemma hf_preservation n (a b : PTm n) :
     LoRed.R a b ->
@@ -1699,6 +1744,13 @@ Module LoReds.
     rtc LoRed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+    rtc LoRed.R A0 A1 ->
+    rtc LoRed.R B0 B1 ->
+    nf A1 ->
+    rtc LoRed.R (PBind p A0 B0) (PBind p A1 B1).
+  Proof. solve_s. Qed.
+
   Local Ltac triv := simpl in *; itauto.
 
   Lemma FromSN_mutual : forall n,
@@ -1713,6 +1765,8 @@ Module LoReds.
     - hauto q:on use:LoReds.PairCong solve+:triv.
     - hauto q:on use:LoReds.AbsCong solve+:triv.
     - sfirstorder use:ne_nf.
+    - hauto lq:on ctrs:rtc.
+    - hauto lq:on use:LoReds.BindCong solve+:triv.
     - hauto lq:on ctrs:rtc.
     - qauto ctrs:LoRed.R.
     - move => n a0 a1 b hb ihb h.
@@ -1737,10 +1791,12 @@ End LoReds.
 Fixpoint size_PTm {n} (a : PTm n) :=
   match a with
   | VarPTm _ => 1
-  | PAbs a => 1 + size_PTm a
+  | PAbs a => 3 + size_PTm a
   | PApp a b => 1 + Nat.add (size_PTm a) (size_PTm b)
   | PProj p a => 1 + size_PTm a
-  | PPair a b => 1 + Nat.add (size_PTm a) (size_PTm b)
+  | PPair a b => 3 + Nat.add (size_PTm a) (size_PTm b)
+  | PUniv _ => 3
+  | PBind p A B => 3 + Nat.add (size_PTm A) (size_PTm B)
   end.
 
 Lemma size_PTm_ren n m (ξ : fin n -> fin m) a : size_PTm (ren_PTm ξ a) = size_PTm a.
@@ -1825,6 +1881,12 @@ Proof.
     + hauto lq:on ctrs:ERed.R use:@relations.rtc_once.
     + hauto lq:on ctrs:rtc use:EReds.PairCong.
   - qauto l:on inv:ERed.R use:EReds.ProjCong.
+  - move => p A0 A1 B hA ihA u.
+    elim /ERed.inv => //=_;
+      hauto lq:on ctrs:rtc use:EReds.BindCong.
+  - move => p A B0 B1 hB ihB u.
+    elim /ERed.inv => //=_;
+      hauto lq:on ctrs:rtc use:EReds.BindCong.
 Qed.
 
 Lemma ered_confluence n (a b c : PTm n) :
