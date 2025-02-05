@@ -118,6 +118,14 @@ Definition CR {n} (P : PTm n -> Prop) :=
   (forall a, P a -> SN a) /\
     (forall a, SNe a -> P a).
 
+Lemma N_Exps n (a b : PTm n) :
+  rtc TRedSN a b ->
+  SN b ->
+  SN a.
+Proof.
+  induction 1; eauto using N_Exp.
+Qed.
+
 Lemma adequacy_ext i n I A PA
   (hI0 : forall j,  j < i -> forall a b, (TRedSN a b) ->  I j b -> I j a)
   (hI : forall j, j < i -> CR (I j))
@@ -127,9 +135,8 @@ Proof.
   elim : A PA / h.
   - hauto lq:on ctrs:SN unfold:CR.
   - move => p A B PA PF hPA [ihA0 ihA1] hTot hRes ihPF.
-    have x : fin n by admit.
-    set Bot := VarPTm x.
-    have hb : PA Bot by hauto q:on ctrs:SNe.
+    have hb : PA PBot by hauto q:on ctrs:SNe.
+    have hb' : SN PBot by hauto q:on ctrs:SN, SNe.
     rewrite /CR.
     repeat split.
     + case : p =>//=.
@@ -138,3 +145,18 @@ Proof.
       * rewrite /SumSpace => a []; first by apply N_SNe.
         move => [q0][q1]*.
         have : SN q0 /\ SN q1 by hauto q:on.
+        hauto lq:on use:N_Pair,N_Exps.
+    + move => a ha.
+      case : p=>/=.
+      * rewrite /ProdSpace => a0 *.
+        suff : SNe (PApp a a0) by sfirstorder.
+        hauto q:on use:N_App.
+      * rewrite /SumSpace. tauto.
+    + apply N_Bind=>//=.
+      have : SN (PApp (PAbs B) PBot).
+      apply : N_Exp; eauto using N_β.
+      hauto lq:on.
+      qauto l:on use:SN_AppInv, SN_NoForbid.P_AbsInv.
+  - sfirstorder.
+  - hauto l:on ctrs:SN unfold:CR.
+Qed.
