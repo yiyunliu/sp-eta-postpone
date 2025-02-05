@@ -170,6 +170,9 @@ Definition ishf {n} (a : PTm n) :=
   | PBind _ _ _ => true
   | _ => false
   end.
+Definition isbind {n} (a : PTm n) := if a is PBind _ _ _ then true else false.
+
+Definition isuniv {n} (a : PTm n) := if a is PUniv _ then true else false.
 
 Definition ispair {n} (a : PTm n) :=
   match a with
@@ -194,7 +197,6 @@ Proof. case : a => //=. Qed.
 Definition ispair_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
   ispair (ren_PTm ξ a) = ispair a.
 Proof. case : a => //=. Qed.
-
 
 Lemma PProj_imp n p a :
   @ishf n a ->
@@ -847,6 +849,11 @@ Module RReds.
   Lemma nf_refl n (a b : PTm n) :
     rtc RRed.R a b -> nf a -> a = b.
   Proof. induction 1; sfirstorder use:RRed.nf_imp. Qed.
+
+  Lemma FromRedSNs n (a b : PTm n) :
+    rtc TRedSN a b ->
+    rtc RRed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:rtc use:RRed.FromRedSN. Qed.
 
 End RReds.
 
@@ -1534,6 +1541,11 @@ Module EReds.
       apply ERed.PairEta.
   Qed.
 
+  Lemma FromEPars n (a b : PTm n) :
+    rtc EPar.R a b ->
+    rtc ERed.R a b.
+  Proof. induction 1; hauto l:on use:FromEPar, @relations.rtc_transitive. Qed.
+
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
@@ -1606,6 +1618,20 @@ Module RERed.
     SN b.
   Proof. hauto q:on use:ToBetaEtaPar, epar_sn_preservation, red_sn_preservation, RPar.FromRRed. Qed.
 
+  Lemma bind_preservation n (a b : PTm n) :
+    R a b -> isbind a -> isbind b.
+  Proof. hauto q:on inv:R. Qed.
+
+  Lemma univ_preservation n (a b : PTm n) :
+    R a b -> isuniv a -> isuniv b.
+  Proof. hauto q:on inv:R. Qed.
+
+  Lemma sne_preservation n (a b : PTm n) :
+    R a b -> SNe a -> SNe b.
+  Proof.
+    hauto q:on use:ToBetaEtaPar, RPar.FromRRed use:red_sn_preservation, epar_sn_preservation.
+  Qed.
+
 End RERed.
 
 Module REReds.
@@ -1659,6 +1685,18 @@ Module REReds.
     rtc RERed.R B0 B1 ->
     rtc RERed.R (PBind p A0 B0) (PBind p A1 B1).
   Proof. solve_s. Qed.
+
+  Lemma bind_preservation n (a b : PTm n) :
+    rtc RERed.R a b -> isbind a -> isbind b.
+  Proof. induction 1; qauto l:on ctrs:rtc use:RERed.bind_preservation. Qed.
+
+  Lemma univ_preservation n (a b : PTm n) :
+    rtc RERed.R a b -> isuniv a -> isuniv b.
+  Proof. induction 1; qauto l:on ctrs:rtc use:RERed.univ_preservation. Qed.
+
+  Lemma sne_preservation n (a b : PTm n) :
+    rtc RERed.R a b -> SNe a -> SNe b.
+  Proof. induction 1; qauto l:on ctrs:rtc use:RERed.sne_preservation. Qed.
 
 End REReds.
 
@@ -2050,5 +2088,21 @@ Module DJoin.
     R a0 a1 ->
     R (PProj p a0) (PProj p a1).
   Proof. hauto q:on use:REReds.ProjCong. Qed.
+
+  Lemma FromRedSNs n (a b : PTm n) :
+    rtc TRedSN a b ->
+    R a b.
+  Proof.
+    move /RReds.FromRedSNs /REReds.FromRReds.
+    sfirstorder use:@rtc_refl unfold:R.
+  Qed.
+
+  Lemma sne_bind_imp n (a b : PTm n) :
+    R a b -> SNe a -> isbind b -> False.
+  Proof.
+    move => [c [? ?]] *.
+    have : SNe c /\ isbind c by sfirstorder use:REReds.sne_preservation, REReds.bind_preservation.
+    qauto l:on inv:SNe.
+  Qed.
 
 End DJoin.

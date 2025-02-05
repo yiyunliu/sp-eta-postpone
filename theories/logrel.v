@@ -215,9 +215,6 @@ Proof.
   induction 2; hauto lq:on ctrs:rtc use:InterpUniv_back_clos.
 Qed.
 
-Definition isbind {n} (a : PTm n) := if a is PBind _ _ _ then true else false.
-
-Definition isuniv {n} (a : PTm n) := if a is PUniv _ then true else false.
 
 Lemma InterpUniv_case n i (A : PTm n) PA :
   ⟦ A ⟧ i ↘ PA ->
@@ -237,6 +234,11 @@ Qed.
 Lemma redsns_preservation : forall n a b, @SN n a -> rtc TRedSN a b -> SN b.
 Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 
+Lemma sne_bind_noconf n (a b : PTm n) :
+  SNe a -> isbind b -> DJoin.R a b -> False.
+Proof.
+
+
 Lemma InterpUniv_Join n i (A B : PTm n) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ B ⟧ i ↘ PB ->
@@ -249,5 +251,5 @@ Proof.
   - move => i A hA B PB hPB hAB.
     have [*] : SN B /\ SN A by hauto l:on use:adequacy.
     move /InterpUniv_case : hPB.
-    move => [H [h ?]].
-    (* have ? : SN H by sfirstorder use:redsns_preservation. *)
+    move => [H [/DJoin.FromRedSNs h ?]].
+    have ? : DJoin.R A H by eauto using DJoin.transitive.
