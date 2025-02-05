@@ -239,6 +239,7 @@ Lemma sne_bind_noconf n (a b : PTm n) :
 Proof.
 
 
+
 Lemma InterpUniv_Join n i (A B : PTm n) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ B ⟧ i ↘ PB ->

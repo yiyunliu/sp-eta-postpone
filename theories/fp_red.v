@@ -1698,6 +1698,15 @@ Module REReds.
     rtc RERed.R a b -> SNe a -> SNe b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.sne_preservation. Qed.
 
+  Lemma bind_inv n p A B C :
+    rtc (@RERed.R n) (PBind p A B) C ->
+    exists A0 B0, C = PBind p A0 B0 /\ rtc RERed.R A A0 /\ rtc RERed.R B B0.
+  Proof.
+    move E : (PBind p A B) => u hu.
+    move : p A B E.
+    elim : u C / hu; sauto lq:on rew:off.
+  Qed.
+
 End REReds.
 
 Module LoRed.
@@ -2097,12 +2106,37 @@ Module DJoin.
     sfirstorder use:@rtc_refl unfold:R.
   Qed.
 
-  Lemma sne_bind_imp n (a b : PTm n) :
+  Lemma sne_bind_noconf n (a b : PTm n) :
     R a b -> SNe a -> isbind b -> False.
   Proof.
     move => [c [? ?]] *.
     have : SNe c /\ isbind c by sfirstorder use:REReds.sne_preservation, REReds.bind_preservation.
     qauto l:on inv:SNe.
+  Qed.
+
+  Lemma sne_univ_noconf n (a b : PTm n) :
+    R a b -> SNe a -> isuniv b -> False.
+  Proof.
+    hauto q:on use:REReds.sne_preservation,
+          REReds.univ_preservation inv:SNe.
+  Qed.
+
+  Lemma bind_univ_noconf n (a b : PTm n) :
+    R a b -> isbind a -> isuniv b -> False.
+  Proof.
+    move => [c [h0 h1]] h2 h3.
+    have {h0 h1 h2 h3} : isbind c /\ isuniv c by
+      hauto l:on use:REReds.bind_preservation,
+          REReds.univ_preservation.
+    case : c => //=; itauto.
+  Qed.
+
+  Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
+    DJoin.R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
+    p0 = p1 /\ DJoin.R A0 A1 /\ DJoin.R B0 B1.
+  Proof.
+    rewrite /R.
+    hauto lq:on rew:off use:REReds.bind_inv.
   Qed.
 
 End DJoin.
