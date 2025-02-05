@@ -565,6 +565,11 @@ Module RRed.
     R a b -> False.
   Proof. move/[swap]. induction 1; hauto qb:on inv:PTm. Qed.
 
+  Lemma FromRedSN n (a b : PTm n) :
+    TRedSN a b ->
+    RRed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
+
 End RRed.
 
 Module RPar.
