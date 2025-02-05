@@ -53,7 +53,9 @@ Module EPar.
   | BindCong p A0 A1 B0 B1 :
     R A0 A1 ->
     R B0 B1 ->
-    R (PBind p A0 B0) (PBind p A1 B1).
+    R (PBind p A0 B0) (PBind p A1 B1)
+  | BotCong :
+    R PBot PBot.
 
   Lemma refl n (a : PTm n) : R a a.
   Proof.
@@ -117,6 +119,8 @@ Inductive SNe {n} : PTm n -> Prop :=
 | N_Proj p a :
   SNe a ->
   SNe (PProj p a)
+| N_Bot :
+  SNe PBot
 with SN  {n} : PTm n -> Prop :=
 | N_Pair a b :
   SN a ->
@@ -270,6 +274,7 @@ Fixpoint ne {n} (a : PTm n) :=
   | PProj _ a => ne a
   | PUniv _ => false
   | PBind _ _ _ => false
+  | PBot => true
   end
 with nf {n} (a : PTm n) :=
   match a with
@@ -280,6 +285,7 @@ with nf {n} (a : PTm n) :=
   | PProj _ a => ne a
   | PUniv _ => true
   | PBind _ A B => nf A && nf B
+  | PBot => true
 end.
 
 Lemma ne_nf n a : @ne n a -> nf a.
@@ -424,6 +430,7 @@ Lemma epar_sn_preservation n :
   (forall (a b : PTm n) (_ : TRedSN a b), forall c, EPar.R a c -> exists d, TRedSN' c d /\ EPar.R b d).
 Proof.
   move : n. apply sn_mutual => n.
+  - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
@@ -595,7 +602,9 @@ Module RPar.
   | BindCong p A0 A1 B0 B1 :
     R A0 A1 ->
     R B0 B1 ->
-    R (PBind p A0 B0) (PBind p A1 B1).
+    R (PBind p A0 B0) (PBind p A1 B1)
+  | BotCong :
+    R PBot PBot.
 
   Lemma refl n (a : PTm n) : R a a.
   Proof.
@@ -690,6 +699,7 @@ Module RPar.
     | PProj p a => PProj p (tstar a)
     | PUniv i => PUniv i
     | PBind p A B => PBind p (tstar A) (tstar B)
+    | PBot => PBot
     end.
 
   Lemma triangle n (a b : PTm n) :
@@ -720,6 +730,7 @@ Module RPar.
     - hauto lq:on ctrs:R inv:R.
     - hauto lq:on ctrs:R inv:R.
     - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
   Qed.
 
   Lemma diamond n (a b c : PTm n) :
@@ -735,6 +746,7 @@ Proof.
   move : n. apply sn_mutual => n.
   - hauto l:on inv:RPar.R.
   - qauto l:on inv:RPar.R,SNe,SN ctrs:SNe.
+  - hauto lq:on inv:RPar.R, SNe ctrs:SNe.
   - hauto lq:on inv:RPar.R, SNe ctrs:SNe.
   - qauto l:on ctrs:SN inv:RPar.R.
   - hauto lq:on ctrs:SN inv:RPar.R.
@@ -874,6 +886,8 @@ Module NeEPar.
     R_nonelim A0 A1 ->
     R_nonelim B0 B1 ->
     R_nonelim (PBind p A0 B0) (PBind p A1 B1)
+  | BotCong :
+    R_nonelim PBot PBot
   with R_elim {n} : PTm n -> PTm n -> Prop :=
   | NAbsCong a0 a1 :
     R_nonelim a0 a1 ->
@@ -896,7 +910,9 @@ Module NeEPar.
   | NBindCong p A0 A1 B0 B1 :
     R_nonelim A0 A1 ->
     R_nonelim B0 B1 ->
-    R_elim (PBind p A0 B0) (PBind p A1 B1).
+    R_elim (PBind p A0 B0) (PBind p A1 B1)
+  | NBotCong :
+    R_elim PBot PBot.
 
   Scheme epar_elim_ind := Induction for R_elim Sort Prop
       with epar_nonelim_ind := Induction for R_nonelim Sort Prop.
@@ -1165,6 +1181,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto lq:on ctrs:rtc, NeEPar.R_nonelim.
     - hauto l:on.
     - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
+    - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
   Qed.
 
 
@@ -1272,6 +1289,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto lq:on inv:RRed.R.
     - hauto lq:on inv:RRed.R ctrs:rtc.
     - sauto lq:on ctrs:EPar.R, rtc use:RReds.BindCong, P_BindInv, @relations.rtc_transitive.
+    - hauto lq:on inv:RRed.R ctrs:rtc.
   Qed.
 
   Lemma η_postponement_star n a b c :
@@ -1762,6 +1780,7 @@ Module LoReds.
     - hauto lq:on ctrs:rtc.
     - hauto lq:on rew:off use:LoReds.AppCong solve+:triv.
     - hauto l:on use:LoReds.ProjCong solve+:triv.
+    - hauto lq:on ctrs:rtc.
     - hauto q:on use:LoReds.PairCong solve+:triv.
     - hauto q:on use:LoReds.AbsCong solve+:triv.
     - sfirstorder use:ne_nf.
@@ -1797,6 +1816,7 @@ Fixpoint size_PTm {n} (a : PTm n) :=
   | PPair a b => 3 + Nat.add (size_PTm a) (size_PTm b)
   | PUniv _ => 3
   | PBind p A B => 3 + Nat.add (size_PTm A) (size_PTm B)
+  | PBot => 1
   end.
 
 Lemma size_PTm_ren n m (ξ : fin n -> fin m) a : size_PTm (ren_PTm ξ a) = size_PTm a.
