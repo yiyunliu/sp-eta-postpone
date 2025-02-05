@@ -40,7 +40,8 @@ Inductive PTm (n_PTm : nat) : Type :=
   | PPair : PTm n_PTm -> PTm n_PTm -> PTm n_PTm
   | PProj : PTag -> PTm n_PTm -> PTm n_PTm
   | PBind : BTag -> PTm n_PTm -> PTm (S n_PTm) -> PTm n_PTm
-  | PUniv : nat -> PTm n_PTm.
+  | PUniv : nat -> PTm n_PTm
+  | PBot : PTm n_PTm.
 
 Lemma congr_PAbs {m_PTm : nat} {s0 : PTm (S m_PTm)} {t0 : PTm (S m_PTm)}
   (H0 : s0 = t0) : PAbs m_PTm s0 = PAbs m_PTm t0.
@@ -89,6 +90,11 @@ Proof.
 exact (eq_trans eq_refl (ap (fun x => PUniv m_PTm x) H0)).
 Qed.
 
+Lemma congr_PBot {m_PTm : nat} : PBot m_PTm = PBot m_PTm.
+Proof.
+exact (eq_refl).
+Qed.
+
 Lemma upRen_PTm_PTm {m : nat} {n : nat} (xi : fin m -> fin n) :
   fin (S m) -> fin (S n).
 Proof.
@@ -112,6 +118,7 @@ Fixpoint ren_PTm {m_PTm : nat} {n_PTm : nat}
   | PBind _ s0 s1 s2 =>
       PBind n_PTm s0 (ren_PTm xi_PTm s1) (ren_PTm (upRen_PTm_PTm xi_PTm) s2)
   | PUniv _ s0 => PUniv n_PTm s0
+  | PBot _ => PBot n_PTm
   end.
 
 Lemma up_PTm_PTm {m : nat} {n_PTm : nat} (sigma : fin m -> PTm n_PTm) :
@@ -142,6 +149,7 @@ Fixpoint subst_PTm {m_PTm : nat} {n_PTm : nat}
       PBind n_PTm s0 (subst_PTm sigma_PTm s1)
         (subst_PTm (up_PTm_PTm sigma_PTm) s2)
   | PUniv _ s0 => PUniv n_PTm s0
+  | PBot _ => PBot n_PTm
   end.
 
 Lemma upId_PTm_PTm {m_PTm : nat} (sigma : fin m_PTm -> PTm m_PTm)
@@ -184,6 +192,7 @@ Fixpoint idSubst_PTm {m_PTm : nat} (sigma_PTm : fin m_PTm -> PTm m_PTm)
       congr_PBind (eq_refl s0) (idSubst_PTm sigma_PTm Eq_PTm s1)
         (idSubst_PTm (up_PTm_PTm sigma_PTm) (upId_PTm_PTm _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma upExtRen_PTm_PTm {m : nat} {n : nat} (xi : fin m -> fin n)
@@ -229,6 +238,7 @@ ren_PTm xi_PTm s = ren_PTm zeta_PTm s :=
         (extRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
            (upExtRen_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma upExt_PTm_PTm {m : nat} {n_PTm : nat} (sigma : fin m -> PTm n_PTm)
@@ -275,6 +285,7 @@ subst_PTm sigma_PTm s = subst_PTm tau_PTm s :=
         (ext_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
            (upExt_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma up_ren_ren_PTm_PTm {k : nat} {l : nat} {m : nat} (xi : fin k -> fin l)
@@ -322,6 +333,7 @@ Fixpoint compRenRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
         (compRenRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
            (upRen_PTm_PTm rho_PTm) (up_ren_ren _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma up_ren_subst_PTm_PTm {k : nat} {l : nat} {m_PTm : nat}
@@ -378,6 +390,7 @@ Fixpoint compRenSubst_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
         (compRenSubst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm tau_PTm)
            (up_PTm_PTm theta_PTm) (up_ren_subst_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma up_subst_ren_PTm_PTm {k : nat} {l_PTm : nat} {m_PTm : nat}
@@ -454,6 +467,7 @@ ren_PTm zeta_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
         (compSubstRen_PTm (up_PTm_PTm sigma_PTm) (upRen_PTm_PTm zeta_PTm)
            (up_PTm_PTm theta_PTm) (up_subst_ren_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma up_subst_subst_PTm_PTm {k : nat} {l_PTm : nat} {m_PTm : nat}
@@ -532,6 +546,7 @@ subst_PTm tau_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
         (compSubstSubst_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
            (up_PTm_PTm theta_PTm) (up_subst_subst_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma renRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
@@ -649,6 +664,7 @@ Fixpoint rinst_inst_PTm {m_PTm : nat} {n_PTm : nat}
         (rinst_inst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm sigma_PTm)
            (rinstInst_up_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
+  | PBot _ => congr_PBot
   end.
 
 Lemma rinstInst'_PTm {m_PTm : nat} {n_PTm : nat}
@@ -855,6 +871,8 @@ Core.
 
 Arguments VarPTm {n_PTm}.
 
+Arguments PBot {n_PTm}.
+
 Arguments PUniv {n_PTm}.
 
 Arguments PBind {n_PTm}.
@@ -867,9 +885,9 @@ Arguments PApp {n_PTm}.
 
 Arguments PAbs {n_PTm}.
 
-#[global]Hint Opaque subst_PTm: rewrite.
+#[global] Hint Opaque subst_PTm: rewrite.
 
-#[global]Hint Opaque ren_PTm: rewrite.
+#[global] Hint Opaque ren_PTm: rewrite.
 
 End Extra.
 

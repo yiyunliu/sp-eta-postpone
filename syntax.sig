@@ -16,3 +16,4 @@ PPair : PTm -> PTm -> PTm
 PProj : PTag -> PTm -> PTm
 PBind : BTag -> PTm -> (bind PTm in PTm) -> PTm
 PUniv : nat -> PTm
+PBot : PTm
