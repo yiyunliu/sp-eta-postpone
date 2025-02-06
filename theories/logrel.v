@@ -434,3 +434,121 @@ Proof.
     + rewrite /SumSpace. apply propositional_extensionality.
       split; hauto q:on use:InterpUniv_Functional.
 Qed.
+
+Definition ρ_ok {n} (Γ : fin n -> PTm n) (ρ : fin n -> PTm 0) := forall i k PA,
+    ⟦ subst_PTm ρ (Γ i) ⟧ k ↘ PA -> PA (ρ i).
+
+Definition SemWt {n} Γ (a A : PTm n) := forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a).
+Notation "Γ ⊨ a ∈ A" := (SemWt Γ a A) (at level 70).
+
+(* Semantic context wellformedness *)
+Definition SemWff {n} Γ := forall (i : fin n), exists j, Γ ⊨ Γ i ∈ PUniv j.
+Notation "⊨ Γ" := (SemWff Γ) (at level 70).
+
+Lemma ρ_ok_bot n (Γ : fin n -> PTm n)  :
+  ρ_ok Γ (fun _ => PBot).
+Proof.
+  rewrite /ρ_ok.
+  hauto q:on use:adequacy ctrs:SNe.
+Qed.
+
+Lemma ρ_ok_cons n i (Γ : fin n -> PTm n) ρ a PA A :
+  ⟦ subst_PTm ρ A ⟧ i ↘ PA -> PA a ->
+  ρ_ok Γ ρ ->
+  ρ_ok (funcomp (ren_PTm shift) (scons A Γ)) (scons a ρ).
+Proof.
+  move => h0 h1 h2.
+  rewrite /ρ_ok.
+  move => j.
+  destruct j as [j|].
+  - move => m PA0. asimpl => ?.
+    asimpl.
+    firstorder.
+  - move => m PA0. asimpl => h3.
+    have ? : PA0 = PA by eauto using InterpUniv_Functional'.
+    by subst.
+Qed.
+
+Definition renaming_ok {n m} (Γ : fin n -> PTm n) (Δ : fin m -> PTm m) (ξ : fin m -> fin n) :=
+  forall (i : fin m), ren_PTm ξ (Δ i) = Γ (ξ i).
+
+Lemma ρ_ok_renaming n m (Γ : fin n -> PTm n) ρ :
+  forall (Δ : fin m -> PTm m) ξ,
+    renaming_ok Γ Δ ξ ->
+    ρ_ok Γ ρ ->
+    ρ_ok Δ (funcomp ρ ξ).
+Proof.
+  move => Δ ξ hξ hρ.
+  rewrite /ρ_ok => i m' PA.
+  rewrite /renaming_ok in hξ.
+  rewrite /ρ_ok in hρ.
+  move => h.
+  rewrite /funcomp.
+  apply hρ with (k := m').
+  move : h. rewrite -hξ.
+  by asimpl.
+Qed.
+
+Lemma renaming_SemWt {n} Γ a A :
+  Γ ⊨ a ∈ A ->
+  forall {m} Δ (ξ : fin n -> fin m),
+    renaming_ok Δ Γ ξ ->
+    Δ ⊨ ren_PTm ξ a ∈ ren_PTm ξ A.
+Proof.
+  rewrite /SemWt => h m Δ ξ hξ ρ hρ.
+  have /h hρ' : (ρ_ok Γ (funcomp ρ ξ)) by eauto using ρ_ok_renaming.
+  hauto q:on solve+:(by asimpl).
+Qed.
+
+Lemma weakening_Sem n Γ (a : PTm n) A B i
+  (h0 : Γ ⊨ B ∈ PUniv i)
+  (h1 : Γ ⊨ a ∈ A) :
+   funcomp (ren_PTm shift) (scons B Γ) ⊨ ren_PTm shift a ∈ ren_PTm shift A.
+Proof.
+  apply : renaming_SemWt; eauto.
+  hauto lq:on inv:option unfold:renaming_ok.
+Qed.
+
+Lemma SemWt_Wn n Γ (a : PTm n) A :
+  Γ ⊨ a ∈ A ->
+  SN a /\ SN A.
+Proof.
+  move => h.
+  have {}/h := ρ_ok_bot _ Γ => h.
+  have h0 : SN (subst_PTm (fun _ : fin n => (PBot : PTm 0)) A) by hauto l:on use:adequacy.
+  have h1 : SN (subst_PTm (fun _ : fin n => (PBot : PTm 0)) a)by hauto l:on use:adequacy.
+  move {h}. hauto l:on use:sn_unmorphing.
+Qed.
+
+Lemma SemWt_Univ n Γ (A : PTm n) i  :
+  Γ ⊨ A ∈ PUniv i <->
+  forall ρ, ρ_ok Γ ρ -> exists S, ⟦ subst_PTm ρ A ⟧ i ↘ S.
+Proof.
+  rewrite /SemWt.
+  split.
+  - hauto lq:on rew:off use:InterpUniv_Univ_inv.
+  - move => /[swap] ρ /[apply].
+    move => [PA hPA].
+    exists (S i). eexists.
+    split.
+    + simp InterpUniv. apply InterpExt_Univ. lia.
+    + simpl. eauto.
+Qed.
+
+(* Structural laws for Semantic context wellformedness *)
+Lemma SemWff_nil : SemWff null.
+Proof. case. Qed.
+
+Lemma SemWff_cons n Γ (A : PTm n) i :
+    ⊨ Γ ->
+    Γ ⊨ A ∈ PUniv i ->
+    (* -------------- *)
+    ⊨ funcomp (ren_PTm shift) (scons A Γ).
+Proof.
+  move => h h0.
+  move => j. destruct j as [j|].
+  - move /(_ j) : h => [k hk].
+    exists k. change (PUniv k) with (ren_PTm shift (PUniv k : PTm n)).
+    eauto using weakening_Sem.
+  - hauto q:on use:weakening_Sem.
+Qed.
