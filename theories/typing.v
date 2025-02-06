@@ -37,6 +37,10 @@ Inductive Wt : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   Γ ⊢ a ∈ PBind PSig A B ->
   Γ ⊢ PProj PR a ∈ subst_PTm (scons (PProj PL a) VarPTm) B
 
+| T_Univ n Γ i j :
+  i < j ->
+  Γ ⊢ PUniv i : PTm n ∈ PUniv j
+
 | T_Conv n Γ (a : PTm n) A B i :
   Γ ⊢ a ∈ A ->
   Γ ⊢ A ≡ B ∈ PUniv i ->

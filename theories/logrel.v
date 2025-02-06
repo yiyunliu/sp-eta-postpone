@@ -978,6 +978,14 @@ Proof.
   hauto lq:on ctrs:rtc inv:option.
 Qed.
 
-#[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Conv
+Lemma ST_Univ n Γ i j :
+  i < j ->
+  Γ ⊨ PUniv i : PTm n ∈ PUniv j.
+Proof.
+  move => ?.
+  apply SemWt_Univ. move => ρ hρ. eexists. by apply InterpUniv_Univ.
+Qed.
+
+#[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
   SE_Conv SE_Bind_Proj1 SE_Bind_Proj2 SemWff_nil SemWff_cons : sem.
