@@ -350,14 +350,7 @@ Proof.
     have ? : PA0 = PA by qauto l:on. subst.
     have : forall a PB PB', PA a -> PF a PB -> PF0 a PB' -> PB = PB'.
     move => a PB PB' ha hPB hPB'. apply : ihPF; eauto.
-    have hj0 : DJoin.R (PAbs B) (PAbs B0) by eauto using DJoin.AbsCong.
-    have {}hj0 : DJoin.R (PApp (PAbs B) a) (PApp (PAbs B0) a) by eauto using DJoin.AppCong, DJoin.refl.
-    have [? ?] : SN (PApp (PAbs B) a) /\ SN (PApp (PAbs B0) a) by
-      hauto lq:on rew:off use:N_Exp, N_β, adequacy.
-    have [? ?] : DJoin.R (PApp (PAbs B0) a) (subst_PTm (scons a VarPTm) B0) /\
-           DJoin.R (subst_PTm (scons a VarPTm) B) (PApp (PAbs B) a)
-      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed0, DJoin.FromRRed1.
-    eauto using DJoin.transitive.
+    by apply DJoin.substing.
     move => h. extensionality b. apply propositional_extensionality.
     hauto l:on use:bindspace_iff.
   - move => i j jlti ih B PB hPB.
@@ -744,20 +737,8 @@ Proof.
       move : hPB. asimpl => hPB.
       suff : DJoin.R (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B) (subst_PTm (scons a0 ρ) B).
       move : InterpUniv_Join hPB0 hPB; repeat move/[apply]. done.
-      suff : BJoin.R (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B) (subst_PTm (scons a0 ρ) B)
-        by hauto q:on use:DJoin.FromBJoin.
-      have : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ) B)) (PProj PL (subst_PTm ρ a)))
-               (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B).
-      eexists. split. apply relations.rtc_once. apply RRed.AppAbs.
-      asimpl. apply rtc_refl.
-      have /BJoin.symmetric : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ)B)) a0)
-                                (subst_PTm (scons a0 ρ) B).
-      eexists. split. apply relations.rtc_once. apply RRed.AppAbs.
-      asimpl. apply rtc_refl.
-      suff : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ) B)) (PProj PL (subst_PTm ρ a)))
-               (PApp (PAbs (subst_PTm (up_PTm_PTm ρ)B)) a0) by eauto using BJoin.transitive, BJoin.symmetric.
-      apply BJoin.AppCong. apply BJoin.refl.
-      move /RReds.FromRedSNs : hr'.
+      apply DJoin.cong.
+      apply DJoin.FromRedSNs.
       hauto lq:on ctrs:rtc unfold:BJoin.R.
     + hauto lq:on use:@relations.rtc_r, InterpUniv_back_closs.
 Qed.
@@ -852,4 +833,53 @@ Proof.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
   move : Γ_eq_ρ_ok hΓ' hρ; repeat move/[apply]. apply.
   hauto lq:on use:Γ_eq_cons'.
+Qed.
+
+Lemma SE_Abs n Γ (a b : PTm (S n)) A B i :
+  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ a ≡ b ∈ B ->
+  Γ ⊨ PAbs a ≡ PAbs b ∈ PBind PPi A B.
+Proof.
+  move => hPi /SemEq_SemWt [ha][hb]he.
+  apply SemWt_SemEq; eauto using DJoin.AbsCong, ST_Abs.
+Qed.
+
+Lemma SE_Conv n Γ (a b : PTm n) A B i :
+  Γ ⊨ a ≡ b ∈ A ->
+  Γ ⊨ B ∈ PUniv i ->
+  DJoin.R A B ->
+  Γ ⊨ a ≡ b ∈ B.
+Proof.
+  move /SemEq_SemWt => [ha][hb]he hB hAB.
+  apply SemWt_SemEq; eauto using ST_Conv.
+Qed.
+
+Lemma SBind_inst n Γ p i (A : PTm n) B (a : PTm n) :
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ PBind p A B ∈ PUniv i ->
+  Γ ⊨ subst_PTm (scons a VarPTm) B ∈ PUniv i.
+Proof.
+  move => ha /SemWt_Univ hb.
+  apply SemWt_Univ.
+  move => ρ hρ.
+  have {}/hb := hρ.
+  asimpl. move => /= [S hS].
+  move /InterpUniv_Bind_inv_nopf : hS.
+  move => [PA][hPA][hPF]?. subst.
+  have {}/ha := hρ.
+  move => [k][PA0][hPA0]ha.
+  have ? : PA0 = PA by hauto l:on use:InterpUniv_Functional'. subst.
+  have {}/hPF := ha.
+  move => [PB]. asimpl.
+  hauto lq:on.
+Qed.
+
+Lemma SE_Pair n Γ (a0 a1 b0 b1 : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a0 ≡ a1 ∈ A ->
+  Γ ⊨ b0 ≡ b1 ∈ subst_PTm (scons a0 VarPTm) B ->
+  Γ ⊨ PPair a0 b0 ≡ PPair a1 b1 ∈ PBind PSig A B.
+Proof.
+  move => h /SemEq_SemWt [ha0][ha1]hae /SemEq_SemWt [hb0][hb1]hbe.
+  apply SemWt_SemEq; eauto using ST_Pair, DJoin.PairCong, SBind_inst, DJoin.cong, ST_Conv, ST_Pair.
 Qed.

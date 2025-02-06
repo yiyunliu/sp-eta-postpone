@@ -1756,6 +1756,24 @@ Module REReds.
     induction 1; hauto lq:on ctrs:rtc use:RERed.substing.
   Qed.
 
+
+  Lemma cong_up n m (ρ0 ρ1 : fin n -> PTm m) :
+    (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
+    (forall i, rtc RERed.R (up_PTm_PTm ρ0 i) (up_PTm_PTm ρ1 i)).
+  Proof. move => h i. destruct i as [i|].
+         simpl. rewrite /funcomp.
+         substify. by apply substing.
+         apply rtc_refl.
+  Qed.
+
+  Lemma cong n m (a : PTm n) (ρ0 ρ1 : fin n -> PTm m) :
+    (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
+    rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a).
+  Proof.
+    move : m ρ0 ρ1. elim : n / a;
+      eauto using AppCong, AbsCong, BindCong, ProjCong, PairCong, cong_up, rtc_refl.
+  Qed.
+
 End REReds.
 
 Module LoRed.
@@ -2257,6 +2275,14 @@ Module DJoin.
     R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     hauto lq:on rew:off ctrs:rtc unfold:R use:REReds.substing.
+  Qed.
+
+  Lemma cong n m (a : PTm (S n)) c d (ρ : fin n -> PTm m) :
+    R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) a).
+  Proof.
+    rewrite /R. move => [cd [h0 h1]].
+    exists (subst_PTm (scons cd ρ) a).
+    hauto q:on ctrs:rtc inv:option use:REReds.cong.
   Qed.
 
 End DJoin.
