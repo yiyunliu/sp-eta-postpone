@@ -2066,7 +2066,36 @@ Proof.
   move /REReds.FromRReds : hc0. move /REReds.FromEReds : hv'. eauto using relations.rtc_transitive.
 Qed.
 
-(* "Declarative" Joinability *)
+(* Beta joinability *)
+Module BJoin.
+  Definition R {n} (a b : PTm n) := exists c, rtc RRed.R a c /\ rtc RRed.R b c.
+  Lemma refl n (a : PTm n) : R a a.
+  Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
+
+  Lemma symmetric n (a b : PTm n) : R a b -> R b a.
+  Proof. sfirstorder unfold:R. Qed.
+
+  Lemma transitive n (a b c : PTm n) : R a b -> R b c -> R a c.
+  Proof.
+    rewrite /R.
+    move => [ab [ha +]] [bc [+ hc]].
+    move : red_confluence; repeat move/[apply].
+    move => [v [h0 h1]].
+    exists v. sfirstorder use:@relations.rtc_transitive.
+  Qed.
+
+  Lemma AbsCong n (a b : PTm (S n)) :
+    R a b ->
+    R (PAbs a) (PAbs b).
+  Proof. hauto lq:on use:RReds.AbsCong unfold:R. Qed.
+
+  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
+    R a0 a1 ->
+    R b0 b1 ->
+    R (PApp a0 b0) (PApp a1 b1).
+  Proof. hauto lq:on use:RReds.AppCong unfold:R. Qed.
+End BJoin.
+
 Module DJoin.
   Definition R {n} (a b : PTm n) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
 
@@ -2166,6 +2195,16 @@ Module DJoin.
     hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
   Qed.
 
+  Lemma FromRReds n (a b : PTm n) :
+    rtc RRed.R b a -> R a b.
+  Proof.
+    hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
+  Qed.
 
+  Lemma FromBJoin n (a b : PTm n) :
+    BJoin.R a b -> R a b.
+  Proof.
+    hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
+  Qed.
 
 End DJoin.

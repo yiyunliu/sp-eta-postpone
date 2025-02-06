@@ -509,7 +509,7 @@ Proof.
   hauto lq:on inv:option unfold:renaming_ok.
 Qed.
 
-Lemma SemWt_Wn n Γ (a : PTm n) A :
+Lemma SemWt_SN n Γ (a : PTm n) A :
   Γ ⊨ a ∈ A ->
   SN a /\ SN A.
 Proof.
@@ -551,4 +551,187 @@ Proof.
     exists k. change (PUniv k) with (ren_PTm shift (PUniv k : PTm n)).
     eauto using weakening_Sem.
   - hauto q:on use:weakening_Sem.
+Qed.
+
+(* Semantic typing rules *)
+Lemma ST_Var n Γ (i : fin n) :
+  ⊨ Γ ->
+  Γ ⊨ VarPTm i ∈ Γ i.
+Proof.
+  move /(_ i) => [j /SemWt_Univ h].
+  rewrite /SemWt => ρ /[dup] hρ {}/h [S hS].
+  exists j, S.
+  asimpl. firstorder.
+Qed.
+
+Lemma InterpUniv_Bind_nopf n p i (A : PTm n) B PA :
+  ⟦ A ⟧ i ↘ PA ->
+  (forall a, PA a -> exists PB, ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+  ⟦ PBind p A B ⟧ i ↘ (BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB)).
+Proof.
+  move => h0 h1. apply InterpUniv_Bind => //=.
+Qed.
+
+
+Lemma ST_Bind n Γ i j p (A : PTm n) (B : PTm (S n)) :
+  Γ ⊨ A ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ B ∈ PUniv j ->
+  Γ ⊨ PBind p A B ∈ PUniv (max i j).
+Proof.
+  move => /SemWt_Univ h0 /SemWt_Univ h1.
+  apply SemWt_Univ => ρ hρ.
+  move /h0 : (hρ){h0} => [S hS].
+  eexists => /=.
+  have ? : i <= Nat.max i j by lia.
+  apply InterpUniv_Bind_nopf; eauto.
+  - eauto using InterpUniv_cumulative.
+  - move => *. asimpl. hauto l:on use:InterpUniv_cumulative, ρ_ok_cons.
+Qed.
+
+Lemma ST_Abs n Γ (a : PTm (S n)) A B i :
+  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ a ∈ B ->
+  Γ ⊨ PAbs a ∈ PBind PPi A B.
+Proof.
+  rename a into b.
+  move /SemWt_Univ => + hb ρ hρ.
+  move /(_ _ hρ) => [PPi hPPi].
+  exists i, PPi. split => //.
+  simpl in hPPi.
+  move /InterpUniv_Bind_inv_nopf : hPPi.
+  move => [PA [hPA [hTot ?]]]. subst=>/=.
+  move => a PB ha. asimpl => hPB.
+  move : ρ_ok_cons (hPA) (hρ) (ha). repeat move/[apply].
+  move /hb.
+  intros (m & PB0 & hPB0 & hPB0').
+  replace PB0 with PB in * by hauto l:on use:InterpUniv_Functional'.
+  apply : InterpUniv_back_clos; eauto.
+  apply N_β'. by asimpl.
+  move : ha hPA. clear. hauto q:on use:adequacy.
+Qed.
+
+Lemma ST_App n Γ (b a : PTm n) A B :
+  Γ ⊨ b ∈ PBind PPi A B ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ PApp b a ∈ subst_PTm (scons a VarPTm) B.
+Proof.
+  move => hf hb ρ hρ.
+  move /(_ ρ hρ) : hf; intros (i & PPi & hPi & hf).
+  move /(_ ρ hρ) : hb; intros (j & PA & hPA & hb).
+  simpl in hPi.
+  move /InterpUniv_Bind_inv_nopf : hPi. intros (PA0 & hPA0 & hTot & ?). subst.
+  have ? : PA0 = PA by eauto using InterpUniv_Functional'. subst.
+  move  : hf (hb). move/[apply].
+  move : hTot hb. move/[apply].
+  asimpl. hauto lq:on.
+Qed.
+
+Lemma ST_Pair n Γ (a b : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ PPair a b ∈ PBind PSig A B.
+Proof.
+  move /SemWt_Univ => + ha hb ρ hρ.
+  move /(_ _ hρ) => [PPi hPPi].
+  exists i, PPi. split => //.
+  simpl in hPPi.
+  move /InterpUniv_Bind_inv_nopf : hPPi.
+  move => [PA [hPA [hTot ?]]]. subst=>/=.
+  rewrite /SumSpace. right.
+  exists (subst_PTm ρ a), (subst_PTm ρ b).
+  split.
+  - apply rtc_refl.
+  - move /ha : (hρ){ha}.
+    move => [m][PA0][h0]h1.
+    move /hb : (hρ){hb}.
+    move => [k][PB][h2]h3.
+    have ? : PA0 = PA by eauto using InterpUniv_Functional'. subst.
+    split => // PB0.
+    move : h2. asimpl => *.
+    have ? : PB0 = PB by eauto using InterpUniv_Functional'. by subst.
+Qed.
+
+Lemma N_Projs n p (a b : PTm n) :
+  rtc TRedSN a b ->
+  rtc TRedSN (PProj p a) (PProj p b).
+Proof. induction 1; hauto lq:on ctrs:rtc, TRedSN. Qed.
+
+Lemma ST_Proj1 n Γ (a : PTm n) A B :
+  Γ ⊨ a ∈ PBind PSig A B ->
+  Γ ⊨ PProj PL a ∈ A.
+Proof.
+  move => h ρ /[dup]hρ {}/h [m][PA][/= /InterpUniv_Bind_inv_nopf h0]h1.
+  move : h0 => [S][h2][h3]?. subst.
+  move : h1 => /=.
+  rewrite /SumSpace.
+  case.
+  - move => [v [h0 h1]].
+    have {}h0 : rtc TRedSN (PProj PL (subst_PTm ρ a)) (PProj PL v) by hauto lq:on use:N_Projs.
+    have {}h1 : SNe (PProj PL v) by hauto lq:on ctrs:SNe.
+    hauto q:on use:InterpUniv_back_closs,adequacy.
+  - move => [a0 [b0 [h4 [h5 h6]]]].
+    exists m, S. split => //=.
+    have {}h4 : rtc TRedSN (PProj PL (subst_PTm ρ a)) (PProj PL (PPair a0 b0)) by eauto using N_Projs.
+    have ? : rtc TRedSN (PProj PL (PPair a0 b0)) a0 by hauto q:on ctrs:rtc, TRedSN use:adequacy.
+    have : rtc TRedSN (PProj PL (subst_PTm ρ a)) a0 by hauto q:on ctrs:rtc use:@relations.rtc_r.
+    move => h.
+    apply : InterpUniv_back_closs; eauto.
+Qed.
+
+Lemma ST_Proj2 n Γ (a : PTm n) A B :
+  Γ ⊨ a ∈ PBind PSig A B ->
+  Γ ⊨ PProj PR a ∈ subst_PTm (scons (PProj PL a) VarPTm) B.
+Proof.
+  move => h ρ hρ.
+  move : (hρ) => {}/h [m][PA][/= /InterpUniv_Bind_inv_nopf h0]h1.
+  move : h0 => [S][h2][h3]?. subst.
+  move : h1 => /=.
+  rewrite /SumSpace.
+  case.
+  - move => h.
+    move : h => [v [h0 h1]].
+    have hp : forall p, SNe (PProj p v) by hauto lq:on ctrs:SNe.
+    have hp' : forall p, rtc TRedSN (PProj p(subst_PTm ρ a)) (PProj p v) by eauto using N_Projs.
+    have hp0 := hp PL. have hp1 := hp PR => {hp}.
+    have hp0' := hp' PL. have hp1' := hp' PR => {hp'}.
+    have : S (PProj PL (subst_PTm ρ a)). apply : InterpUniv_back_closs; eauto. hauto q:on use:adequacy.
+    move /h3 => [PB]. asimpl => hPB.
+    do 2 eexists. split; eauto.
+    apply : InterpUniv_back_closs; eauto. hauto q:on use:adequacy.
+  - move => [a0 [b0 [h4 [h5 h6]]]].
+    have h3_dup := h3.
+    specialize h3 with (1 := h5).
+    move : h3 => [PB hPB].
+    have hr : forall p, rtc TRedSN (PProj p (subst_PTm ρ a)) (PProj p (PPair a0 b0)) by hauto l:on use: N_Projs.
+    have hSN : SN a0 by move : h5 h2; clear; hauto q:on use:adequacy.
+    have hSN' : SN b0 by hauto q:on use:adequacy.
+    have hrl : TRedSN (PProj PL (PPair a0 b0)) a0 by hauto lq:on ctrs:TRedSN.
+    have hrr : TRedSN (PProj PR (PPair a0 b0)) b0 by hauto lq:on ctrs:TRedSN.
+    exists m, PB.
+    asimpl. split.
+    + have hr' : rtc TRedSN (PProj PL (subst_PTm ρ a)) a0 by hauto l:on use:@relations.rtc_r.
+      have : S (PProj PL (subst_PTm ρ a)) by hauto lq:on use:InterpUniv_back_closs.
+      move => {}/h3_dup.
+      move => [PB0]. asimpl => hPB0.
+      suff : PB = PB0 by congruence.
+      move : hPB. asimpl => hPB.
+      suff : DJoin.R (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B) (subst_PTm (scons a0 ρ) B).
+      move : InterpUniv_Join hPB0 hPB; repeat move/[apply]. done.
+      suff : BJoin.R (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B) (subst_PTm (scons a0 ρ) B)
+        by hauto q:on use:DJoin.FromBJoin.
+      have : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ) B)) (PProj PL (subst_PTm ρ a)))
+               (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B).
+      eexists. split. apply relations.rtc_once. apply RRed.AppAbs.
+      asimpl. apply rtc_refl.
+      have /BJoin.symmetric : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ)B)) a0)
+                                (subst_PTm (scons a0 ρ) B).
+      eexists. split. apply relations.rtc_once. apply RRed.AppAbs.
+      asimpl. apply rtc_refl.
+      suff : BJoin.R (PApp (PAbs (subst_PTm (up_PTm_PTm ρ) B)) (PProj PL (subst_PTm ρ a)))
+               (PApp (PAbs (subst_PTm (up_PTm_PTm ρ)B)) a0) by eauto using BJoin.transitive, BJoin.symmetric.
+      apply BJoin.AppCong. apply BJoin.refl.
+      move /RReds.FromRedSNs : hr'.
+      hauto lq:on ctrs:rtc unfold:BJoin.R.
+    + hauto lq:on use:@relations.rtc_r, InterpUniv_back_closs.
 Qed.
