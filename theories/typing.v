@@ -114,3 +114,9 @@ with Wff : forall {n}, (fin n -> PTm n) -> Prop :=
 
 where
 "Γ ⊢ a ∈ A" := (Wt Γ a A) and "⊢ Γ" := (Wff Γ) and "Γ ⊢ a ≡ b ∈ A" := (Eq Γ a b A).
+
+Scheme wf_ind := Induction for Wff Sort Prop
+  with wt_ind := Induction for Wt Sort Prop
+  with eq_ind := Induction for Eq Sort Prop.
+
+Combined Scheme wt_mutual from wf_ind, wt_ind, eq_ind.
