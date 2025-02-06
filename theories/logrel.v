@@ -438,8 +438,7 @@ Qed.
 Definition ρ_ok {n} (Γ : fin n -> PTm n) (ρ : fin n -> PTm 0) := forall i k PA,
     ⟦ subst_PTm ρ (Γ i) ⟧ k ↘ PA -> PA (ρ i).
 
-Definition ρ_eq {n} (Γ : fin n -> PTm n) (ρ0 ρ1 : fin n -> PTm 0) := forall i,
-    DJoin.R (subst_PTm ρ0 (Γ i)) (subst_PTm ρ1 (Γ i)).
+Definition Γ_eq {n} (Γ Δ : fin n -> PTm n)  := forall i, DJoin.R (Γ i) (Δ i).
 
 Definition SemWt {n} Γ (a A : PTm n) := forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a).
 Notation "Γ ⊨ a ∈ A" := (SemWt Γ a A) (at level 70).
@@ -488,6 +487,13 @@ Proof.
     have ? : PA0 = PA by eauto using InterpUniv_Functional'.
     by subst.
 Qed.
+
+Lemma ρ_ok_cons' n i (Γ : fin n -> PTm n) ρ a PA A  Δ :
+  Δ = (funcomp (ren_PTm shift) (scons A Γ)) ->
+  ⟦ subst_PTm ρ A ⟧ i ↘ PA -> PA a ->
+  ρ_ok Γ ρ ->
+  ρ_ok Δ (scons a ρ).
+Proof. move => ->. apply ρ_ok_cons. Qed.
 
 Definition renaming_ok {n m} (Γ : fin n -> PTm n) (Δ : fin m -> PTm m) (ξ : fin m -> fin n) :=
   forall (i : fin m), ren_PTm ξ (Δ i) = Γ (ξ i).
@@ -793,29 +799,51 @@ Proof.
   hauto l:on use:DJoin.transitive.
 Qed.
 
+Lemma Γ_eq_ρ_ok n Γ Δ (ρ : fin n -> PTm 0) : Γ_eq Γ Δ -> ⊨ Γ -> ρ_ok Γ ρ -> ρ_ok Δ ρ.
+Proof.
+  move => hΓΔ hΓ h.
+  move => i k PA hPA.
+  move : hΓ. rewrite /SemWff. move /(_ i) => [j].
+  move => hΓ.
+  rewrite SemWt_Univ in hΓ.
+  have {}/hΓ  := h.
+  move => [S hS].
+  move /(_ i) in h. suff : PA = S by qauto l:on.
+  move : InterpUniv_Join' hPA hS. repeat move/[apply].
+  apply. move /(_ i) /DJoin.symmetric in hΓΔ.
+  hauto l:on use: DJoin.substing.
+Qed.
+
 Lemma SE_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
+  ⊨ Γ ->
   Γ ⊨ A0 ≡ A1 ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons A0 Γ) ⊨ B0 ≡ B1 ∈ PUniv j ->
   Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv (max i j).
 Proof.
-  move => hA hB.
+  move => hΓ hA hB.
   apply SemEq_SemWt in hA, hB.
   apply SemWt_SemEq; last by hauto l:on use:DJoin.BindCong.
   hauto l:on use:ST_Bind.
-  (* rewrite SemWt_Univ. *)
-  (* move => ρ hρ /=. *)
-
 
   apply ST_Bind; first by tauto.
+  have hΓ' : ⊨ funcomp (ren_PTm shift) (scons A1 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
-  rewrite /ρ_ok in hρ *.
+  best use:
   move => j0 k PA.
   destruct j0 as [j0|].
   asimpl.
   move /(_ (Some j0) k PA) : hρ. by asimpl.
   asimpl.
-  move /(_ None k PA) : (hρ). asimpl.
-  have /SemWt_Univ h : Γ ⊨ A1 ∈ PUniv i by tauto.
-  have /h := hρ.
-  suff : DJoin.R (subst_PTm (funcomp ρ shift) A1) (subst_PTm (funcomp ρ shift) A0) by best use:InterpUniv_Join.
+  have h : Γ ⊨ A1 ∈ PUniv i by tauto.
+  rewrite /SemWff in hΓ'.
+  move /(_ None) : hΓ' => [l h'].
+  rewrite SemWt_Univ in h'.
+  have {}/h' := hρ.
+  move => [PA'].
+  asimpl. move => h0 h1.
+  move /(_ None l PA) : (hρ). asimpl.
+  suff : PA = PA' by qauto l:on.
+  move : InterpUniv_Join' h1 h0; repeat move/[apply].
+  apply. apply DJoin.substing. tauto.
+Qed.
