@@ -814,6 +814,28 @@ Proof.
   hauto l:on use: DJoin.substing.
 Qed.
 
+Lemma Γ_eq_refl n (Γ : fin n -> PTm n) :
+  Γ_eq Γ Γ.
+Proof. sfirstorder use:DJoin.refl. Qed.
+
+Lemma Γ_eq_cons n (Γ Δ : fin n -> PTm n) A B :
+  DJoin.R A B ->
+  Γ_eq Γ Δ ->
+  Γ_eq (funcomp (ren_PTm shift) (scons A Γ)) (funcomp (ren_PTm shift) (scons B Δ)).
+Proof.
+  move => h h0.
+  move => i.
+  destruct i as [i|].
+  rewrite /funcomp. substify. apply DJoin.substing. by asimpl.
+  rewrite /funcomp.
+  asimpl. substify. apply DJoin.substing. by asimpl.
+Qed.
+
+Lemma Γ_eq_cons' n (Γ : fin n -> PTm n) A B :
+  DJoin.R A B ->
+  Γ_eq (funcomp (ren_PTm shift) (scons A Γ)) (funcomp (ren_PTm shift) (scons B Γ)).
+Proof. eauto using Γ_eq_refl ,Γ_eq_cons. Qed.
+
 Lemma SE_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
   ⊨ Γ ->
   Γ ⊨ A0 ≡ A1 ∈ PUniv i ->
@@ -824,11 +846,13 @@ Proof.
   apply SemEq_SemWt in hA, hB.
   apply SemWt_SemEq; last by hauto l:on use:DJoin.BindCong.
   hauto l:on use:ST_Bind.
-
   apply ST_Bind; first by tauto.
   have hΓ' : ⊨ funcomp (ren_PTm shift) (scons A1 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
+  move : Γ_eq_ρ_ok hΓ' hρ; repeat move/[apply]. apply.
+
+
   best use:
   move => j0 k PA.
   destruct j0 as [j0|].
