@@ -883,3 +883,38 @@ Proof.
   move => h /SemEq_SemWt [ha0][ha1]hae /SemEq_SemWt [hb0][hb1]hbe.
   apply SemWt_SemEq; eauto using ST_Pair, DJoin.PairCong, SBind_inst, DJoin.cong, ST_Conv, ST_Pair.
 Qed.
+
+Lemma SE_Proj1 n Γ (a b : PTm n) A B :
+  Γ ⊨ a ≡ b ∈ PBind PSig A B ->
+  Γ ⊨ PProj PL a ≡ PProj PL b ∈ A.
+Proof.
+  move => /SemEq_SemWt [ha][hb]he.
+  apply SemWt_SemEq; eauto using DJoin.ProjCong, ST_Proj1.
+Qed.
+
+Lemma SE_Proj2 n Γ i (a b : PTm n) A B :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ≡ b ∈ PBind PSig A B ->
+  Γ ⊨ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B.
+Proof.
+  move => hS.
+  move => /SemEq_SemWt [ha][hb]he.
+  apply SemWt_SemEq; eauto using DJoin.ProjCong, ST_Proj2.
+  have h : Γ ⊨ PProj PR b ∈ subst_PTm (scons (PProj PL b) VarPTm) B by eauto using ST_Proj2.
+  apply : ST_Conv. apply h.
+  apply : SBind_inst. eauto using ST_Proj1.
+  eauto.
+  hauto lq:on use: DJoin.cong,  DJoin.ProjCong.
+Qed.
+
+Lemma SE_App n Γ i (b0 b1 a0 a1 : PTm n) A B :
+  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
+  Γ ⊨ b0 ≡ b1 ∈ PBind PPi A B ->
+  Γ ⊨ a0 ≡ a1 ∈ A ->
+  Γ ⊨ PApp b0 a0 ≡ PApp b1 a1 ∈ subst_PTm (scons a0 VarPTm) B.
+Proof.
+  move => hPi.
+  move => /SemEq_SemWt [hb0][hb1]hb /SemEq_SemWt [ha0][ha1]ha.
+  apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
+  apply : ST_Conv; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
+Qed.
