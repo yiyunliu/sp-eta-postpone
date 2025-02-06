@@ -851,23 +851,5 @@ Proof.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
   move : Γ_eq_ρ_ok hΓ' hρ; repeat move/[apply]. apply.
-
-
-  best use:
-  move => j0 k PA.
-  destruct j0 as [j0|].
-  asimpl.
-  move /(_ (Some j0) k PA) : hρ. by asimpl.
-  asimpl.
-  have h : Γ ⊨ A1 ∈ PUniv i by tauto.
-  rewrite /SemWff in hΓ'.
-  move /(_ None) : hΓ' => [l h'].
-  rewrite SemWt_Univ in h'.
-  have {}/h' := hρ.
-  move => [PA'].
-  asimpl. move => h0 h1.
-  move /(_ None l PA) : (hρ). asimpl.
-  suff : PA = PA' by qauto l:on.
-  move : InterpUniv_Join' h1 h0; repeat move/[apply].
-  apply. apply DJoin.substing. tauto.
+  hauto lq:on use:Γ_eq_cons'.
 Qed.
