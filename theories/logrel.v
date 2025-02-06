@@ -370,7 +370,7 @@ Proof.
     hauto l:on use: DJoin.sne_univ_noconf, DJoin.bind_univ_noconf, DJoin.symmetric.
     case : H h1 h => //=.
     move => j' hPB h _.
-    have {}h : j' = j by admit. subst.
+    have {}h : j' = j by hauto lq:on use: DJoin.univ_inj. subst.
     hauto lq:on use:InterpUniv_Univ_inv.
   - move => i A A0 PA hr hPA ihPA B PB hPB hAB.
     have /DJoin.symmetric ? : DJoin.R A A0 by hauto lq:on rew:off ctrs:rtc use:DJoin.FromRedSNs.
@@ -378,4 +378,4 @@ Proof.
     have ? : SN A by eauto using N_Exp.
     have : DJoin.R A0 B by eauto using DJoin.transitive.
     eauto.
-Admitted.
+Qed.

@@ -1707,6 +1707,15 @@ Module REReds.
     elim : u C / hu; sauto lq:on rew:off.
   Qed.
 
+  Lemma univ_inv n i C :
+    rtc (@RERed.R n) (PUniv i) C  ->
+    C = PUniv i.
+  Proof.
+    move E : (PUniv i) => u hu.
+    move : i E. elim : u C / hu=>//=.
+    hauto lq:on rew:off ctrs:rtc inv:RERed.R.
+  Qed.
+
 End REReds.
 
 Module LoRed.
@@ -2139,6 +2148,12 @@ Module DJoin.
     hauto lq:on rew:off use:REReds.bind_inv.
   Qed.
 
+  Lemma univ_inj n i j :
+    @R n (PUniv i) (PUniv j)  -> i = j.
+  Proof.
+    sauto lq:on rew:off use:REReds.univ_inv.
+  Qed.
+
   Lemma FromRRed0 n (a b : PTm n) :
     RRed.R a b -> R a b.
   Proof.
@@ -2150,5 +2165,7 @@ Module DJoin.
   Proof.
     hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
   Qed.
+
+
 
 End DJoin.
