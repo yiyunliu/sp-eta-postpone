@@ -438,8 +438,28 @@ Qed.
 Definition ρ_ok {n} (Γ : fin n -> PTm n) (ρ : fin n -> PTm 0) := forall i k PA,
     ⟦ subst_PTm ρ (Γ i) ⟧ k ↘ PA -> PA (ρ i).
 
+Definition ρ_eq {n} (Γ : fin n -> PTm n) (ρ0 ρ1 : fin n -> PTm 0) := forall i,
+    DJoin.R (subst_PTm ρ0 (Γ i)) (subst_PTm ρ1 (Γ i)).
+
 Definition SemWt {n} Γ (a A : PTm n) := forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a).
 Notation "Γ ⊨ a ∈ A" := (SemWt Γ a A) (at level 70).
+
+Definition SemEq {n} Γ (a b A : PTm n) := DJoin.R a b /\ forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a) /\ PA (subst_PTm ρ b).
+Notation "Γ ⊨ a ≡ b ∈ A" := (SemEq Γ a b A) (at level 70).
+
+Lemma SemEq_SemWt n Γ (a b A : PTm n) : Γ ⊨ a ≡ b ∈ A -> Γ ⊨ a ∈ A /\ Γ ⊨ b ∈ A /\ DJoin.R a b.
+Proof. hauto lq:on rew:off unfold:SemEq, SemWt. Qed.
+
+Lemma SemWt_SemEq n Γ (a b A : PTm n) : Γ ⊨ a ∈ A -> Γ ⊨ b ∈ A -> (DJoin.R a b) -> Γ ⊨ a ≡ b ∈ A.
+Proof.
+  move => ha hb heq. split => //= ρ hρ.
+  have {}/ha := hρ.
+  have {}/hb := hρ.
+  move => [k][PA][hPA]hpb.
+  move => [k0][PA0][hPA0]hpa.
+  have : PA = PA0 by hauto l:on use:InterpUniv_Functional'.
+  hauto lq:on.
+Qed.
 
 (* Semantic context wellformedness *)
 Definition SemWff {n} Γ := forall (i : fin n), exists j, Γ ⊨ Γ i ∈ PUniv j.
@@ -750,3 +770,40 @@ Proof.
   have ? : PA = S by eauto using InterpUniv_Join'. subst.
   eauto.
 Qed.
+
+Lemma SE_Refl n Γ (a : PTm n) A :
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ a ≡ a ∈ A.
+Proof. hauto lq:on unfold:SemWt,SemEq use:DJoin.refl. Qed.
+
+Lemma SE_Symmetric n Γ (a b : PTm n) A :
+  Γ ⊨ a ≡ b ∈ A ->
+  Γ ⊨ b ≡ a ∈ A.
+Proof. hauto q:on unfold:SemEq. Qed.
+
+Lemma SE_Transitive n Γ (a b c : PTm n) A :
+  Γ ⊨ a ≡ b ∈ A ->
+  Γ ⊨ b ≡ c ∈ A ->
+  Γ ⊨ a ≡ c ∈ A.
+Proof.
+  move => ha hb.
+  apply SemEq_SemWt in ha, hb.
+  have ? : SN b by hauto l:on use:SemWt_SN.
+  apply SemWt_SemEq; try tauto.
+  hauto l:on use:DJoin.transitive.
+Qed.
+
+Lemma SE_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
+  Γ ⊨ A0 ≡ A1 ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊨ B0 ≡ B1 ∈ PUniv j ->
+  Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv (max i j).
+Proof.
+  move => hA hB.
+  apply SemEq_SemWt in hA, hB.
+  apply SemWt_SemEq.
+  hauto l:on use:ST_Bind.
+  apply ST_Bind; last by hauto l:on use:DJoin.BindCong. tauto.
+  move => ρ hρ.
+  suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
+
+  hauto l:on use:DJoin.BindCong.

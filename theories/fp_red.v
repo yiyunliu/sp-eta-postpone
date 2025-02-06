@@ -2176,6 +2176,12 @@ Module DJoin.
     R (PProj p a0) (PProj p a1).
   Proof. hauto q:on use:REReds.ProjCong. Qed.
 
+  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+    R A0 A1 ->
+    R B0 B1 ->
+    R (PBind p A0 B0) (PBind p A1 B1).
+  Proof. hauto q:on use:REReds.BindCong. Qed.
+
   Lemma FromRedSNs n (a b : PTm n) :
     rtc TRedSN a b ->
     R a b.
