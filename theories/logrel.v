@@ -800,10 +800,22 @@ Lemma SE_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
 Proof.
   move => hA hB.
   apply SemEq_SemWt in hA, hB.
-  apply SemWt_SemEq.
+  apply SemWt_SemEq; last by hauto l:on use:DJoin.BindCong.
   hauto l:on use:ST_Bind.
-  apply ST_Bind; last by hauto l:on use:DJoin.BindCong. tauto.
+  (* rewrite SemWt_Univ. *)
+  (* move => ρ hρ /=. *)
+
+
+  apply ST_Bind; first by tauto.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
-
-  hauto l:on use:DJoin.BindCong.
+  rewrite /ρ_ok in hρ *.
+  move => j0 k PA.
+  destruct j0 as [j0|].
+  asimpl.
+  move /(_ (Some j0) k PA) : hρ. by asimpl.
+  asimpl.
+  move /(_ None k PA) : (hρ). asimpl.
+  have /SemWt_Univ h : Γ ⊨ A1 ∈ PUniv i by tauto.
+  have /h := hρ.
+  suff : DJoin.R (subst_PTm (funcomp ρ shift) A1) (subst_PTm (funcomp ρ shift) A0) by best use:InterpUniv_Join.
