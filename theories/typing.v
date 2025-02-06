@@ -109,7 +109,7 @@ with Wff : forall {n}, (fin n -> PTm n) -> Prop :=
 | Wff_Cons n Γ (A : PTm n) i :
   ⊢ Γ ->
   Γ ⊢ A ∈ PUniv i ->
-  (* -------------- *)
+  (* -------------------------------- *)
   ⊢ funcomp (ren_PTm shift) (scons A Γ)
 
 where

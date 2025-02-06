@@ -748,7 +748,7 @@ Proof.
     + hauto lq:on use:@relations.rtc_r, InterpUniv_back_closs.
 Qed.
 
-Lemma ST_Conv n Γ (a : PTm n) A B i :
+Lemma ST_Conv' n Γ (a : PTm n) A B i :
   Γ ⊨ a ∈ A ->
   Γ ⊨ B ∈ PUniv i ->
   DJoin.R A B ->
@@ -762,6 +762,12 @@ Proof.
   have ? : PA = S by eauto using InterpUniv_Join'. subst.
   eauto.
 Qed.
+
+Lemma ST_Conv n Γ (a : PTm n) A B i :
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ A ≡ B ∈ PUniv i ->
+  Γ ⊨ a ∈ B.
+Proof. hauto l:on use:ST_Conv', SemEq_SemWt. Qed.
 
 Lemma SE_Refl n Γ (a : PTm n) A :
   Γ ⊨ a ∈ A ->
@@ -849,14 +855,23 @@ Proof.
   apply SemWt_SemEq; eauto using DJoin.AbsCong, ST_Abs.
 Qed.
 
-Lemma SE_Conv n Γ (a b : PTm n) A B i :
+Lemma SE_Conv' n Γ (a b : PTm n) A B i :
   Γ ⊨ a ≡ b ∈ A ->
   Γ ⊨ B ∈ PUniv i ->
   DJoin.R A B ->
   Γ ⊨ a ≡ b ∈ B.
 Proof.
   move /SemEq_SemWt => [ha][hb]he hB hAB.
-  apply SemWt_SemEq; eauto using ST_Conv.
+  apply SemWt_SemEq; eauto using ST_Conv'.
+Qed.
+
+Lemma SE_Conv n Γ (a b : PTm n) A B i :
+  Γ ⊨ a ≡ b ∈ A ->
+  Γ ⊨ A ≡ B ∈ PUniv i ->
+  Γ ⊨ a ≡ b ∈ B.
+Proof.
+  move => h /SemEq_SemWt [h0][h1]he.
+  eauto using SE_Conv'.
 Qed.
 
 Lemma SBind_inst n Γ p i (A : PTm n) B (a : PTm n) :
@@ -886,7 +901,7 @@ Lemma SE_Pair n Γ (a0 a1 b0 b1 : PTm n) A B i :
   Γ ⊨ PPair a0 b0 ≡ PPair a1 b1 ∈ PBind PSig A B.
 Proof.
   move => h /SemEq_SemWt [ha0][ha1]hae /SemEq_SemWt [hb0][hb1]hbe.
-  apply SemWt_SemEq; eauto using ST_Pair, DJoin.PairCong, SBind_inst, DJoin.cong, ST_Conv, ST_Pair.
+  apply SemWt_SemEq; eauto using ST_Pair, DJoin.PairCong, SBind_inst, DJoin.cong, ST_Conv', ST_Pair.
 Qed.
 
 Lemma SE_Proj1 n Γ (a b : PTm n) A B :
@@ -906,7 +921,7 @@ Proof.
   move => /SemEq_SemWt [ha][hb]he.
   apply SemWt_SemEq; eauto using DJoin.ProjCong, ST_Proj2.
   have h : Γ ⊨ PProj PR b ∈ subst_PTm (scons (PProj PL b) VarPTm) B by eauto using ST_Proj2.
-  apply : ST_Conv. apply h.
+  apply : ST_Conv'. apply h.
   apply : SBind_inst. eauto using ST_Proj1.
   eauto.
   hauto lq:on use: DJoin.cong,  DJoin.ProjCong.
@@ -921,7 +936,7 @@ Proof.
   move => hPi.
   move => /SemEq_SemWt [hb0][hb1]hb /SemEq_SemWt [ha0][ha1]ha.
   apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
-  apply : ST_Conv; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
+  apply : ST_Conv'; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
 Qed.
 
 Lemma SBind_inv1 n Γ i p (A : PTm n) B :
@@ -931,7 +946,7 @@ Lemma SBind_inv1 n Γ i p (A : PTm n) B :
   hauto lq:on rew:off  use:InterpUniv_Bind_inv.
 Qed.
 
-Lemma Bind_Proj1 n Γ p (A0 A1 : PTm n) B0 B1 i :
+Lemma SE_Bind_Proj1 n Γ p (A0 A1 : PTm n) B0 B1 i :
   Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i ->
   Γ ⊨ A0 ≡ A1 ∈ PUniv i.
 Proof.
@@ -940,7 +955,7 @@ Proof.
   move /DJoin.bind_inj : he. tauto.
 Qed.
 
-Lemma Bind_Proj2 n Γ p (a0 a1 A0 A1 : PTm n) B0 B1 i :
+Lemma SE_Bind_Proj2 n Γ p (a0 a1 A0 A1 : PTm n) B0 B1 i :
   Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i ->
   Γ ⊨ a0 ≡ a1 ∈ A0 ->
   Γ ⊨ subst_PTm (scons a0 VarPTm) B0 ≡ subst_PTm (scons a1 VarPTm) B1 ∈ PUniv i.
@@ -950,7 +965,7 @@ Proof.
   move : ha => [c [ha ha']].
   apply SemWt_SemEq; eauto using SBind_inst.
   apply SBind_inst with (p := p) (A := A1); eauto.
-  apply : ST_Conv; eauto. hauto l:on use:SBind_inv1.
+  apply : ST_Conv'; eauto. hauto l:on use:SBind_inv1.
   rewrite /DJoin.R.
   eexists. split.
   apply : relations.rtc_transitive.
@@ -962,3 +977,7 @@ Proof.
   apply REReds.cong.
   hauto lq:on ctrs:rtc inv:option.
 Qed.
+
+#[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Conv
+  SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
+  SE_Conv SE_Bind_Proj1 SE_Bind_Proj2 SemWff_nil SemWff_cons : sem.
