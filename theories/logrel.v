@@ -379,3 +379,58 @@ Proof.
     have : DJoin.R A0 B by eauto using DJoin.transitive.
     eauto.
 Qed.
+
+Lemma InterpUniv_Functional n i  (A : PTm n) PA PB :
+  ⟦ A ⟧ i ↘ PA ->
+  ⟦ A ⟧ i ↘ PB ->
+  PA = PB.
+Proof. hauto use:InterpUniv_Join, DJoin.refl. Qed.
+
+Lemma InterpUniv_Join' n i j (A B : PTm n) PA PB :
+  ⟦ A ⟧ i ↘ PA ->
+  ⟦ B ⟧ j ↘ PB ->
+  DJoin.R A B ->
+  PA = PB.
+Proof.
+  have [? ?] : i <= max i j /\ j <= max i j by lia.
+  move => hPA hPB.
+  have : ⟦ A ⟧ (max i j) ↘ PA by eauto using InterpUniv_cumulative.
+  have : ⟦ B ⟧ (max i j) ↘ PB by eauto using InterpUniv_cumulative.
+  eauto using InterpUniv_Join.
+Qed.
+
+Lemma InterpUniv_Functional' n i j A PA PB :
+  ⟦ A : PTm n ⟧ i ↘ PA ->
+  ⟦ A ⟧ j ↘ PB ->
+  PA = PB.
+Proof.
+  hauto l:on use:InterpUniv_Join', DJoin.refl.
+Qed.
+
+Lemma InterpUniv_Bind_inv_nopf n i p A B P (h :  ⟦PBind p A B ⟧ i ↘ P) :
+  exists (PA : PTm n -> Prop),
+     ⟦ A ⟧ i ↘ PA /\
+    (forall a, PA a -> exists PB, ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
+      P = BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB).
+Proof.
+  move /InterpUniv_Bind_inv : h.
+  move => [PA][PF][hPA][hPF][hPF']?. subst.
+  exists PA. repeat split => //.
+  - sfirstorder.
+  - extensionality b.
+    case : p => /=.
+    + extensionality a.
+      extensionality PB.
+      extensionality ha.
+      apply propositional_extensionality.
+      split.
+      * move => h hPB.  apply h.
+        have {}/hPF := ha.
+        move => [PB0 hPB0].
+        have {}/hPF' := hPB0 => ?.
+        have : PB = PB0 by hauto l:on use:InterpUniv_Functional.
+        congruence.
+      * sfirstorder.
+    + rewrite /SumSpace. apply propositional_extensionality.
+      split; hauto q:on use:InterpUniv_Functional.
+Qed.
