@@ -539,6 +539,11 @@ Proof.
   move {h}. hauto l:on use:sn_unmorphing.
 Qed.
 
+Lemma SemEq_SN_Join n Γ (a b A : PTm n) :
+  Γ ⊨ a ≡ b ∈ A ->
+  SN a /\ SN b /\ SN A /\ DJoin.R a b.
+Proof. hauto l:on use:SemEq_SemWt, SemWt_SN. Qed.
+
 Lemma SemWt_Univ n Γ (A : PTm n) i  :
   Γ ⊨ A ∈ PUniv i <->
   forall ρ, ρ_ok Γ ρ -> exists S, ⟦ subst_PTm ρ A ⟧ i ↘ S.
