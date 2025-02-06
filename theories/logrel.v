@@ -918,3 +918,49 @@ Proof.
   apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
   apply : ST_Conv; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
 Qed.
+
+Lemma SBind_inv1 n Γ i p (A : PTm n) B :
+  Γ ⊨ PBind p A B ∈ PUniv i ->
+  Γ ⊨ A ∈ PUniv i.
+  move /SemWt_Univ => h. apply SemWt_Univ.
+  hauto lq:on rew:off  use:InterpUniv_Bind_inv.
+Qed.
+
+Lemma SBind_inv2 n Γ i p (A : PTm n) B :
+  Γ ⊨ PBind p A B ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ B ∈ PUniv i.
+  move /SemWt_Univ => h. apply SemWt_Univ.
+  move => ρ hρ.
+  set ρ' := funcomp ρ shift.
+  move /(_ ρ') : h.
+  have : ρ_ok Γ ρ'.
+  move => k.
+  subst ρ'.
+  rewrite /ρ_ok in hρ.
+  move => l PA. move => /(_ (shift k) l PA) in hρ.
+  move : hρ. asimpl. rewrite /funcomp. hauto lq:on.
+  move /[swap]/[apply].
+  move => /= [S hS].
+  move /InterpUniv_Bind_inv_nopf : hS.
+  move => [PA][hPA][hPF]?. subst.
+  subst ρ'.
+
+Qed.
+
+
+
+Lemma Bind_Proj1 n Γ p (A0 A1 : PTm n) B0 B1 i :
+  Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i ->
+  Γ ⊨ A0 ≡ A1 ∈ PUniv i.
+Proof.
+  move /SemEq_SemWt => [h0][h1]he.
+  apply SemWt_SemEq; eauto using SBind_inv.
+  move /DJoin.bind_inj : he. tauto.
+Qed.
+
+Lemma Bind_Proj2' n Γ p (A0 A1 : PTm n) B0 B1 i :
+  Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊨ B0 ≡ B1 ∈ PUniv i.
+Proof.
+  move /SemEq_SemWt => [h0][h1]he.
+  apply SemWt_SemEq; last by hauto l:on use:DJoin.bind_inj.
