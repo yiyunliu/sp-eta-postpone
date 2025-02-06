@@ -6,6 +6,7 @@ Require Import ssreflect ssrbool.
 Require Import Logic.PropExtensionality (propositional_extensionality).
 From stdpp Require Import relations (rtc(..), rtc_subrel).
 Import Psatz.
+Require Import Cdcl.Itauto.
 
 Definition ProdSpace {n} (PA : PTm n -> Prop)
   (PF : PTm n -> (PTm n -> Prop) -> Prop) b : Prop :=
@@ -118,6 +119,34 @@ Qed.
 
 Derive Dependent Inversion iinv with (forall n i I (A : PTm n) PA, InterpExt i I A PA) Sort Prop.
 
+Lemma InterpUniv_Ne n i (A : PTm n) :
+  SNe A ->
+  ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
+Proof. simp InterpUniv. apply InterpExt_Ne. Qed.
+
+Lemma InterpUniv_Bind n i p A B PA PF :
+  ⟦ A : PTm n ⟧ i ↘ PA ->
+  (forall a, PA a -> exists PB, PF a PB) ->
+  (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+  ⟦ PBind p A B ⟧ i ↘ BindSpace p PA PF.
+Proof. simp InterpUniv. apply InterpExt_Bind. Qed.
+
+Lemma InterpUniv_Univ n i j :
+  j < i -> ⟦ PUniv j : PTm n ⟧ i ↘ (fun A => exists PA, ⟦ A ⟧ j ↘ PA).
+Proof.
+  simp InterpUniv. simpl.
+  apply InterpExt_Univ'. by simp InterpUniv.
+Qed.
+
+Lemma InterpUniv_Step i n A A0 PA :
+  TRedSN A A0 ->
+  ⟦ A0 : PTm n ⟧ i ↘ PA ->
+  ⟦ A ⟧ i ↘ PA.
+Proof. simp InterpUniv. apply InterpExt_Step. Qed.
+
+
+#[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ : InterpUniv.
+
 Lemma InterpExt_cumulative n i j I (A : PTm n) PA :
   i <= j ->
    ⟦ A ⟧ i ;; I ↘ PA ->
@@ -177,12 +206,6 @@ Proof.
   - hauto l:on ctrs:SN unfold:CR.
 Qed.
 
-Lemma InterpUniv_Step i n A A0 PA :
-  TRedSN A A0 ->
-  ⟦ A0 : PTm n ⟧ i ↘ PA ->
-  ⟦ A ⟧ i ↘ PA.
-Proof. simp InterpUniv. apply InterpExt_Step. Qed.
-
 Lemma InterpUniv_Steps i n A A0 PA :
   rtc TRedSN A A0 ->
   ⟦ A0 : PTm n ⟧ i ↘ PA ->
@@ -218,13 +241,17 @@ Qed.
 
 Lemma InterpUniv_case n i (A : PTm n) PA :
   ⟦ A ⟧ i ↘ PA ->
-  exists H, rtc TRedSN A H /\ (SNe H \/ isbind H \/ isuniv H).
+  exists H, rtc TRedSN A H /\  ⟦ H ⟧ i ↘ PA /\ (SNe H \/ isbind H \/ isuniv H).
 Proof.
-  move : i A PA. apply InterpUniv_ind => //=; hauto ctrs:rtc l:on.
+  move : i A PA. apply InterpUniv_ind => //=.
+  hauto lq:on ctrs:rtc use:InterpUniv_Ne.
+  hauto l:on use:InterpUniv_Bind.
+  hauto l:on use:InterpUniv_Univ.
+  hauto lq:on ctrs:rtc.
 Qed.
 
 Lemma redsn_preservation_mutual n :
-  (forall (a : PTm n) (s : SNe a), forall b, TRedSN a b -> SNe b) /\
+  (forall (a : PTm n) (s : SNe a), forall b, TRedSN a b -> False) /\
     (forall (a : PTm n) (s : SN a), forall b, TRedSN a b -> SN b) /\
   (forall (a b : PTm n) (_ : TRedSN a b), forall c, TRedSN a c -> b = c).
 Proof.
@@ -234,10 +261,38 @@ Qed.
 Lemma redsns_preservation : forall n a b, @SN n a -> rtc TRedSN a b -> SN b.
 Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 
-Lemma sne_bind_noconf n (a b : PTm n) :
-  SNe a -> isbind b -> DJoin.R a b -> False.
-Proof.
+#[export]Hint Resolve DJoin.sne_bind_noconf DJoin.sne_univ_noconf DJoin.bind_univ_noconf : noconf.
 
+Lemma InterpUniv_SNe_inv n i (A : PTm n) PA :
+  SNe A ->
+  ⟦ A ⟧ i ↘ PA ->
+  PA = (fun a => exists v, rtc TRedSN a v /\ SNe v).
+Proof.
+  simp InterpUniv.
+  hauto lq:on rew:off inv:InterpExt,SNe use:redsn_preservation_mutual.
+Qed.
+
+Lemma InterpUniv_Bind_inv n i p A B S :
+  ⟦ PBind p A B ⟧ i ↘ S -> exists PA PF,
+  ⟦ A : PTm n ⟧ i ↘ PA /\
+  (forall a, PA a -> exists PB, PF a PB) /\
+  (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
+  S = BindSpace p PA PF.
+Proof. simp InterpUniv.
+       inversion 1; try hauto inv:SNe q:on use:redsn_preservation_mutual.
+       rewrite -!InterpUnivN_nolt.
+       sauto lq:on.
+Qed.
+
+Lemma InterpUniv_Univ_inv n i j S :
+  ⟦ PUniv j : PTm n ⟧ i ↘ S ->
+  S = (fun A => exists PA, ⟦ A ⟧ j ↘ PA) /\ j < i.
+Proof.
+  simp InterpUniv. inversion 1;
+    try hauto inv:SNe use:redsn_preservation_mutual.
+  rewrite -!InterpUnivN_nolt. sfirstorder.
+  subst. hauto lq:on inv:TRedSN.
+Qed.
 
 
 Lemma InterpUniv_Join n i (A B : PTm n) PA PB :
@@ -252,5 +307,40 @@ Proof.
   - move => i A hA B PB hPB hAB.
     have [*] : SN B /\ SN A by hauto l:on use:adequacy.
     move /InterpUniv_case : hPB.
-    move => [H [/DJoin.FromRedSNs h ?]].
-    have ? : DJoin.R A H by eauto using DJoin.transitive.
+    move => [H [/DJoin.FromRedSNs h [h1 h0]]].
+    have {hAB} {}h : DJoin.R A H by eauto using DJoin.transitive.
+    have {}h0 : SNe H.
+    suff : ~ isbind H /\ ~ isuniv H by itauto.
+    move : h hA. clear. hauto lq:on db:noconf.
+    hauto lq:on use:InterpUniv_SNe_inv.
+  - move => i p A B PA PF hPA ihPA hTot hRes ihPF U PU hU.
+    have hU' : SN U by hauto l:on use:adequacy.
+    move /InterpUniv_case : hU => [H [/DJoin.FromRedSNs h [h1 h0]]] hU.
+    have {hU} {}h : DJoin.R (PBind p A B) H by eauto using DJoin.transitive.
+    have{h0} : isbind H.
+    suff : ~ SNe H /\ ~ isuniv H by itauto.
+    have : isbind (PBind p A B) by scongruence.
+    hauto l:on use: DJoin.sne_bind_noconf, DJoin.bind_univ_noconf, DJoin.symmetric.
+    case : H h1 h => //=.
+    move => p0 A0 B0 h0 /DJoin.bind_inj.
+    move => [? [hA hB]] _. subst.
+    admit.
+  - move => i j jlti ih B PB hPB.
+    have ? : SN B by hauto l:on use:adequacy.
+    move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
+    move => hj.
+    have {hj}{}h : DJoin.R (PUniv j) H by eauto using DJoin.transitive.
+    have {h0} : isuniv H.
+    suff : ~ SNe H /\ ~ isbind H by tauto.
+    hauto l:on use: DJoin.sne_univ_noconf, DJoin.bind_univ_noconf, DJoin.symmetric.
+    case : H h1 h => //=.
+    move => j' hPB h _.
+    have {}h : j' = j by admit. subst.
+    hauto lq:on use:InterpUniv_Univ_inv.
+  - move => i A A0 PA hr hPA ihPA B PB hPB hAB.
+    have /DJoin.symmetric ? : DJoin.R A A0 by hauto lq:on rew:off ctrs:rtc use:DJoin.FromRedSNs.
+    have ? : SN A0 by hauto l:on use:adequacy.
+    have ? : SN A by eauto using N_Exp.
+    have : DJoin.R A0 B by eauto using DJoin.transitive.
+    eauto.
+Admitted.
