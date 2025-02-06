@@ -2139,4 +2139,16 @@ Module DJoin.
     hauto lq:on rew:off use:REReds.bind_inv.
   Qed.
 
+  Lemma FromRRed0 n (a b : PTm n) :
+    RRed.R a b -> R a b.
+  Proof.
+    hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
+  Qed.
+
+  Lemma FromRRed1 n (a b : PTm n) :
+    RRed.R b a -> R a b.
+  Proof.
+    hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
+  Qed.
+
 End DJoin.

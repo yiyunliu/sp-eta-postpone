@@ -324,7 +324,33 @@ Proof.
     case : H h1 h => //=.
     move => p0 A0 B0 h0 /DJoin.bind_inj.
     move => [? [hA hB]] _. subst.
-    admit.
+    move /InterpUniv_Bind_inv : h0.
+    move => [PA0][PF0][hPA0][hTot0][hRes0 ?]. subst.
+    have ? : PA0 = PA by qauto l:on. subst.
+    have : forall a PB PB', PA a -> PF a PB -> PF0 a PB' -> PB = PB'.
+    move => a PB PB' ha hPB hPB'. apply : ihPF; eauto.
+    have hj0 : DJoin.R (PAbs B) (PAbs B0) by eauto using DJoin.AbsCong.
+    have {}hj0 : DJoin.R (PApp (PAbs B) a) (PApp (PAbs B0) a) by eauto using DJoin.AppCong, DJoin.refl.
+    have ? : SN (PApp (PAbs B) a)
+      by hauto lq:on rew:off use:N_Exp, N_β, adequacy.
+    have ? : SN (PApp (PAbs B0) a)
+      by hauto lq:on rew:off use:N_Exp, N_β, adequacy.
+    have : DJoin.R (PApp (PAbs B0) a) (subst_PTm (scons a VarPTm) B0)
+      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed0.
+    have : DJoin.R (subst_PTm (scons a VarPTm) B) (PApp (PAbs B) a)
+      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed1.
+    eauto using DJoin.transitive.
+
+    move => hI.
+    case : p0 => //=.
+    + rewrite /ProdSpace.
+      extensionality b.
+      apply propositional_extensionality.
+      split.
+      move =>  hPF a PB.
+
+      move => a PB hPB.
+
   - move => i j jlti ih B PB hPB.
     have ? : SN B by hauto l:on use:adequacy.
     move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
