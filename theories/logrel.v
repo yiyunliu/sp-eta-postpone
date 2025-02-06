@@ -294,6 +294,27 @@ Proof.
   subst. hauto lq:on inv:TRedSN.
 Qed.
 
+Lemma bindspace_iff n p (PA : PTm n -> Prop) PF PF0 b  :
+  (forall (a : PTm n) (PB PB0 : PTm n -> Prop), PA a -> PF a PB -> PF0 a PB0 -> PB = PB0) ->
+  (forall a, PA a -> exists PB, PF a PB) ->
+  (forall a, PA a -> exists PB0, PF0 a PB0) ->
+  (BindSpace p PA PF b <-> BindSpace p PA PF0 b).
+Proof.
+  rewrite /BindSpace => h hPF hPF0.
+  case : p => /=.
+  - rewrite /ProdSpace.
+    split.
+    move => h1 a PB ha hPF'.
+    specialize hPF with (1 := ha).
+    specialize hPF0 with (1 := ha).
+    sblast.
+    move => ? a PB ha.
+    specialize hPF with (1 := ha).
+    specialize hPF0 with (1 := ha).
+    sblast.
+  - rewrite /SumSpace.
+    hauto lq:on rew:off.
+Qed.
 
 Lemma InterpUniv_Join n i (A B : PTm n) PA PB :
   ⟦ A ⟧ i ↘ PA ->
@@ -331,26 +352,14 @@ Proof.
     move => a PB PB' ha hPB hPB'. apply : ihPF; eauto.
     have hj0 : DJoin.R (PAbs B) (PAbs B0) by eauto using DJoin.AbsCong.
     have {}hj0 : DJoin.R (PApp (PAbs B) a) (PApp (PAbs B0) a) by eauto using DJoin.AppCong, DJoin.refl.
-    have ? : SN (PApp (PAbs B) a)
-      by hauto lq:on rew:off use:N_Exp, N_β, adequacy.
-    have ? : SN (PApp (PAbs B0) a)
-      by hauto lq:on rew:off use:N_Exp, N_β, adequacy.
-    have : DJoin.R (PApp (PAbs B0) a) (subst_PTm (scons a VarPTm) B0)
-      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed0.
-    have : DJoin.R (subst_PTm (scons a VarPTm) B) (PApp (PAbs B) a)
-      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed1.
+    have [? ?] : SN (PApp (PAbs B) a) /\ SN (PApp (PAbs B0) a) by
+      hauto lq:on rew:off use:N_Exp, N_β, adequacy.
+    have [? ?] : DJoin.R (PApp (PAbs B0) a) (subst_PTm (scons a VarPTm) B0) /\
+           DJoin.R (subst_PTm (scons a VarPTm) B) (PApp (PAbs B) a)
+      by hauto lq:on ctrs:RRed.R use:DJoin.FromRRed0, DJoin.FromRRed1.
     eauto using DJoin.transitive.
-
-    move => hI.
-    case : p0 => //=.
-    + rewrite /ProdSpace.
-      extensionality b.
-      apply propositional_extensionality.
-      split.
-      move =>  hPF a PB.
-
-      move => a PB hPB.
-
+    move => h. extensionality b. apply propositional_extensionality.
+    hauto l:on use:bindspace_iff.
   - move => i j jlti ih B PB hPB.
     have ? : SN B by hauto l:on use:adequacy.
     move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
