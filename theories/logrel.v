@@ -735,3 +735,18 @@ Proof.
       hauto lq:on ctrs:rtc unfold:BJoin.R.
     + hauto lq:on use:@relations.rtc_r, InterpUniv_back_closs.
 Qed.
+
+Lemma ST_Conv n Γ (a : PTm n) A B i :
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ B ∈ PUniv i ->
+  DJoin.R A B ->
+  Γ ⊨ a ∈ B.
+Proof.
+  move => ha /SemWt_Univ h h0.
+  move => ρ hρ.
+  have {}h0 : DJoin.R (subst_PTm ρ A) (subst_PTm ρ B) by eauto using DJoin.substing.
+  move /ha : (hρ){ha} => [m [PA [h1 h2]]].
+  move /h : (hρ){h} => [S hS].
+  have ? : PA = S by eauto using InterpUniv_Join'. subst.
+  eauto.
+Qed.

@@ -107,6 +107,10 @@ Module EPar.
     all : hauto lq:on ctrs:R use:morphing_up.
   Qed.
 
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof. hauto l:on use:morphing, refl. Qed.
+
 End EPar.
 
 Inductive SNe {n} : PTm n -> Prop :=
@@ -571,6 +575,15 @@ Module RRed.
     TRedSN a b ->
     RRed.R a b.
   Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
+
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    move => h. move : m ρ. elim : n a b / h => n.
+    move => a b m ρ /=.
+    eapply AppAbs'; eauto; cycle 1. by asimpl.
+    all : hauto lq:on ctrs:R.
+  Qed.
 
 End RRed.
 
@@ -1482,6 +1495,15 @@ Module ERed.
       sauto lq:on.
   Admitted.
 
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    move => h. move : m ρ. elim : n a b /h => n.
+    move => a m ρ /=.
+    eapply AppEta'; eauto. by asimpl.
+    all : hauto lq:on ctrs:R.
+  Qed.
+
 End ERed.
 
 Module EReds.
@@ -1545,6 +1567,12 @@ Module EReds.
     rtc EPar.R a b ->
     rtc ERed.R a b.
   Proof. induction 1; hauto l:on use:FromEPar, @relations.rtc_transitive. Qed.
+
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    rtc ERed.R a b -> rtc ERed.R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    induction 1; hauto lq:on ctrs:rtc use:ERed.substing.
+  Qed.
 
 End EReds.
 
@@ -1632,6 +1660,12 @@ Module RERed.
     hauto q:on use:ToBetaEtaPar, RPar.FromRRed use:red_sn_preservation, epar_sn_preservation.
   Qed.
 
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    RERed.R a b -> RERed.R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    hauto q:on use:ToBetaEta, FromBeta, FromEta, RRed.substing, ERed.substing.
+  Qed.
+
 End RERed.
 
 Module REReds.
@@ -1714,6 +1748,12 @@ Module REReds.
     move E : (PUniv i) => u hu.
     move : i E. elim : u C / hu=>//=.
     hauto lq:on rew:off ctrs:rtc inv:RERed.R.
+  Qed.
+
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    rtc RERed.R a b -> rtc RERed.R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    induction 1; hauto lq:on ctrs:rtc use:RERed.substing.
   Qed.
 
 End REReds.
@@ -2205,6 +2245,12 @@ Module DJoin.
     BJoin.R a b -> R a b.
   Proof.
     hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
+  Qed.
+
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    hauto lq:on rew:off ctrs:rtc unfold:R use:REReds.substing.
   Qed.
 
 End DJoin.
