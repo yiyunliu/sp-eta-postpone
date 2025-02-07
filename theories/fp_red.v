@@ -2363,45 +2363,19 @@ Module Sub1.
     apply sn_mutual; hauto lq:on inv:R ctrs:SN.
   Qed.
 
+  Lemma bind_preservation n (a b : PTm n) :
+    R a b -> isbind a = isbind b.
+  Proof. hauto q:on inv:R. Qed.
+
+  Lemma univ_preservation n (a b : PTm n) :
+    R a b -> isuniv a = isuniv b.
+  Proof. hauto q:on inv:R. Qed.
+
+  Lemma sne_preservation n (a b : PTm n) :
+    R a b -> SNe a <-> SNe b.
+  Proof. hfcrush use:sn_preservation. Qed.
+
 End Sub1.
-
-(* Module Sub01. *)
-(*   Definition R {n} (a b : PTm n) := a = b \/ Sub1.R a b. *)
-
-(*   Lemma refl n (a : PTm n) : R a a. *)
-(*   Proof. sfirstorder. Qed. *)
-
-(*   Lemma sn_preservation0 : forall n (a b : PTm n), R a b -> SN a <-> SN b. *)
-(*   Proof. hauto lq:on use:Sub1.sn_preservation. Qed. *)
-
-(*   Lemma commutativity_Ls n (A B C : PTm n) : *)
-(*     R A B -> *)
-(*     rtc RERed.R A C -> *)
-(*     exists D, rtc RERed.R B D /\ R C D. *)
-(*   Proof. hauto q:on use:Sub1.commutativity_Ls. Qed. *)
-
-(*   Lemma commutativity_Rs n (A B C : PTm n) : *)
-(*     R A B -> *)
-(*     rtc RERed.R B C -> *)
-(*     exists D, rtc RERed.R A D /\ R D C. *)
-(*   Proof. hauto q:on use:Sub1.commutativity_Rs. Qed. *)
-
-(*   Lemma transitive0 n (A B C : PTm n) : *)
-(*     R A B -> (R B C -> R A C) /\ (R C A -> R C B). *)
-(*   Proof. hauto q:on use:Sub1.transitive. Qed. *)
-
-(*   Lemma transitive n (A B C : PTm n) : *)
-(*     R A B -> R B C -> R A C. *)
-(*   Proof. hauto q:on use:transitive0. Qed. *)
-
-(*   Lemma BindCong n p (A0 A1 : PTm n) B0 B1 : *)
-(*     R A1 A0 -> *)
-(*     R B0 B1 -> *)
-(*     R (PBind p A0 B0) (PBind p A1 B1). *)
-(*   Proof. *)
-(*     best use: *)
-
-(* End Sub01. *)
 
 Module Sub.
   Definition R {n} (a b : PTm n) := exists c d, rtc RERed.R a c /\ rtc RERed.R b d /\ Sub1.R c d.
@@ -2440,5 +2414,64 @@ Module Sub.
     i <= j ->
     @R n (PUniv i) (PUniv j).
   Proof. hauto lq:on ctrs:Sub1.R, rtc. Qed.
+
+  Lemma sne_bind_noconf n (a b : PTm n) :
+    R a b -> SNe a -> isbind b -> False.
+  Proof.
+    rewrite /R.
+    move => [c[d] [? []]] *.
+    have : SNe c /\ isbind c by
+      hauto l:on use:REReds.sne_preservation, REReds.bind_preservation, Sub1.sne_preservation, Sub1.bind_preservation.
+    qauto l:on inv:SNe.
+  Qed.
+
+  Lemma bind_sne_noconf n (a b : PTm n) :
+    R a b -> SNe b -> isbind a -> False.
+  Proof.
+    rewrite /R.
+    move => [c[d] [? []]] *.
+    have : SNe c /\ isbind c by
+      hauto l:on use:REReds.sne_preservation, REReds.bind_preservation, Sub1.sne_preservation, Sub1.bind_preservation.
+    qauto l:on inv:SNe.
+  Qed.
+
+  Lemma sne_univ_noconf n (a b : PTm n) :
+    R a b -> SNe a -> isuniv b -> False.
+  Proof.
+    hauto l:on use:REReds.sne_preservation,
+          REReds.univ_preservation, Sub1.sne_preservation, Sub1.univ_preservation inv:SNe.
+  Qed.
+
+  Lemma univ_sne_noconf n (a b : PTm n) :
+    R a b -> SNe b -> isuniv a -> False.
+  Proof.
+    move => [c[d] [? []]] *.
+    have ? : SNe d by eauto using REReds.sne_preservation.
+    have : SNe c by sfirstorder use:Sub1.sne_preservation.
+    have : isuniv c by sfirstorder use:REReds.univ_preservation.
+    clear. case : c => //=. inversion 2.
+  Qed.
+
+  Lemma bind_univ_noconf n (a b : PTm n) :
+    R a b -> isbind a -> isuniv b -> False.
+  Proof.
+    move => [c[d] [h0 [h1 h1']]] h2 h3.
+    have : isbind c /\ isuniv c by
+      hauto l:on use:REReds.bind_preservation,
+            REReds.univ_preservation, Sub1.bind_preservation, Sub1.univ_preservation.
+    move : h2 h3. clear.
+    case : c => //=; itauto.
+  Qed.
+
+  Lemma univ_bind_noconf n (a b : PTm n) :
+    R a b -> isbind a -> isuniv b -> False.
+  Proof.
+    move => [c[d] [h0 [h1 h1']]] h2 h3.
+    have : isbind c /\ isuniv c by
+      hauto l:on use:REReds.bind_preservation,
+            REReds.univ_preservation, Sub1.bind_preservation, Sub1.univ_preservation.
+    move : h2 h3. clear.
+    case : c => //=; itauto.
+  Qed.
 
 End Sub.
