@@ -40,7 +40,6 @@ Inductive InterpExt {n} i (I : nat -> PTm n -> Prop) : PTm n -> (PTm n -> Prop) 
   ⟦ A ⟧ i ;; I ↘ PA
 where "⟦ A ⟧ i ;; I ↘ S" := (InterpExt i I A S).
 
-
 Lemma InterpExt_Univ' n i  I j (PF : PTm n -> Prop) :
   PF = I j ->
   j < i ->
@@ -295,26 +294,24 @@ Proof.
   subst. hauto lq:on inv:TRedSN.
 Qed.
 
-Lemma bindspace_iff n p (PA : PTm n -> Prop) PF PF0 b  :
-  (forall (a : PTm n) (PB PB0 : PTm n -> Prop), PA a -> PF a PB -> PF0 a PB0 -> PB = PB0) ->
+Lemma bindspace_impl n p (PA PA0 : PTm n -> Prop) PF PF0 b  :
+  (forall x, if p is PPi then (PA0 x -> PA x) else (PA x -> PA0 x)) ->
+  (forall (a : PTm n) (PB PB0 : PTm n -> Prop), PA0 a -> PF a PB -> PF0 a PB0 -> (forall x, PB x ->  PB0 x)) ->
   (forall a, PA a -> exists PB, PF a PB) ->
-  (forall a, PA a -> exists PB0, PF0 a PB0) ->
-  (BindSpace p PA PF b <-> BindSpace p PA PF0 b).
+  (forall a, PA0 a -> exists PB0, PF0 a PB0) ->
+  (BindSpace p PA PF b -> BindSpace p PA0 PF0 b).
 Proof.
-  rewrite /BindSpace => h hPF hPF0.
-  case : p => /=.
+  rewrite /BindSpace => hSA h hPF hPF0.
+  case : p hSA => /= hSA.
   - rewrite /ProdSpace.
-    split.
     move => h1 a PB ha hPF'.
-    specialize hPF with (1 := ha).
+    have {}/hPF : PA a by sfirstorder.
     specialize hPF0 with (1 := ha).
-    sblast.
-    move => ? a PB ha.
-    specialize hPF with (1 := ha).
-    specialize hPF0 with (1 := ha).
-    sblast.
+    hauto lq:on.
   - rewrite /SumSpace.
-    hauto lq:on rew:off.
+    case. sfirstorder.
+    move => [a0][b0][h0][h1]h2. right.
+    hauto lq:on.
 Qed.
 
 Lemma InterpUniv_Sub' n i (A B : PTm n) PA PB :
@@ -350,44 +347,76 @@ Proof.
   - move => i p A B PA PF hPA ihPA hTot hRes ihPF U PU hU. split.
     + have hU' : SN U by hauto l:on use:adequacy.
       move /InterpUniv_case : hU => [H [/DJoin.FromRedSNs h [h1 h0]]] hU.
-      have {hU} {}h : Sub.R (PBind p A B) H \/ Sub.R H (PBind p A B)
+      have {hU} {}h : Sub.R (PBind p A B) H
         by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have{h0} : isbind H.
       suff : ~ SNe H /\ ~ isuniv H by itauto.
       have : isbind (PBind p A B) by scongruence.
-      hauto l:on db:noconf.
-      admit.
+      move : h. clear. hauto l:on db:noconf.
       case : H h1 h => //=.
-      move => p0 A0 B0 h0. /DJoin.bind_inj.
+      move => p0 A0 B0 h0 /Sub.bind_inj.
       move => [? [hA hB]] _. subst.
       move /InterpUniv_Bind_inv : h0.
       move => [PA0][PF0][hPA0][hTot0][hRes0 ?]. subst.
-      have ? : PA0 = PA by qauto l:on. subst.
-      have : forall a PB PB', PA a -> PF a PB -> PF0 a PB' -> PB = PB'.
-      move => a PB PB' ha hPB hPB'. apply : ihPF; eauto.
-      by apply DJoin.substing.
-      move => h. extensionality b. apply propositional_extensionality.
-      hauto l:on use:bindspace_iff.
-  (* - move => i j jlti ih B PB hPB. *)
-  (*   have ? : SN B by hauto l:on use:adequacy. *)
-  (*   move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]]. *)
-  (*   move => hj. *)
-  (*   have {hj}{}h : DJoin.R (PUniv j) H by eauto using DJoin.transitive. *)
-  (*   have {h0} : isuniv H. *)
-  (*   suff : ~ SNe H /\ ~ isbind H by tauto. *)
-  (*   hauto l:on use: DJoin.sne_univ_noconf, DJoin.bind_univ_noconf, DJoin.symmetric. *)
-  (*   case : H h1 h => //=. *)
-  (*   move => j' hPB h _. *)
-  (*   have {}h : j' = j by hauto lq:on use: DJoin.univ_inj. subst. *)
-  (*   hauto lq:on use:InterpUniv_Univ_inv. *)
-  (* - move => i A A0 PA hr hPA ihPA B PB hPB hAB. *)
-  (*   have /DJoin.symmetric ? : DJoin.R A A0 by hauto lq:on rew:off ctrs:rtc use:DJoin.FromRedSNs. *)
-  (*   have ? : SN A0 by hauto l:on use:adequacy. *)
-  (*   have ? : SN A by eauto using N_Exp. *)
-  (*   have : DJoin.R A0 B by eauto using DJoin.transitive. *)
-  (*   eauto. *)
-(* Qed. *)
-Admitted.
+      move => x. apply bindspace_impl; eauto;[idtac|idtac]. hauto l:on.
+      move => a PB PB' ha hPB hPB'.
+      move : hRes0 hPB'. repeat move/[apply].
+      move : ihPF hPB. repeat move/[apply].
+      move => h. eapply h.
+      apply Sub.cong => //=; eauto using DJoin.refl.
+    + have hU' : SN U by hauto l:on use:adequacy.
+      move /InterpUniv_case : hU => [H [/DJoin.FromRedSNs h [h1 h0]]] hU.
+      have {hU} {}h : Sub.R H (PBind p A B)
+        by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
+      have{h0} : isbind H.
+      suff : ~ SNe H /\ ~ isuniv H by itauto.
+      have : isbind (PBind p A B) by scongruence.
+      move : h. clear. move : (PBind p A B). hauto lq:on db:noconf.
+      case : H h1 h => //=.
+      move => p0 A0 B0 h0 /Sub.bind_inj.
+      move => [? [hA hB]] _. subst.
+      move /InterpUniv_Bind_inv : h0.
+      move => [PA0][PF0][hPA0][hTot0][hRes0 ?]. subst.
+      move => x. apply bindspace_impl; eauto;[idtac|idtac]. hauto l:on.
+      move => a PB PB' ha hPB hPB'.
+      eapply ihPF; eauto.
+      apply Sub.cong => //=; eauto using DJoin.refl.
+  - move => i j jlti ih B PB hPB. split.
+    + have ? : SN B by hauto l:on use:adequacy.
+      move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
+      move => hj.
+      have {hj}{}h : Sub.R (PUniv j) H by eauto using Sub.transitive, Sub.FromJoin.
+      have {h0} : isuniv H.
+      suff : ~ SNe H /\ ~ isbind H by tauto. move : h. clear. hauto lq:on db:noconf.
+      case : H h1 h => //=.
+      move => j' hPB h _.
+      have {}h : j <= j' by hauto lq:on use: Sub.univ_inj. subst.
+      move /InterpUniv_Univ_inv : hPB => [? ?]. subst.
+      have ? : j <= i by lia.
+      move => A. hauto l:on use:InterpUniv_cumulative.
+    + have ? : SN B by hauto l:on use:adequacy.
+      move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
+      move => hj.
+      have {hj}{}h : Sub.R H (PUniv j) by eauto using Sub.transitive, Sub.FromJoin, DJoin.symmetric.
+      have {h0} : isuniv H.
+      suff : ~ SNe H /\ ~ isbind H by tauto. move : h. clear. hauto lq:on db:noconf.
+      case : H h1 h => //=.
+      move => j' hPB h _.
+      have {}h : j' <= j by hauto lq:on use: Sub.univ_inj.
+      move /InterpUniv_Univ_inv : hPB => [? ?]. subst.
+      move => A. hauto l:on use:InterpUniv_cumulative.
+  - move => i A A0 PA hr hPA ihPA B PB hPB.
+    have ? : SN A by sauto lq:on use:adequacy.
+    split.
+    + move => ?.
+      have {}hr : Sub.R A0 A by hauto lq:on  ctrs:rtc use:DJoin.FromRedSNs, DJoin.symmetric, Sub.FromJoin.
+      have : Sub.R A0 B by eauto using Sub.transitive.
+      qauto l:on.
+    + move => ?.
+      have {}hr : Sub.R A A0 by hauto lq:on  ctrs:rtc use:DJoin.FromRedSNs, DJoin.symmetric, Sub.FromJoin.
+      have : Sub.R B A0 by eauto using Sub.transitive.
+      qauto l:on.
+Qed.
 
 Lemma InterpUniv_Sub n i (A B : PTm n) PA PB :
   ⟦ A ⟧ i ↘ PA ->
@@ -478,6 +507,9 @@ Notation "Γ ⊨ a ∈ A" := (SemWt Γ a A) (at level 70).
 Definition SemEq {n} Γ (a b A : PTm n) := DJoin.R a b /\ forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a) /\ PA (subst_PTm ρ b).
 Notation "Γ ⊨ a ≡ b ∈ A" := (SemEq Γ a b A) (at level 70).
 
+Definition SemLEq {n} Γ (a b A : PTm n) := Sub.R a b /\ forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a) /\ PA (subst_PTm ρ b).
+Notation "Γ ⊨ a ≲ b ∈ A" := (SemLEq Γ a b A) (at level 70).
+
 Lemma SemEq_SemWt n Γ (a b A : PTm n) : Γ ⊨ a ≡ b ∈ A -> Γ ⊨ a ∈ A /\ Γ ⊨ b ∈ A /\ DJoin.R a b.
 Proof. hauto lq:on rew:off unfold:SemEq, SemWt. Qed.
 
@@ -491,6 +523,8 @@ Proof.
   have : PA = PA0 by hauto l:on use:InterpUniv_Functional'.
   hauto lq:on.
 Qed.
+
+Lemma SemEq_SemLEq n Γ
 
 (* Semantic context wellformedness *)
 Definition SemWff {n} Γ := forall (i : fin n), exists j, Γ ⊨ Γ i ∈ PUniv j.

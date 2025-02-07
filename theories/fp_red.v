@@ -2306,10 +2306,14 @@ Module Sub1.
   | Univ i j :
     i <= j ->
     R (PUniv i) (PUniv j)
-  | BindCong p A0 A1 B0 B1 :
+  | PiCong A0 A1 B0 B1 :
     R A1 A0 ->
     R B0 B1 ->
-    R (PBind p A0 B0) (PBind p A1 B1).
+    R (PBind PPi A0 B0) (PBind PPi A1 B1)
+  | SigCong A0 A1 B0 B1 :
+    R A0 A1 ->
+    R B0 B1 ->
+    R (PBind PSig A0 B0) (PBind PSig A1 B1).
 
   Lemma transitive0 n (A B C : PTm n) :
     R A B -> (R B C -> R A C) /\ (R C A -> R C B).
@@ -2333,10 +2337,7 @@ Module Sub1.
     exists D, RERed.R A D /\ R D C).
   Proof.
     move => h. move : C.
-    elim : n A B / h.
-    - sfirstorder.
-    - hauto lq:on inv:RERed.R.
-    - hauto lq:on ctrs:RERed.R, R inv:RERed.R.
+    elim : n A B / h; hauto lq:on ctrs:RERed.R, R inv:RERed.R.
   Qed.
 
   Lemma commutativity_Ls n (A B C : PTm n) :
@@ -2375,6 +2376,17 @@ Module Sub1.
     R a b -> SNe a <-> SNe b.
   Proof. hfcrush use:sn_preservation. Qed.
 
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ.
+    elim : n a b /h; hauto lq:on ctrs:R.
+  Qed.
+
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof. move => h. move : m ρ. elim : n a b /h; hauto lq:on ctrs:R. Qed.
+
 End Sub1.
 
 Module Sub.
@@ -2398,16 +2410,28 @@ Module Sub.
   Lemma FromJoin n (a b : PTm n) : DJoin.R a b -> R a b.
   Proof. sfirstorder. Qed.
 
-  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+  Lemma PiCong n (A0 A1 : PTm n) B0 B1 :
     R A1 A0 ->
     R B0 B1 ->
-    R (PBind p A0 B0) (PBind p A1 B1).
+    R (PBind PPi A0 B0) (PBind PPi A1 B1).
   Proof.
     rewrite /R.
     move => [A][A'][h0][h1]h2.
     move => [B][B'][h3][h4]h5.
-    exists (PBind p A' B), (PBind p A B').
-    repeat split; eauto using REReds.BindCong, Sub1.BindCong.
+    exists (PBind PPi A' B), (PBind PPi A B').
+    repeat split; eauto using REReds.BindCong, Sub1.PiCong.
+  Qed.
+
+  Lemma SigCong n (A0 A1 : PTm n) B0 B1 :
+    R A0 A1 ->
+    R B0 B1 ->
+    R (PBind PSig A0 B0) (PBind PSig A1 B1).
+  Proof.
+    rewrite /R.
+    move => [A][A'][h0][h1]h2.
+    move => [B][B'][h3][h4]h5.
+    exists (PBind PSig A B), (PBind PSig A' B').
+    repeat split; eauto using REReds.BindCong, Sub1.SigCong.
   Qed.
 
   Lemma UnivCong n i j :
@@ -2464,7 +2488,7 @@ Module Sub.
   Qed.
 
   Lemma univ_bind_noconf n (a b : PTm n) :
-    R a b -> isbind a -> isuniv b -> False.
+    R a b -> isbind b -> isuniv a -> False.
   Proof.
     move => [c[d] [h0 [h1 h1']]] h2 h3.
     have : isbind c /\ isuniv c by
@@ -2476,13 +2500,32 @@ Module Sub.
 
   Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
     R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
-    p0 = p1 /\ R A1 A0 /\ R B0 B1.
+    p0 = p1 /\ (if p0 is PPi then R A1 A0 else R A0 A1) /\ R B0 B1.
   Proof.
     rewrite /R.
     move => [u][v][h0][h1]h.
     move /REReds.bind_inv : h0 => [A2][B2][?][h00]h01. subst.
     move /REReds.bind_inv : h1 => [A3][B3][?][h10]h11. subst.
-    inversion h; subst; sfirstorder.
+    inversion h; subst; sauto lq:on.
+  Qed.
+
+  Lemma univ_inj n i j :
+    @R n (PUniv i) (PUniv j)  -> i <= j.
+  Proof.
+    sauto lq:on rew:off use:REReds.univ_inv.
+  Qed.
+
+  Lemma cong n m (a b : PTm (S n)) c d (ρ : fin n -> PTm m) :
+    R a b -> DJoin.R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) b).
+  Proof.
+    rewrite /R.
+    move => [a0][b0][h0][h1]h2.
+    move => [cd][h3]h4.
+    exists (subst_PTm (scons cd ρ) a0), (subst_PTm (scons cd ρ) b0).
+    repeat split.
+    hauto l:on use:REReds.cong' inv:option.
+    hauto l:on use:REReds.cong' inv:option.
+    eauto using Sub1.substing.
   Qed.
 
 End Sub.
