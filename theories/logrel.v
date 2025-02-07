@@ -1,5 +1,5 @@
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax.
-Require Import fp_red.
+Require Import common fp_red.
 From Hammer Require Import Tactics.
 From Equations Require Import Equations.
 Require Import ssreflect ssrbool.
@@ -487,9 +487,6 @@ Lemma ρ_ok_cons' n i (Γ : fin n -> PTm n) ρ a PA A  Δ :
   ρ_ok Γ ρ ->
   ρ_ok Δ (scons a ρ).
 Proof. move => ->. apply ρ_ok_cons. Qed.
-
-Definition renaming_ok {n m} (Γ : fin n -> PTm n) (Δ : fin m -> PTm m) (ξ : fin m -> fin n) :=
-  forall (i : fin m), ren_PTm ξ (Δ i) = Γ (ξ i).
 
 Lemma ρ_ok_renaming n m (Γ : fin n -> PTm n) ρ :
   forall (Δ : fin m -> PTm m) ξ,
