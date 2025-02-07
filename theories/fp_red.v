@@ -2474,4 +2474,15 @@ Module Sub.
     case : c => //=; itauto.
   Qed.
 
+  Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
+    R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
+    p0 = p1 /\ R A1 A0 /\ R B0 B1.
+  Proof.
+    rewrite /R.
+    move => [u][v][h0][h1]h.
+    move /REReds.bind_inv : h0 => [A2][B2][?][h00]h01. subst.
+    move /REReds.bind_inv : h1 => [A3][B3][?][h10]h11. subst.
+    inversion h; subst; sfirstorder.
+  Qed.
+
 End Sub.
