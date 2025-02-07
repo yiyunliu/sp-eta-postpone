@@ -1774,6 +1774,17 @@ Module REReds.
       eauto using AppCong, AbsCong, BindCong, ProjCong, PairCong, cong_up, rtc_refl.
   Qed.
 
+  Lemma cong' n m (a b : PTm n) (ρ0 ρ1 : fin n -> PTm m) :
+    rtc RERed.R a b ->
+    (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
+    rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 b).
+  Proof.
+    move => h0 h1.
+    have : rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a) by eauto using cong.
+    move => ?. apply : relations.rtc_transitive; eauto.
+    hauto l:on use:substing.
+  Qed.
+
 End REReds.
 
 Module LoRed.
@@ -2286,3 +2297,148 @@ Module DJoin.
   Qed.
 
 End DJoin.
+
+
+Module Sub1.
+  Inductive R {n} : PTm n -> PTm n -> Prop :=
+  | Refl a :
+    R a a
+  | Univ i j :
+    i <= j ->
+    R (PUniv i) (PUniv j)
+  | BindCong p A0 A1 B0 B1 :
+    R A1 A0 ->
+    R B0 B1 ->
+    R (PBind p A0 B0) (PBind p A1 B1).
+
+  Lemma transitive0 n (A B C : PTm n) :
+    R A B -> (R B C -> R A C) /\ (R C A -> R C B).
+  Proof.
+    move => h. move : C.
+    elim : n A B /h; hauto lq:on ctrs:R inv:R solve+:lia.
+  Qed.
+
+  Lemma transitive n (A B C : PTm n) :
+    R A B -> R B C -> R A C.
+  Proof. hauto q:on use:transitive0. Qed.
+
+  Lemma refl n (A : PTm n) : R A A.
+  Proof. sfirstorder. Qed.
+
+  Lemma commutativity0 n (A B C : PTm n) :
+    R A B ->
+    (RERed.R A C ->
+    exists D, RERed.R B D /\ R C D) /\
+    (RERed.R B C ->
+    exists D, RERed.R A D /\ R D C).
+  Proof.
+    move => h. move : C.
+    elim : n A B / h.
+    - sfirstorder.
+    - hauto lq:on inv:RERed.R.
+    - hauto lq:on ctrs:RERed.R, R inv:RERed.R.
+  Qed.
+
+  Lemma commutativity_Ls n (A B C : PTm n) :
+    R A B ->
+    rtc RERed.R A C ->
+    exists D, rtc RERed.R B D /\ R C D.
+  Proof.
+    move => + h. move : B. induction h; sauto lq:on use:commutativity0.
+  Qed.
+
+  Lemma commutativity_Rs n (A B C : PTm n) :
+    R A B ->
+    rtc RERed.R B C ->
+    exists D, rtc RERed.R A D /\ R D C.
+  Proof.
+    move => + h. move : A. induction h; sauto lq:on use:commutativity0.
+  Qed.
+
+  Lemma sn_preservation  : forall n,
+  (forall (a : PTm n) (s : SNe a), forall b, R a b \/ R b a -> a = b) /\
+  (forall (a : PTm n) (s : SN a), forall b, R a b \/ R b a -> SN b) /\
+  (forall (a b : PTm n) (_ : TRedSN a b), forall c, R a c \/ R c a -> a = c).
+  Proof.
+    apply sn_mutual; hauto lq:on inv:R ctrs:SN.
+  Qed.
+
+End Sub1.
+
+(* Module Sub01. *)
+(*   Definition R {n} (a b : PTm n) := a = b \/ Sub1.R a b. *)
+
+(*   Lemma refl n (a : PTm n) : R a a. *)
+(*   Proof. sfirstorder. Qed. *)
+
+(*   Lemma sn_preservation0 : forall n (a b : PTm n), R a b -> SN a <-> SN b. *)
+(*   Proof. hauto lq:on use:Sub1.sn_preservation. Qed. *)
+
+(*   Lemma commutativity_Ls n (A B C : PTm n) : *)
+(*     R A B -> *)
+(*     rtc RERed.R A C -> *)
+(*     exists D, rtc RERed.R B D /\ R C D. *)
+(*   Proof. hauto q:on use:Sub1.commutativity_Ls. Qed. *)
+
+(*   Lemma commutativity_Rs n (A B C : PTm n) : *)
+(*     R A B -> *)
+(*     rtc RERed.R B C -> *)
+(*     exists D, rtc RERed.R A D /\ R D C. *)
+(*   Proof. hauto q:on use:Sub1.commutativity_Rs. Qed. *)
+
+(*   Lemma transitive0 n (A B C : PTm n) : *)
+(*     R A B -> (R B C -> R A C) /\ (R C A -> R C B). *)
+(*   Proof. hauto q:on use:Sub1.transitive. Qed. *)
+
+(*   Lemma transitive n (A B C : PTm n) : *)
+(*     R A B -> R B C -> R A C. *)
+(*   Proof. hauto q:on use:transitive0. Qed. *)
+
+(*   Lemma BindCong n p (A0 A1 : PTm n) B0 B1 : *)
+(*     R A1 A0 -> *)
+(*     R B0 B1 -> *)
+(*     R (PBind p A0 B0) (PBind p A1 B1). *)
+(*   Proof. *)
+(*     best use: *)
+
+(* End Sub01. *)
+
+Module Sub.
+  Definition R {n} (a b : PTm n) := exists c d, rtc RERed.R a c /\ rtc RERed.R b d /\ Sub1.R c d.
+
+  Lemma refl n (a : PTm n) : R a a.
+  Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
+
+  Lemma transitive n (a b c : PTm n) : SN b -> R a b -> R b c -> R a c.
+  Proof.
+    rewrite /R.
+    move => h  [a0][b0][ha][hb]ha0b0 [b1][c0][hb'][hc]hb1c0.
+    move : hb hb'.
+    move : rered_confluence h. repeat move/[apply].
+    move => [b'][hb0]hb1.
+    have [a' ?] : exists a', rtc RERed.R a0 a' /\ Sub1.R a' b' by hauto l:on use:Sub1.commutativity_Rs.
+    have [c' ?] : exists a', rtc RERed.R c0 a' /\ Sub1.R b' a' by hauto l:on use:Sub1.commutativity_Ls.
+    exists a',c'; hauto l:on use:Sub1.transitive, @relations.rtc_transitive.
+  Qed.
+
+  Lemma FromJoin n (a b : PTm n) : DJoin.R a b -> R a b.
+  Proof. sfirstorder. Qed.
+
+  Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
+    R A1 A0 ->
+    R B0 B1 ->
+    R (PBind p A0 B0) (PBind p A1 B1).
+  Proof.
+    rewrite /R.
+    move => [A][A'][h0][h1]h2.
+    move => [B][B'][h3][h4]h5.
+    exists (PBind p A' B), (PBind p A B').
+    repeat split; eauto using REReds.BindCong, Sub1.BindCong.
+  Qed.
+
+  Lemma UnivCong n i j :
+    i <= j ->
+    @R n (PUniv i) (PUniv j).
+  Proof. hauto lq:on ctrs:Sub1.R, rtc. Qed.
+
+End Sub.
