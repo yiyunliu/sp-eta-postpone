@@ -9,10 +9,10 @@ Inductive Wt : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   ⊢ Γ ->
   Γ ⊢ VarPTm i ∈ Γ i
 
-| T_Bind n Γ i j p (A : PTm n) (B : PTm (S n)) :
+| T_Bind n Γ i p (A : PTm n) (B : PTm (S n)) :
   Γ ⊢ A ∈ PUniv i ->
-  funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv j ->
-  Γ ⊢ PBind p A B ∈ PUniv (max i j)
+  funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i ->
+  Γ ⊢ PBind p A B ∈ PUniv i
 
 | T_Abs n Γ (a : PTm (S n)) A B i :
   Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
@@ -61,11 +61,12 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ b ≡ c ∈ A ->
   Γ ⊢ a ≡ c ∈ A
 
-| E_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
+| E_Bind n Γ i p (A0 A1 : PTm n) B0 B1 :
   ⊢ Γ ->
+  Γ ⊢ A0 ∈ PUniv i ->
   Γ ⊢ A0 ≡ A1 ∈ PUniv i ->
-  funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≡ B1 ∈ PUniv j ->
-  Γ ⊢ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv (max i j)
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≡ B1 ∈ PUniv i ->
+  Γ ⊢ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i
 
 | E_Abs n Γ (a b : PTm (S n)) A B i :
   Γ ⊢ PBind PPi A B ∈ (PUniv i) ->

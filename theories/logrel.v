@@ -755,6 +755,13 @@ Proof.
   asimpl. hauto lq:on.
 Qed.
 
+Lemma ST_App' n Γ (b a : PTm n) A B U :
+  U = subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ b ∈ PBind PPi A B ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ PApp b a ∈ U.
+Proof. move => ->. apply ST_App. Qed.
+
 Lemma ST_Pair n Γ (a b : PTm n) A B i :
   Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
   Γ ⊨ a ∈ A ->
@@ -1010,6 +1017,48 @@ Proof.
   apply SemWt_SemEq; eauto using DJoin.AbsCong, ST_Abs.
 Qed.
 
+Lemma SBind_inv1 n Γ i p (A : PTm n) B :
+  Γ ⊨ PBind p A B ∈ PUniv i ->
+  Γ ⊨ A ∈ PUniv i.
+  move /SemWt_Univ => h. apply SemWt_Univ.
+  hauto lq:on rew:off  use:InterpUniv_Bind_inv.
+Qed.
+
+Lemma SE_AppEta n Γ (b : PTm n) A B i :
+  ⊨ Γ ->
+  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
+  Γ ⊨ b ∈ PBind PPi A B ->
+  Γ ⊨ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ∈ PBind PPi A B.
+Proof.
+  move => hΓ h0 h1. apply : ST_Abs; eauto.
+  have hA : Γ ⊨ A ∈ PUniv i by eauto using SBind_inv1.
+  eapply ST_App' with (A := ren_PTm shift A)(B:= ren_PTm (upRen_PTm_PTm shift) B). by asimpl.
+  2 : {
+    apply ST_Var.
+    eauto using SemWff_cons.
+  }
+  change (PBind PPi (ren_PTm shift A) (ren_PTm (upRen_PTm_PTm shift) B)) with
+    (ren_PTm shift (PBind PPi A B)).
+  apply : weakening_Sem; eauto.
+Qed.
+
+Lemma SE_AppAbs n Γ (a : PTm (S n)) b A B i:
+  Γ ⊨ PBind PPi A B ∈ PUniv i ->
+  Γ ⊨ b ∈ A ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ a ∈ B ->
+  Γ ⊨ PApp (PAbs a) b ≡ subst_PTm (scons b VarPTm) a ∈ subst_PTm (scons b VarPTm ) B.
+Proof.
+  move => h h0 h1. apply SemWt_SemEq; eauto using ST_App, ST_Abs.
+  move => ρ hρ.
+  have {}/h0 := hρ.
+  move => [k][PA][hPA]hb.
+  move : ρ_ok_cons hPA hb (hρ); repeat move/[apply].
+  move => {}/h1.
+  by asimpl.
+  apply DJoin.FromRRed0.
+  apply RRed.AppAbs.
+Qed.
+
 Lemma SE_Conv' n Γ (a b : PTm n) A B i :
   Γ ⊨ a ≡ b ∈ A ->
   Γ ⊨ B ∈ PUniv i ->
@@ -1092,13 +1141,6 @@ Proof.
   move => /SemEq_SemWt [hb0][hb1]hb /SemEq_SemWt [ha0][ha1]ha.
   apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
   apply : ST_Conv_E; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
-Qed.
-
-Lemma SBind_inv1 n Γ i p (A : PTm n) B :
-  Γ ⊨ PBind p A B ∈ PUniv i ->
-  Γ ⊨ A ∈ PUniv i.
-  move /SemWt_Univ => h. apply SemWt_Univ.
-  hauto lq:on rew:off  use:InterpUniv_Bind_inv.
 Qed.
 
 Lemma SSu_Eq n Γ (A B : PTm n) i :
