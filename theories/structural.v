@@ -84,6 +84,7 @@ Lemma T_Proj2' n Γ (a : PTm n) A B U :
 Proof. move => ->. apply T_Proj2. Qed.
 
 Lemma E_Bind' n Γ i p (A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ A0 ∈ PUniv i ->
   Γ ⊢ A0 ≡ A1 ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≡ B1 ∈ PUniv i ->
   Γ ⊢ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i.
@@ -113,6 +114,9 @@ Proof.
   - move => n Γ a A B ha iha m Δ ξ hΔ hξ. apply : T_Proj2'; eauto. by asimpl.
   - hauto lq:on ctrs:Wt,LEq.
   - hauto lq:on ctrs:Eq.
-  - move => n Γ i p A0 A1 B0 B1 hΓ _ hA ihA hB ihB m Δ ξ hΔ hξ.
+  - move => n Γ i p A0 A1 B0 B1 hΓ _ hA ihA hA' ihA' hB ihB m Δ ξ hΔ hξ.
     apply E_Bind'; eauto.
     apply ihB; last by hauto l:on use:renaming_up.
+    hauto lq:on ctrs:Wff,Wt use:renaming_up.
+  - move => n Γ a b A B i hP ihP ha iha m Δ ξ hΔ hξ.
+    apply : E_Abs; eauto. apply iha; last by hauto l:on use:renaming_up.
