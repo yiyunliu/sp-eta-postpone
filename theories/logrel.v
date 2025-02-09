@@ -418,13 +418,26 @@ Proof.
       qauto l:on.
 Qed.
 
-Lemma InterpUniv_Sub n i (A B : PTm n) PA PB :
+Lemma InterpUniv_Sub0 n i (A B : PTm n) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ B ⟧ i ↘ PB ->
   Sub.R A B -> forall x, PA x -> PB x.
 Proof.
   move : InterpUniv_Sub'. repeat move/[apply].
   move => [+ _]. apply.
+Qed.
+
+Lemma InterpUniv_Sub n i j (A B : PTm n) PA PB :
+  ⟦ A ⟧ i ↘ PA ->
+  ⟦ B ⟧ j ↘ PB ->
+  Sub.R A B -> forall x, PA x -> PB x.
+Proof.
+  have [? ?] : i <= max i j /\ j <= max i j by lia.
+  move => hPA hPB.
+  have : ⟦ B ⟧ (max i j) ↘ PB by eauto using InterpUniv_cumulative.
+  have : ⟦ A ⟧ (max i j) ↘ PA by eauto using InterpUniv_cumulative.
+  move : InterpUniv_Sub0. repeat move/[apply].
+  apply.
 Qed.
 
 Lemma InterpUniv_Join n i (A B : PTm n) PA PB :
@@ -507,11 +520,29 @@ Notation "Γ ⊨ a ∈ A" := (SemWt Γ a A) (at level 70).
 Definition SemEq {n} Γ (a b A : PTm n) := DJoin.R a b /\ forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a) /\ PA (subst_PTm ρ b).
 Notation "Γ ⊨ a ≡ b ∈ A" := (SemEq Γ a b A) (at level 70).
 
-Definition SemLEq {n} Γ (a b A : PTm n) := Sub.R a b /\ forall ρ, ρ_ok Γ ρ -> exists k PA, ⟦ subst_PTm ρ A ⟧ k ↘ PA /\ PA (subst_PTm ρ a) /\ PA (subst_PTm ρ b).
-Notation "Γ ⊨ a ≲ b ∈ A" := (SemLEq Γ a b A) (at level 70).
+Definition SemLEq {n} Γ (A B : PTm n) := Sub.R A B /\ exists i, forall ρ, ρ_ok Γ ρ -> exists S0 S1, ⟦ subst_PTm ρ A ⟧ i ↘ S0 /\ ⟦ subst_PTm ρ B ⟧ i ↘ S1.
+Notation "Γ ⊨ a ≲ b" := (SemLEq Γ a b) (at level 70).
+
+Lemma SemWt_Univ n Γ (A : PTm n) i  :
+  Γ ⊨ A ∈ PUniv i <->
+  forall ρ, ρ_ok Γ ρ -> exists S, ⟦ subst_PTm ρ A ⟧ i ↘ S.
+Proof.
+  rewrite /SemWt.
+  split.
+  - hauto lq:on rew:off use:InterpUniv_Univ_inv.
+  - move => /[swap] ρ /[apply].
+    move => [PA hPA].
+    exists (S i). eexists.
+    split.
+    + simp InterpUniv. apply InterpExt_Univ. lia.
+    + simpl. eauto.
+Qed.
 
 Lemma SemEq_SemWt n Γ (a b A : PTm n) : Γ ⊨ a ≡ b ∈ A -> Γ ⊨ a ∈ A /\ Γ ⊨ b ∈ A /\ DJoin.R a b.
 Proof. hauto lq:on rew:off unfold:SemEq, SemWt. Qed.
+
+Lemma SemLEq_SemWt n Γ (A B : PTm n) : Γ ⊨ A ≲ B -> Sub.R A B /\ exists i, Γ ⊨ A ∈ PUniv i /\ Γ ⊨ B ∈ PUniv i.
+Proof. hauto q:on use:SemWt_Univ. Qed.
 
 Lemma SemWt_SemEq n Γ (a b A : PTm n) : Γ ⊨ a ∈ A -> Γ ⊨ b ∈ A -> (DJoin.R a b) -> Γ ⊨ a ≡ b ∈ A.
 Proof.
@@ -524,7 +555,22 @@ Proof.
   hauto lq:on.
 Qed.
 
-Lemma SemEq_SemLEq n Γ
+Lemma SemWt_SemLEq n Γ (A B : PTm n) i j :
+  Γ ⊨ A ∈ PUniv i -> Γ ⊨ B ∈ PUniv j -> Sub.R A B -> Γ ⊨ A ≲ B.
+Proof.
+  move => ha hb heq. split => //.
+  exists (Nat.max i j).
+  have [? ?] : i <= Nat.max i j /\ j <= Nat.max i j by lia.
+  move => ρ hρ.
+  have {}/ha := hρ.
+  have {}/hb := hρ.
+  move => [k][PA][/= /InterpUniv_Univ_inv [? hPA]]hpb.
+  move => [k0][PA0][/= /InterpUniv_Univ_inv [? hPA0]]hpa. subst.
+  move : hpb => [PA]hPA'.
+  move : hpa => [PB]hPB'.
+  exists PB, PA.
+  split; apply : InterpUniv_cumulative; eauto.
+Qed.
 
 (* Semantic context wellformedness *)
 Definition SemWff {n} Γ := forall (i : fin n), exists j, Γ ⊨ Γ i ∈ PUniv j.
@@ -613,21 +659,6 @@ Lemma SemEq_SN_Join n Γ (a b A : PTm n) :
   Γ ⊨ a ≡ b ∈ A ->
   SN a /\ SN b /\ SN A /\ DJoin.R a b.
 Proof. hauto l:on use:SemEq_SemWt, SemWt_SN. Qed.
-
-Lemma SemWt_Univ n Γ (A : PTm n) i  :
-  Γ ⊨ A ∈ PUniv i <->
-  forall ρ, ρ_ok Γ ρ -> exists S, ⟦ subst_PTm ρ A ⟧ i ↘ S.
-Proof.
-  rewrite /SemWt.
-  split.
-  - hauto lq:on rew:off use:InterpUniv_Univ_inv.
-  - move => /[swap] ρ /[apply].
-    move => [PA hPA].
-    exists (S i). eexists.
-    split.
-    + simp InterpUniv. apply InterpExt_Univ. lia.
-    + simpl. eauto.
-Qed.
 
 (* Structural laws for Semantic context wellformedness *)
 Lemma SemWff_nil : SemWff null.
@@ -860,6 +891,20 @@ Proof.
   apply SemWt_SemEq; try tauto.
   hauto l:on use:DJoin.transitive.
 Qed.
+
+Lemma SLEq_Transitive n Γ (A B C : PTm n) :
+  Γ ⊨ A ≲ B ->
+  Γ ⊨ B ≲ C ->
+  Γ ⊨ A ≲ C.
+Proof.
+  move => h0 h1.
+  rewrite /SemLEq in h0 h1.
+  move : h0 => [hAB]h0.
+  move : h1 => [hBC]h1.
+
+  rewrite /SemLEq.
+  split. eauto using Sub.transitive.
+
 
 Lemma Γ_eq_ρ_ok n Γ Δ (ρ : fin n -> PTm 0) : Γ_eq Γ Δ -> ⊨ Γ -> ρ_ok Γ ρ -> ρ_ok Δ ρ.
 Proof.
