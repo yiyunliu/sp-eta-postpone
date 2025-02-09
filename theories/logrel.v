@@ -1198,29 +1198,32 @@ Proof.
   hauto lq:on rew:off use:Sub.bind_inj.
 Qed.
 
-Lemma SE_Bind_Proj2 n Γ p (a0 a1 A0 A1 : PTm n) B0 B1 i :
-  Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i ->
-  Γ ⊨ a0 ≡ a1 ∈ A0 ->
-  Γ ⊨ subst_PTm (scons a0 VarPTm) B0 ≡ subst_PTm (scons a1 VarPTm) B1 ∈ PUniv i.
+Lemma SSu_Pi_Proj2 n Γ (a0 a1 A0 A1 : PTm n) B0 B1 :
+  Γ ⊨ PBind PPi A0 B0 ≲ PBind PPi A1 B1 ->
+  Γ ⊨ a0 ≡ a1 ∈ A1 ->
+  Γ ⊨ subst_PTm (scons a0 VarPTm) B0 ≲ subst_PTm (scons a1 VarPTm) B1.
 Proof.
-  move /SemEq_SemWt => [hA][hB]/DJoin.bind_inj [_ [h1 h2]] /SemEq_SemWt [ha0][ha1]ha.
-  move : h2 => [B [h2 h2']].
-  move : ha => [c [ha ha']].
-  apply SemWt_SemEq; eauto using SBind_inst.
-  apply SBind_inst with (p := p) (A := A1); eauto.
-  apply : ST_Conv_E; eauto. hauto l:on use:SBind_inv1.
-  rewrite /DJoin.R.
-  eexists. split.
-  apply : relations.rtc_transitive.
-  apply REReds.substing. apply h2.
-  apply REReds.cong.
-  have : forall i0, rtc RERed.R (scons a0 VarPTm i0) (scons c VarPTm i0) by hauto q:on ctrs:rtc inv:option.
-  apply.
-  apply : relations.rtc_transitive. apply REReds.substing; eauto.
-  apply REReds.cong.
-  hauto lq:on ctrs:rtc inv:option.
+  move /SemLEq_SemWt => [/Sub.bind_inj [_ [h1 h2]]].
+  move => [i][hP0]hP1 /SemEq_SemWt [ha0][ha1]ha.
+  apply : SemWt_SemLEq; eauto using SBind_inst;
+    last by hauto l:on use:Sub.cong.
+  apply SBind_inst with (p := PPi) (A := A0); eauto.
+  apply : ST_Conv'; eauto. hauto l:on use:SBind_inv1.
+Qed.
+
+Lemma SSu_Sig_Proj2 n Γ (a0 a1 A0 A1 : PTm n) B0 B1 :
+  Γ ⊨ PBind PSig A0 B0 ≲ PBind PSig A1 B1 ->
+  Γ ⊨ a0 ≡ a1 ∈ A0 ->
+  Γ ⊨ subst_PTm (scons a0 VarPTm) B0 ≲ subst_PTm (scons a1 VarPTm) B1.
+Proof.
+  move /SemLEq_SemWt => [/Sub.bind_inj [_ [h1 h2]]].
+  move => [i][hP0]hP1 /SemEq_SemWt [ha0][ha1]ha.
+  apply : SemWt_SemLEq; eauto using SBind_inst;
+    last by hauto l:on use:Sub.cong.
+  apply SBind_inst with (p := PSig) (A := A1); eauto.
+  apply : ST_Conv'; eauto. hauto l:on use:SBind_inv1.
 Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SE_Bind_Proj1 SE_Bind_Proj2 SemWff_nil SemWff_cons : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2  SemWff_nil SemWff_cons : sem.
