@@ -702,7 +702,7 @@ Proof.
 Qed.
 
 
-Lemma ST_Bind n Γ i j p (A : PTm n) (B : PTm (S n)) :
+Lemma ST_Bind' n Γ i j p (A : PTm n) (B : PTm (S n)) :
   Γ ⊨ A ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons A Γ) ⊨ B ∈ PUniv j ->
   Γ ⊨ PBind p A B ∈ PUniv (max i j).
@@ -715,6 +715,17 @@ Proof.
   apply InterpUniv_Bind_nopf; eauto.
   - eauto using InterpUniv_cumulative.
   - move => *. asimpl. hauto l:on use:InterpUniv_cumulative, ρ_ok_cons.
+Qed.
+
+Lemma ST_Bind n Γ i p (A : PTm n) (B : PTm (S n)) :
+  Γ ⊨ A ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊨ B ∈ PUniv i ->
+  Γ ⊨ PBind p A B ∈ PUniv i.
+Proof.
+  move => h0 h1.
+  replace i with (max i i) by lia.
+  move : h0 h1.
+  apply ST_Bind'.
 Qed.
 
 Lemma ST_Abs n Γ (a : PTm (S n)) A B i :
@@ -990,7 +1001,7 @@ Lemma Γ_eq_cons' n (Γ : fin n -> PTm n) A B :
   Γ_eq (funcomp (ren_PTm shift) (scons A Γ)) (funcomp (ren_PTm shift) (scons B Γ)).
 Proof. eauto using Γ_eq_refl ,Γ_eq_cons. Qed.
 
-Lemma SE_Bind n Γ i j p (A0 A1 : PTm n) B0 B1 :
+Lemma SE_Bind' n Γ i j p (A0 A1 : PTm n) B0 B1 :
   ⊨ Γ ->
   Γ ⊨ A0 ≡ A1 ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons A0 Γ) ⊨ B0 ≡ B1 ∈ PUniv j ->
@@ -999,13 +1010,22 @@ Proof.
   move => hΓ hA hB.
   apply SemEq_SemWt in hA, hB.
   apply SemWt_SemEq; last by hauto l:on use:DJoin.BindCong.
-  hauto l:on use:ST_Bind.
-  apply ST_Bind; first by tauto.
+  hauto l:on use:ST_Bind'.
+  apply ST_Bind'; first by tauto.
   have hΓ' : ⊨ funcomp (ren_PTm shift) (scons A1 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
   move : Γ_eq_ρ_ok hΓ' hρ; repeat move/[apply]. apply.
   hauto lq:on use:Γ_eq_cons'.
+Qed.
+
+Lemma SE_Bind n Γ i p (A0 A1 : PTm n) B0 B1 :
+  ⊨ Γ ->
+  Γ ⊨ A0 ≡ A1 ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊨ B0 ≡ B1 ∈ PUniv i ->
+  Γ ⊨ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i.
+Proof.
+  move => *. replace i with (max i i) by lia. auto using SE_Bind'.
 Qed.
 
 Lemma SE_Abs n Γ (a b : PTm (S n)) A B i :
@@ -1234,8 +1254,8 @@ Proof.
   move : hA => [hA0][i][hA1]hA2.
   move : hB => [hB0][j][hB1]hB2.
   apply : SemWt_SemLEq; last by hauto l:on use:Sub.PiCong.
-  hauto l:on use:ST_Bind.
-  apply ST_Bind; eauto.
+  hauto l:on use:ST_Bind'.
+  apply ST_Bind'; eauto.
   have hΓ' : ⊨ funcomp (ren_PTm shift) (scons A1 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (funcomp (ren_PTm shift) (scons A0 Γ)) ρ by hauto l:on.
@@ -1256,8 +1276,8 @@ Proof.
   move : hA => [hA0][i][hA1]hA2.
   move : hB => [hB0][j][hB1]hB2.
   apply : SemWt_SemLEq; last by hauto l:on use:Sub.SigCong.
-  2 : { hauto l:on use:ST_Bind. }
-  apply ST_Bind; eauto.
+  2 : { hauto l:on use:ST_Bind'. }
+  apply ST_Bind'; eauto.
   have hΓ' : ⊨ funcomp (ren_PTm shift) (scons A1 Γ) by hauto l:on use:SemWff_cons.
   have hΓ'' : ⊨ funcomp (ren_PTm shift) (scons A0 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
