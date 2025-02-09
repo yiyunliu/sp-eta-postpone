@@ -2528,4 +2528,11 @@ Module Sub.
     eauto using Sub1.substing.
   Qed.
 
+  Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof.
+    rewrite /R.
+    move => [a0][b0][h0][h1]h2.
+    hauto ctrs:rtc use:REReds.cong', Sub1.substing.
+  Qed.
 End Sub.
