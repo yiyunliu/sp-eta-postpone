@@ -3,17 +3,11 @@ From Hammer Require Import Tactics.
 Require Import ssreflect.
 
 
-Lemma lem :
-  (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
-  (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> )  /\
-  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ...).
-Proof. apply wt_mutual. ...
-
-
 Lemma wff_mutual :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> ⊢ Γ)  /\
-  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ⊢ Γ).
+  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ⊢ Γ) /\
+  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> ⊢ Γ).
 Proof. apply wt_mutual; eauto. Qed.
 
 #[export]Hint Constructors Wt Wff Eq : wt.
@@ -35,7 +29,9 @@ Lemma renaming :
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ ->
      Δ ⊢ ren_PTm ξ a ∈ ren_PTm ξ A) /\
   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> forall m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ ->
-     Δ ⊢ ren_PTm ξ a ≡ ren_PTm ξ b ∈ ren_PTm ξ A).
+     Δ ⊢ ren_PTm ξ a ≡ ren_PTm ξ b ∈ ren_PTm ξ A) /\
+  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> forall  m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ ->
+    Δ ⊢ ren_PTm ξ A ≲ ren_PTm ξ B).
 Proof.
   apply wt_mutual => //=; eauto 3 with wt.
   - move => n Γ i hΓ _ m Δ ξ hΔ hξ.

@@ -105,6 +105,7 @@ with LEq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   Γ ⊢ A ≲ C
 
 | Su_Univ n Γ i j :
+  ⊢ Γ ->
   i <= j ->
   Γ ⊢ PUniv i : PTm n ≲ PUniv j
 
@@ -164,5 +165,6 @@ Combined Scheme wt_mutual from wf_ind, wt_ind, eq_ind, le_ind.
 (* Lemma lem : *)
 (*   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> ...) /\ *)
 (*   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> ...)  /\ *)
-(*   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ...). *)
+(*   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ...) /\ *)
+(*   (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> ...). *)
 (* Proof. apply wt_mutual. ... *)
