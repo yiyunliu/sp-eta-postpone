@@ -1120,12 +1120,18 @@ Proof.
   qauto l:on use:SemWt_SemLEq, Sub.transitive.
 Qed.
 
-Lemma ST_Univ n Γ i j :
+Lemma ST_Univ' n Γ i j :
   i < j ->
   Γ ⊨ PUniv i : PTm n ∈ PUniv j.
 Proof.
   move => ?.
   apply SemWt_Univ. move => ρ hρ. eexists. by apply InterpUniv_Univ.
+Qed.
+
+Lemma ST_Univ n Γ i :
+  Γ ⊨ PUniv i : PTm n ∈ PUniv (S i).
+Proof.
+  apply ST_Univ'. lia.
 Qed.
 
 Lemma SSu_Univ n Γ i j :
@@ -1227,4 +1233,4 @@ Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2  SemWff_nil SemWff_cons : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ : sem.

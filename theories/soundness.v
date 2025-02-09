@@ -5,7 +5,8 @@ From Hammer Require Import Tactics.
 Theorem fundamental_theorem :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> ⊨ Γ) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> Γ ⊨ a ∈ A)  /\
-  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> Γ ⊨ a ≡ b ∈ A).
-  apply wt_mutual; eauto with sem;[idtac].
-  hauto l:on use:SE_Pair.
+  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> Γ ⊨ a ≡ b ∈ A) /\
+  (forall n Γ (a b : PTm n), Γ ⊢ a ≲ b -> Γ ⊨ a ≲ b).
+  apply wt_mutual; eauto with sem; [hauto l:on use:SE_Pair].
+  Unshelve. all : exact 0.
 Qed.
