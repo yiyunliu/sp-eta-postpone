@@ -1131,6 +1131,41 @@ Proof.
   hauto lq:on use: DJoin.cong,  DJoin.ProjCong.
 Qed.
 
+Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ PProj PL (PPair a b) ≡ a ∈ A.
+Proof.
+  move => h0 h1 h2.
+  apply SemWt_SemEq; eauto using ST_Proj1, ST_Pair.
+  apply DJoin.FromRRed0. apply RRed.ProjPair.
+Qed.
+
+Lemma SE_ProjPair2 n Γ (a b : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ PProj PR (PPair a b) ≡ b ∈ subst_PTm (scons a VarPTm) B.
+Proof.
+  move => h0 h1 h2.
+  apply SemWt_SemEq; eauto using ST_Proj2, ST_Pair.
+  apply : ST_Conv_E. apply : ST_Proj2; eauto. apply : ST_Pair; eauto.
+  hauto l:on use:SBind_inst.
+  apply DJoin.cong. apply DJoin.FromRRed0. apply RRed.ProjPair.
+  apply DJoin.FromRRed0. apply RRed.ProjPair.
+Qed.
+
+Lemma SE_PairEta n Γ (a : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ PBind PSig A B ->
+  Γ ⊨ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B.
+Proof.
+  move => h0 h. apply SemWt_SemEq; eauto.
+  apply : ST_Pair; eauto using ST_Proj1, ST_Proj2.
+  rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
+Qed.
+
 Lemma SE_App n Γ i (b0 b1 a0 a1 : PTm n) A B :
   Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
   Γ ⊨ b0 ≡ b1 ∈ PBind PPi A B ->
