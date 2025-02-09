@@ -24,6 +24,7 @@ Inductive InterpExt {n} i (I : nat -> PTm n -> Prop) : PTm n -> (PTm n -> Prop) 
 | InterpExt_Ne A :
   SNe A ->
   ⟦ A ⟧ i ;; I ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v)
+
 | InterpExt_Bind p A B PA PF :
   ⟦ A ⟧ i ;; I ↘ PA ->
   (forall a, PA a -> exists PB, PF a PB) ->

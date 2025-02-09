@@ -108,21 +108,37 @@ with LEq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   i <= j ->
   Γ ⊢ PUniv i : PTm n ≲ PUniv j
 
-| Su_Bind n Γ p (A0 A1 : PTm n) B0 B1 :
+| Su_Pi n Γ (A0 A1 : PTm n) B0 B1 :
+  ⊢ Γ ->
   Γ ⊢ A1 ≲ A0 ->
   funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≲ B1 ->
-  Γ ⊢ PBind p A0 B0 ≲ PBind p A1 B1
+  Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1
+
+| Su_Sig n Γ (A0 A1 : PTm n) B0 B1 :
+  ⊢ Γ ->
+  Γ ⊢ A0 ≲ A1 ->
+  funcomp (ren_PTm shift) (scons A1 Γ) ⊢ B0 ≲ B1 ->
+  Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1
 
 | Su_Eq n Γ (A : PTm n) B i  :
   Γ ⊢ A ≡ B ∈ PUniv i ->
   Γ ⊢ A ≲ B
 
-| Su_Bind_Proj1 n Γ p (A0 A1 : PTm n) B0 B1 :
-  Γ ⊢ PBind p A0 B0 ≲ PBind p A1 B1 ->
+| Su_Pi_Proj1 n Γ (A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1 ->
   Γ ⊢ A1 ≲ A0
 
-| Su_Bind_Proj2 n Γ p (a0 a1 A0 A1 : PTm n) B0 B1 :
-  Γ ⊢ PBind p A0 B0 ≲ PBind p A1 B1 ->
+| Su_Sig_Proj1 n Γ (A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1 ->
+  Γ ⊢ A0 ≲ A1
+
+| Su_Pi_Proj2 n Γ (a0 a1 A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1 ->
+  Γ ⊢ a0 ≡ a1 ∈ A1 ->
+  Γ ⊢ subst_PTm (scons a0 VarPTm) B0 ≲ subst_PTm (scons a1 VarPTm) B1
+
+| Su_Sig_Proj2 n Γ (a0 a1 A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1 ->
   Γ ⊢ a0 ≡ a1 ∈ A0 ->
   Γ ⊢ subst_PTm (scons a0 VarPTm) B0 ≲ subst_PTm (scons a1 VarPTm) B1
 
