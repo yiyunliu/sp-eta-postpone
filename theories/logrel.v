@@ -1028,9 +1028,10 @@ Lemma SE_AppEta n Γ (b : PTm n) A B i :
   ⊨ Γ ->
   Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
   Γ ⊨ b ∈ PBind PPi A B ->
-  Γ ⊨ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ∈ PBind PPi A B.
+  Γ ⊨ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ≡ b ∈ PBind PPi A B.
 Proof.
-  move => hΓ h0 h1. apply : ST_Abs; eauto.
+  move => hΓ h0 h1. apply SemWt_SemEq; eauto.
+  apply : ST_Abs; eauto.
   have hA : Γ ⊨ A ∈ PUniv i by eauto using SBind_inv1.
   eapply ST_App' with (A := ren_PTm shift A)(B:= ren_PTm (upRen_PTm_PTm shift) B). by asimpl.
   2 : {
@@ -1040,6 +1041,7 @@ Proof.
   change (PBind PPi (ren_PTm shift A) (ren_PTm (upRen_PTm_PTm shift) B)) with
     (ren_PTm shift (PBind PPi A B)).
   apply : weakening_Sem; eauto.
+  hauto q:on ctrs:rtc,RERed.R.
 Qed.
 
 Lemma SE_AppAbs n Γ (a : PTm (S n)) b A B i:
@@ -1310,4 +1312,4 @@ Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta : sem.

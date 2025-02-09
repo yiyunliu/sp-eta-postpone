@@ -48,6 +48,7 @@ Inductive Wt : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   Γ ⊢ a ∈ B
 
 with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
+(* Structural *)
 | E_Refl n Γ (a : PTm n) A :
   Γ ⊢ a ∈ A ->
   Γ ⊢ a ≡ a ∈ A
@@ -61,6 +62,7 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ b ≡ c ∈ A ->
   Γ ⊢ a ≡ c ∈ A
 
+(* Congruence *)
 | E_Bind n Γ i p (A0 A1 : PTm n) B0 B1 :
   ⊢ Γ ->
   Γ ⊢ A0 ∈ PUniv i ->
@@ -99,12 +101,45 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ A ≲ B ->
   Γ ⊢ a ≡ b ∈ B
 
+(* Beta *)
+| E_AppAbs n Γ (a : PTm (S n)) b A B i:
+  Γ ⊢ PBind PPi A B ∈ PUniv i ->
+  Γ ⊢ b ∈ A ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B ->
+  Γ ⊢ PApp (PAbs a) b ≡ subst_PTm (scons b VarPTm) a ∈ subst_PTm (scons b VarPTm ) B
+
+| E_ProjPair1 n Γ (a b : PTm n) A B i :
+  Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊢ a ∈ A ->
+  Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A
+
+| E_ProjPair2 n Γ (a b : PTm n) A B i :
+  Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊢ a ∈ A ->
+  Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊢ PProj PR (PPair a b) ≡ b ∈ subst_PTm (scons a VarPTm) B
+
+(* Eta *)
+| E_AppEta n Γ (b : PTm n) A B i :
+  ⊢ Γ ->
+  Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
+  Γ ⊢ b ∈ PBind PPi A B ->
+  Γ ⊢ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ≡ b ∈ PBind PPi A B
+
+| E_PairEta n Γ (a : PTm n) A B i :
+  Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊢ a ∈ PBind PSig A B ->
+  Γ ⊢ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B
+
 with LEq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
+(* Structural *)
 | Su_Transitive  n Γ (A B C : PTm n) :
   Γ ⊢ A ≲ B ->
   Γ ⊢ B ≲ C ->
   Γ ⊢ A ≲ C
 
+(* Congruence *)
 | Su_Univ n Γ i j :
   ⊢ Γ ->
   i <= j ->
@@ -122,10 +157,12 @@ with LEq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   funcomp (ren_PTm shift) (scons A1 Γ) ⊢ B0 ≲ B1 ->
   Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1
 
+(* Injecting from equalities *)
 | Su_Eq n Γ (A : PTm n) B i  :
   Γ ⊢ A ≡ B ∈ PUniv i ->
   Γ ⊢ A ≲ B
 
+(* Projection axioms *)
 | Su_Pi_Proj1 n Γ (A0 A1 : PTm n) B0 B1 :
   Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1 ->
   Γ ⊢ A1 ≲ A0
