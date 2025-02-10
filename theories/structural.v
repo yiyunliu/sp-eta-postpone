@@ -63,16 +63,6 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-(* Lemma regularity : *)
-(*   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\ *)
-(*   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> exists i, Γ ⊢ A ∈ PUniv i)  /\ *)
-(*   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ A /\ exists i, Γ ⊢ A ∈ PUniv i) /\ *)
-(*   (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i /\ Γ ⊢ A ∈ PUniv i). *)
-(* Proof. *)
-(*   apply wt_mutual => //=. *)
-(*   - admit. *)
-(*   - admit. *)
-
 Lemma T_App' n Γ (b a : PTm n) A B U :
   U = subst_PTm (scons a VarPTm) B ->
   Γ ⊢ b ∈ PBind PPi A B ->
@@ -227,3 +217,96 @@ Proof.
   - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
 Qed.
+
+Definition morphing_ok {n m} Δ Γ (ρ : fin n -> PTm m) :=
+  forall i, Δ ⊢ ρ i ∈ subst_PTm ρ (Γ i).
+
+Lemma morphing_ren n m p Ξ Δ Γ
+  (ρ : fin n -> PTm m) (ξ : fin m -> fin p) :
+  ⊢ Ξ ->
+  renaming_ok Ξ Δ ξ -> morphing_ok Δ Γ ρ ->
+  morphing_ok Ξ Γ (funcomp (ren_PTm ξ) ρ).
+Proof.
+  move => hΞ hξ hρ.
+  move => i.
+  rewrite {1}/funcomp.
+  have -> :
+    subst_PTm (funcomp (ren_PTm ξ) ρ) (Γ i) =
+    ren_PTm ξ (subst_PTm ρ (Γ i)) by asimpl.
+  eapply renaming; eauto.
+Qed.
+
+Lemma morphing_ext n m Δ Γ (ρ : fin n -> PTm m) (a : PTm m) (A : PTm n)  :
+  morphing_ok Δ Γ ρ ->
+  Δ ⊢ a ∈ subst_PTm ρ A ->
+  morphing_ok
+  Δ (funcomp (ren_PTm shift) (scons A Γ)) (scons a ρ).
+Proof.
+  move => h ha i. destruct i as [i|]; by asimpl.
+Qed.
+
+Lemma T_Var' n Γ (i : fin n) U :
+  U = Γ i ->
+  ⊢ Γ ->
+  Γ ⊢ VarPTm i ∈ U.
+Proof. move => ->. apply T_Var. Qed.
+
+Lemma renaming_wt : forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ -> Δ ⊢ ren_PTm ξ a ∈ ren_PTm ξ A.
+Proof. sfirstorder use:renaming. Qed.
+
+Lemma renaming_wt' : forall n m Δ Γ a A (ξ : fin n -> fin m) u U,
+    u = ren_PTm ξ a -> U = ren_PTm ξ A ->
+    Γ ⊢ a ∈ A -> ⊢ Δ ->
+    renaming_ok Δ Γ ξ -> Δ ⊢ u ∈ U.
+Proof. hauto use:renaming_wt. Qed.
+
+Lemma renaming_shift n m Γ (ρ : fin n -> PTm m) A :
+  renaming_ok (funcomp (ren_PTm shift) (scons (subst_PTm ρ A) Γ)) Γ shift.
+Proof. sfirstorder. Qed.
+
+Lemma morphing_up n m Γ Δ (ρ : fin n -> PTm m) (A : PTm n) k :
+  morphing_ok Γ Δ ρ ->
+  Γ ⊢ subst_PTm ρ A ∈ PUniv k ->
+  morphing_ok (funcomp (ren_PTm shift) (scons (subst_PTm ρ A) Γ)) (funcomp (ren_PTm shift) (scons A Δ)) (up_PTm_PTm ρ).
+Proof.
+  move => h h1 [:hp]. apply morphing_ext.
+  rewrite /morphing_ok.
+  move => i.
+  rewrite {2}/funcomp.
+  apply : renaming_wt'; eauto. by asimpl.
+  abstract : hp. qauto l:on ctrs:Wff use:wff_mutual.
+  eauto using renaming_shift.
+  apply : T_Var';eauto. rewrite /funcomp. by asimpl.
+Qed.
+
+Lemma morphing :
+  (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
+  (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ ->
+     Δ ⊢ subst_PTm ρ a ∈ subst_PTm ρ A) /\
+  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ ->
+     Δ ⊢ subst_PTm ρ a ≡ subst_PTm ρ b ∈ subst_PTm ρ A) /\
+  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> forall  m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ ->
+    Δ ⊢ subst_PTm ρ A ≲ subst_PTm ρ B).
+Proof.
+  apply wt_mutual => //=.
+  - best.
+
+Lemma regularity :
+  (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\
+  (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> exists i, Γ ⊢ A ∈ PUniv i)  /\
+  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ A /\ exists i, Γ ⊢ A ∈ PUniv i) /\
+  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i /\ Γ ⊢ A ∈ PUniv i).
+Proof.
+  apply wt_mutual => //=; eauto with wt.
+  - move => n Γ A i hΓ ihΓ hA _ j.
+    destruct j as [j|].
+    have := ihΓ j.
+    move => [j0 hj].
+    exists j0. apply : renaming_wt' => //=; eauto using renaming_shift.
+    reflexivity. econstructor; eauto.
+    exists i. rewrite {2}/funcomp. simpl.
+    apply : renaming_wt'; eauto. reflexivity.
+    econstructor; eauto.
+    apply : renaming_shift; eauto.
+  - move => n Γ b a A B hb [i ihb] ha [j iha].
+  -
