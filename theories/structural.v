@@ -444,6 +444,28 @@ Proof.
   case : p h => //=; hauto l:on use:Su_Pi_Proj2, Su_Sig_Proj2.
 Qed.
 
+Lemma Cumulativity n Γ (a : PTm n) i j :
+  i <= j ->
+  Γ ⊢ a ∈ PUniv i ->
+  Γ ⊢ a ∈ PUniv j.
+Proof.
+  move => h0 h1. apply : T_Conv; eauto.
+  apply Su_Univ => //=.
+  sfirstorder use:wff_mutual.
+Qed.
+
+Lemma T_Bind' n Γ i j p (A : PTm n) (B : PTm (S n)) :
+  Γ ⊢ A ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv j ->
+  Γ ⊢ PBind p A B ∈ PUniv (max i j).
+Proof.
+  move => h0 h1.
+  have [*] : i <= max i j /\ j <= max i j by lia.
+  qauto l:on ctrs:Wt use:Cumulativity.
+Qed.
+
+Hint Resolve T_Bind' : wt.
+
 Lemma regularity :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> exists i, Γ ⊢ A ∈ PUniv i)  /\
@@ -521,11 +543,52 @@ Proof.
   - move => n Γ i j hΓ *. exists (S (max i j)).
     have [? ?] : S i <= S (Nat.max i j) /\ S j <= S (Nat.max i j) by lia.
     hauto lq:on ctrs:Wt,LEq.
-  - best use:bind_inst.
-  - admit.
+  - move => n Γ A0 A1 B0 B1 i hΓ ihΓ hA0 _ hA1 [i0][ih0]ih1 hB[j0][ihB0]ihB1.
+    exists (max i0 j0).
+    split; eauto with wt.
+    apply T_Bind'; eauto.
+    sfirstorder use:ctx_eq_subst_one.
+  - move => n Γ A0 A1 B0 B1 i hΓ ihΓ hA1 _ hA0 [i0][ihA0]ihA1 hB[i1][ihB0]ihB1.
+    exists (max i0 i1). repeat split; eauto with wt.
+    apply T_Bind'; eauto.
+    sfirstorder use:ctx_eq_subst_one.
   - sfirstorder.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  - move => n Γ A0 A1 B0 B1 _ [i][ih0 ih1].
+    move /Pi_Inv : ih0 => [i0][h _].
+    move /Pi_Inv : ih1 => [i1][h' _].
+    exists (max i0 i1).
+    have [? ?] : i0 <= Nat.max i0 i1 /\ i1 <= Nat.max i0 i1 by lia.
+    eauto using Cumulativity.
+  - move => n Γ A0 A1 B0 B1 _ [i][ih0 ih1].
+    move /Sig_Inv : ih0 => [i0][h _].
+    move /Sig_Inv : ih1 => [i1][h' _].
+    exists (max i0 i1).
+    have [? ?] : i0 <= Nat.max i0 i1 /\ i1 <= Nat.max i0 i1 by lia.
+    eauto using Cumulativity.
+  - move => n Γ a0 a1 A0 A1 B0 B1 /Su_Pi_Proj1 hA1.
+    move => [i][ihP0]ihP1.
+    move => ha [iha0][iha1][j]ihA1.
+    move /Pi_Inv :ihP0 => [i0][ih0][ih0' _].
+    move /Pi_Inv :ihP1 => [i1][ih1][ih1' _].
+    have [*] : i0 <= max i0 i1 /\ i1 <= max i0 i1 by lia.
+    exists (max i0 i1).
+    split.
+    + apply Cumulativity with (i := i0); eauto.
+      have : Γ ⊢ a0 ∈ A0 by eauto using T_Conv.
+      move : substing_wt ih0';repeat move/[apply]. by asimpl.
+    + apply Cumulativity with (i := i1); eauto.
+      move : substing_wt ih1' iha1;repeat move/[apply]. by asimpl.
+  - move => n Γ a0 a1 A0 A1 B0 B1 /Su_Sig_Proj1 hA1.
+    move => [i][ihP0]ihP1.
+    move => ha [iha0][iha1][j]ihA1.
+    move /Sig_Inv :ihP0 => [i0][ih0][ih0' _].
+    move /Sig_Inv :ihP1 => [i1][ih1][ih1' _].
+    have [*] : i0 <= max i0 i1 /\ i1 <= max i0 i1 by lia.
+    exists (max i0 i1).
+    split.
+    + apply Cumulativity with (i := i0); eauto.
+      move : substing_wt iha0 ih0';repeat move/[apply]. by asimpl.
+    + apply Cumulativity with (i := i1); eauto.
+      have : Γ ⊢ a1 ∈ A1 by eauto using T_Conv.
+      move : substing_wt ih1';repeat move/[apply]. by asimpl.
+Qed.
