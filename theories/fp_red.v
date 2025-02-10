@@ -166,41 +166,6 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
-Definition ishf {n} (a : PTm n) :=
-  match a with
-  | PPair _ _ => true
-  | PAbs _ => true
-  | PUniv _ => true
-  | PBind _ _ _ => true
-  | _ => false
-  end.
-Definition isbind {n} (a : PTm n) := if a is PBind _ _ _ then true else false.
-
-Definition isuniv {n} (a : PTm n) := if a is PUniv _ then true else false.
-
-Definition ispair {n} (a : PTm n) :=
-  match a with
-  | PPair _ _ => true
-  | _ => false
-  end.
-
-Definition isabs {n} (a : PTm n) :=
-  match a with
-  | PAbs _ => true
-  | _ => false
-  end.
-
-Definition ishf_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
-  ishf (ren_PTm ξ a) = ishf a.
-Proof. case : a => //=. Qed.
-
-Definition isabs_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
-  isabs (ren_PTm ξ a) = isabs a.
-Proof. case : a => //=. Qed.
-
-Definition ispair_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
-  ispair (ren_PTm ξ a) = ispair a.
-Proof. case : a => //=. Qed.
 
 Lemma PProj_imp n p a :
   @ishf n a ->

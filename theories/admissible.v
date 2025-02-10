@@ -48,3 +48,22 @@ Proof.
   move : E_Bind h0 h1; repeat move/[apply].
   firstorder.
 Qed.
+
+Lemma E_App n Γ (b0 b1 a0 a1 : PTm n) A B :
+  Γ ⊢ b0 ≡ b1 ∈ PBind PPi A B ->
+  Γ ⊢ a0 ≡ a1 ∈ A ->
+  Γ ⊢ PApp b0 a0 ≡ PApp b1 a1 ∈ subst_PTm (scons a0 VarPTm) B.
+Proof.
+  move => h.
+  have [i] : exists i, Γ ⊢ PBind PPi A B ∈ PUniv i by hauto l:on use:regularity.
+  move : E_App h. by repeat move/[apply].
+Qed.
+
+Lemma E_Proj2 n Γ (a b : PTm n) A B :
+  Γ ⊢ a ≡ b ∈ PBind PSig A B ->
+  Γ ⊢ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B.
+Proof.
+  move => h.
+  have [i] : exists i, Γ ⊢ PBind PSig A B ∈ PUniv i by hauto l:on use:regularity.
+  move : E_Proj2 h; by repeat move/[apply].
+Qed.
