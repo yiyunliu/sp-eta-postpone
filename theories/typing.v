@@ -71,7 +71,6 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i
 
 | E_Abs n Γ (a b : PTm (S n)) A B i :
-  Γ ⊢ A ∈ PUniv i ->
   Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
   funcomp (ren_PTm shift) (scons A Γ) ⊢ a ≡ b ∈ B ->
   Γ ⊢ PAbs a ≡ PAbs b ∈ PBind PPi A B
@@ -146,14 +145,16 @@ with LEq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   i <= j ->
   Γ ⊢ PUniv i : PTm n ≲ PUniv j
 
-| Su_Pi n Γ (A0 A1 : PTm n) B0 B1 :
+| Su_Pi n Γ (A0 A1 : PTm n) B0 B1 i :
   ⊢ Γ ->
+  Γ ⊢ A0 ∈ PUniv i ->
   Γ ⊢ A1 ≲ A0 ->
   funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≲ B1 ->
   Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1
 
-| Su_Sig n Γ (A0 A1 : PTm n) B0 B1 :
+| Su_Sig n Γ (A0 A1 : PTm n) B0 B1 i :
   ⊢ Γ ->
+  Γ ⊢ A1 ∈ PUniv i ->
   Γ ⊢ A0 ≲ A1 ->
   funcomp (ren_PTm shift) (scons A1 Γ) ⊢ B0 ≲ B1 ->
   Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1
