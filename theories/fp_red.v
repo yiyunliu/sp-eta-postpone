@@ -8,7 +8,7 @@ Require Import Arith.Wf_nat (well_founded_lt_compat).
 Require Import Psatz.
 From stdpp Require Import relations (rtc (..), rtc_once, rtc_r, sn).
 From Hammer Require Import Tactics.
-Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax.
+Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common.
 Require Import Btauto.
 Require Import Cdcl.Itauto.
 
@@ -1407,35 +1407,6 @@ Module ERed.
   (* Definition down n m (ξ : fin n -> fin m) (a : fin (S n)) : fin m. *)
   (*   destruct a. *)
   (*   exact (ξ f). *)
-
-  Lemma up_injective n m (ξ : fin n -> fin m) :
-    (forall i j, ξ i = ξ j -> i = j) ->
-    forall i j, (upRen_PTm_PTm ξ)  i = (upRen_PTm_PTm ξ) j -> i = j.
-  Proof.
-    sblast inv:option.
-  Qed.
-
-  Lemma ren_injective n m (a b : PTm n) (ξ : fin n -> fin m) :
-    (forall i j, ξ i = ξ j -> i = j) ->
-    ren_PTm ξ a = ren_PTm ξ b ->
-    a = b.
-  Proof.
-    move : m ξ b.
-    elim : n / a => //; try solve_anti_ren.
-
-    move => n a iha m ξ []//=.
-    move => u hξ [h].
-    apply iha in h. by subst.
-    destruct i, j=>//=.
-    hauto l:on.
-
-    move => n p A ihA B ihB m ξ []//=.
-    move => b A0 B0  hξ [?]. subst.
-    move => ?. have ? : A0 = A by firstorder. subst.
-    move => ?. have : B = B0. apply : ihB; eauto.
-    sauto.
-    congruence.
-  Qed.
 
   Lemma AppEta' n a u :
     u = (@PApp (S n) (ren_PTm shift a) (VarPTm var_zero)) ->
