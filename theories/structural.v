@@ -1,6 +1,7 @@
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common typing.
 From Hammer Require Import Tactics.
 Require Import ssreflect.
+Require Import Psatz.
 
 Lemma wff_mutual :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
@@ -377,11 +378,38 @@ Proof.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
 Qed.
 
+Lemma morphing_wt : forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ -> Δ ⊢ subst_PTm ρ a ∈ subst_PTm ρ A.
+Proof. sfirstorder use:morphing. Qed.
+
+Lemma morphing_wt' : forall n m Δ Γ a A (ρ : fin n -> PTm m) u U,
+    u = subst_PTm ρ a -> U = subst_PTm ρ A ->
+    Γ ⊢ a ∈ A -> ⊢ Δ ->
+    morphing_ok Δ Γ ρ -> Δ ⊢ u ∈ U.
+Proof. hauto use:morphing_wt. Qed.
+
+Lemma morphing_id : forall n (Γ : fin n -> PTm n), ⊢ Γ -> morphing_ok Γ Γ VarPTm.
+Proof.
+  move => n Γ hΓ.
+  rewrite /morphing_ok.
+  move => i. asimpl. by apply T_Var.
+Qed.
+
+Lemma substing_wt : forall n Γ (a : PTm (S n)) (b A : PTm n) B,
+    funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B ->
+    Γ ⊢ b ∈ A ->
+    Γ ⊢ subst_PTm (scons b VarPTm) a ∈ subst_PTm (scons b VarPTm) B.
+Proof.
+  move => n Γ a b A B ha hb [:hΓ]. apply : morphing_wt; eauto.
+  abstract : hΓ. sfirstorder use:wff_mutual.
+  apply morphing_ext; last by asimpl.
+  by apply morphing_id.
+Qed.
+
 Lemma regularity :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> exists i, Γ ⊢ A ∈ PUniv i)  /\
   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ A /\ exists i, Γ ⊢ A ∈ PUniv i) /\
-  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i /\ Γ ⊢ A ∈ PUniv i).
+  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i /\ Γ ⊢ B ∈ PUniv i).
 Proof.
   apply wt_mutual => //=; eauto with wt.
   - move => n Γ A i hΓ ihΓ hA _ j.
@@ -395,4 +423,57 @@ Proof.
     econstructor; eauto.
     apply : renaming_shift; eauto.
   - move => n Γ b a A B hb [i ihb] ha [j iha].
-  -
+    move /Pi_Inv : ihb => [k][h0][h1]h2.
+    move : substing_wt ha h1; repeat move/[apply].
+    move => h. exists k.
+    move : h. by asimpl.
+  - hauto lq:on use:Sig_Inv.
+  - move => n Γ a A B ha [i /Sig_Inv[j][h0][h1]h2].
+    exists j. have : Γ ⊢ PProj PL a ∈ A by qauto use:T_Proj1.
+    move : substing_wt h1; repeat move/[apply].
+    by asimpl.
+  - sfirstorder.
+  - sfirstorder.
+  - sfirstorder.
+  - move => n Γ i p A0 A1 B0 B1 hΓ ihΓ hA0
+             [i0 ihA0] hA [ihA [ihA' [i1 ihA'']]].
+    move => hB [ihB0 [ihB1 [i2 ihB2]]].
+    repeat split => //=.
+    qauto use:T_Bind.
+    admit.
+    eauto using T_Univ.
+  - hauto lq:on ctrs:Wt,Eq.
+  - move => n Γ i b0 b1 a0 a1 A B hP _ hb [ihb0 [ihb1 [i0 ihb2]]]
+             ha [iha0 [iha1 [i1 iha2]]].
+    repeat split.
+    qauto use:T_App.
+    apply : T_Conv; eauto.
+    qauto use:T_App.
+    apply Su_Pi_Proj2 with (A0 := A) (A1 := A).
+    apply : Su_Eq; apply E_Refl; eauto.
+    by apply E_Symmetric.
+    sauto lq:on use:Pi_Inv, substing_wt.
+  - admit.
+  - admit.
+  - admit.
+  - hauto lq:on ctrs:Wt.
+  - admit.
+  - admit.
+  - admit.
+  - hauto lq:on ctrs:Wt.
+  - move => n Γ A B C hA [i [ihA0 ihA1]] hC [j [ihC0 ihC1]].
+    have ? : ⊢ Γ by sfirstorder use:wff_mutual.
+    exists (max i j).
+    have [? ?] : i <= Nat.max i j /\ j <= Nat.max i j by lia.
+    qauto l:on use:T_Conv, Su_Univ.
+  - move => n Γ i j hΓ *. exists (S (max i j)).
+    have [? ?] : S i <= S (Nat.max i j) /\ S j <= S (Nat.max i j) by lia.
+    hauto lq:on ctrs:Wt,LEq.
+  - admit.
+  - admit.
+  - sfirstorder.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
