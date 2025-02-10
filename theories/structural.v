@@ -405,6 +405,45 @@ Proof.
   by apply morphing_id.
 Qed.
 
+(* Could generalize to all equal contexts *)
+Lemma ctx_eq_subst_one n (A0 A1 : PTm n) i j Γ a A :
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊢ a ∈ A ->
+  Γ ⊢ A0 ∈ PUniv i ->
+  Γ ⊢ A1 ∈ PUniv j ->
+  Γ ⊢ A1 ≲ A0 ->
+  funcomp (ren_PTm shift) (scons A1 Γ) ⊢ a ∈ A.
+Proof.
+  move => h0 h1 h2 h3.
+  replace a with (subst_PTm VarPTm a); last by asimpl.
+  replace A with (subst_PTm VarPTm A); last by asimpl.
+  have ? : ⊢ Γ by sfirstorder use:wff_mutual.
+  apply : morphing_wt; eauto.
+  apply : Wff_Cons'; eauto.
+  move => k. destruct k as [k|].
+  - asimpl.
+    eapply weakening_wt' with (a := VarPTm k);eauto using T_Var.
+    by substify.
+  - move => [:hΓ'].
+    apply : T_Conv.
+    apply T_Var.
+    abstract : hΓ'.
+    eauto using Wff_Cons'.
+    rewrite /funcomp. asimpl. substify. asimpl.
+    renamify.
+    eapply renaming; eauto.
+    apply : renaming_shift; eauto.
+Qed.
+
+Lemma bind_inst n Γ p (A : PTm n) B i a0 a1 :
+  Γ ⊢ PBind p A B ∈ PUniv i ->
+  Γ ⊢ a0 ≡ a1 ∈ A ->
+  Γ ⊢ subst_PTm (scons a0 VarPTm) B ≲ subst_PTm (scons a1 VarPTm) B.
+Proof.
+  move => h h0.
+  have {}h : Γ ⊢ PBind p A B ≲ PBind p A B by eauto using E_Refl, Su_Eq.
+  case : p h => //=; hauto l:on use:Su_Pi_Proj2, Su_Sig_Proj2.
+Qed.
+
 Lemma regularity :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> exists i, Γ ⊢ A ∈ PUniv i)  /\
@@ -440,7 +479,8 @@ Proof.
     move => hB [ihB0 [ihB1 [i2 ihB2]]].
     repeat split => //=.
     qauto use:T_Bind.
-    admit.
+    apply T_Bind; eauto.
+    apply : ctx_eq_subst_one; eauto using Su_Eq, E_Symmetric.
     eauto using T_Univ.
   - hauto lq:on ctrs:Wt,Eq.
   - move => n Γ i b0 b1 a0 a1 A B hP _ hb [ihb0 [ihb1 [i0 ihb2]]]
@@ -449,17 +489,29 @@ Proof.
     qauto use:T_App.
     apply : T_Conv; eauto.
     qauto use:T_App.
-    apply Su_Pi_Proj2 with (A0 := A) (A1 := A).
-    apply : Su_Eq; apply E_Refl; eauto.
-    by apply E_Symmetric.
-    sauto lq:on use:Pi_Inv, substing_wt.
-  - admit.
-  - admit.
-  - admit.
+    move /E_Symmetric in ha.
+    by eauto using bind_inst.
+    hauto lq:on ctrs:Wt,Eq,LEq lq:on use:Pi_Inv, substing_wt.
+  - hauto lq:on use:bind_inst db:wt.
+  - hauto lq:on use:Sig_Inv db:wt.
+  - move => n Γ i a b A B hS _ hab [iha][ihb][j]ihs.
+    repeat split => //=; eauto with wt.
+    apply : T_Conv; eauto with wt.
+    move /E_Symmetric /E_Proj1 in hab.
+    eauto using bind_inst.
+    move /T_Proj1 in iha.
+    hauto lq:on ctrs:Wt,Eq,LEq use:Sig_Inv, substing_wt.
   - hauto lq:on ctrs:Wt.
-  - admit.
-  - admit.
-  - admit.
+  - hauto q:on use:substing_wt db:wt.
+  - hauto l:on use:bind_inst db:wt.
+  - move => n Γ b A B i hΓ ihΓ hP _ hb [i0 ihb].
+    repeat split => //=; eauto with wt.
+    have {}hb : funcomp (ren_PTm shift) (scons A Γ) ⊢ ren_PTm shift b ∈ ren_PTm shift (PBind PPi A B)
+                        by hauto lq:on use:weakening_wt, Pi_Inv.
+    apply : T_Abs; eauto.
+    apply : T_App'; eauto; rewrite-/ren_PTm.
+    by asimpl.
+    apply T_Var. sfirstorder use:wff_mutual.
   - hauto lq:on ctrs:Wt.
   - move => n Γ A B C hA [i [ihA0 ihA1]] hC [j [ihC0 ihC1]].
     have ? : ⊢ Γ by sfirstorder use:wff_mutual.
@@ -469,7 +521,7 @@ Proof.
   - move => n Γ i j hΓ *. exists (S (max i j)).
     have [? ?] : S i <= S (Nat.max i j) /\ S j <= S (Nat.max i j) by lia.
     hauto lq:on ctrs:Wt,LEq.
-  - admit.
+  - best use:bind_inst.
   - admit.
   - sfirstorder.
   - admit.
