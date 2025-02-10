@@ -2,7 +2,6 @@ Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common typin
 From Hammer Require Import Tactics.
 Require Import ssreflect.
 
-
 Lemma wff_mutual :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> ⊢ Γ)  /\
@@ -279,6 +278,31 @@ Proof.
   apply : T_Var';eauto. rewrite /funcomp. by asimpl.
 Qed.
 
+Lemma Wff_Cons' n Γ (A : PTm n) i :
+  Γ ⊢ A ∈ PUniv i ->
+  (* -------------------------------- *)
+  ⊢ funcomp (ren_PTm shift) (scons A Γ).
+Proof. hauto lq:on rew:off use:Wff_Cons, wff_mutual. Qed.
+
+Lemma weakening_wt : forall n Γ (a A B : PTm n) i,
+    Γ ⊢ B ∈ PUniv i ->
+    Γ ⊢ a ∈ A ->
+    funcomp (ren_PTm shift) (scons B Γ) ⊢ ren_PTm shift a ∈ ren_PTm shift A.
+Proof.
+  move => n Γ a A B i hB ha.
+  apply : renaming_wt'; eauto.
+  apply : Wff_Cons'; eauto.
+  apply : renaming_shift; eauto.
+Qed.
+
+Lemma weakening_wt' : forall n Γ (a A B : PTm n) i U u,
+    u = ren_PTm shift a ->
+    U = ren_PTm shift A ->
+    Γ ⊢ B ∈ PUniv i ->
+    Γ ⊢ a ∈ A ->
+    funcomp (ren_PTm shift) (scons B Γ) ⊢ u ∈ U.
+Proof. move => > -> ->. apply weakening_wt. Qed.
+
 Lemma morphing :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ ->
@@ -289,7 +313,69 @@ Lemma morphing :
     Δ ⊢ subst_PTm ρ A ≲ subst_PTm ρ B).
 Proof.
   apply wt_mutual => //=.
-  - best.
+  - hauto lq:on use:morphing_up, Wff_Cons', T_Bind.
+  - move => n Γ a A B i hP ihP ha iha m Δ ρ hΔ hρ.
+    move : ihP (hΔ) (hρ); repeat move/[apply].
+    move /Pi_Inv => [j][h0][h1]h2. move {hP}.
+    have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv i by hauto lq:on ctrs:Wt.
+    apply : T_Abs; eauto.
+    apply : iha.
+    hauto lq:on use:Wff_Cons', Pi_Inv.
+    apply : morphing_up; eauto.
+  - move => *; apply : T_App'; eauto; by asimpl.
+  - move => n Γ a A b B i hA ihA hB ihB hS ihS m Δ ρ hρ hΔ.
+    eapply T_Pair' with (U := subst_PTm ρ (subst_PTm (scons a VarPTm) B));eauto. by asimpl.
+  - hauto lq:on use:T_Proj1.
+  - move => *. apply : T_Proj2'; eauto. by asimpl.
+  - hauto lq:on ctrs:Wt,LEq.
+  - qauto l:on ctrs:Wt.
+  - hauto lq:on ctrs:Eq.
+  - hauto lq:on ctrs:Eq.
+  - hauto lq:on ctrs:Eq.
+  - hauto lq:on rew:off use:E_Bind', Wff_Cons, morphing_up.
+  - move => n Γ a b A B i hPi ihPi ha iha m Δ ρ hΔ hρ.
+    move : ihPi (hΔ) (hρ). repeat move/[apply].
+    move => /Pi_Inv [j][h0][h1]h2.
+    have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
+    move {hPi}.
+    apply : E_Abs; eauto. qauto l:on ctrs:Wff use:morphing_up.
+  - move => *. apply : E_App'; eauto. by asimpl.
+  - move => n Γ a0 a1 b0 b1 A B i hA ihA ha iha hb ihb m Δ ρ hΔ hρ.
+    apply : E_Pair; eauto.
+    move : ihb hΔ hρ. repeat move/[apply].
+    by asimpl.
+  - hauto q:on ctrs:Eq.
+  - move => *. apply : E_Proj2'; eauto. by asimpl.
+  - qauto l:on ctrs:Eq, LEq.
+  - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ρ hΔ hρ.
+    move : ihP (hρ) (hΔ). repeat move/[apply].
+    move /Pi_Inv.
+    move => [j][h0][h1]h2.
+    have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
+    apply : E_AppAbs'; eauto. by asimpl. by asimpl.
+    hauto lq:on ctrs:Wff use:morphing_up.
+  - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ρ hΔ hρ.
+    move : {hP} ihP (hρ) (hΔ). repeat move/[apply].
+    move /Sig_Inv => [i0][h0][h1]h2.
+    have ? : Δ ⊢ PBind PSig (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv i0 by qauto l:on ctrs:Wt.
+    apply : E_ProjPair1; eauto.
+    move : ihb hρ hΔ. repeat move/[apply]. by asimpl.
+  - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ρ hΔ hρ.
+    apply : E_ProjPair2'; eauto. by asimpl.
+    move : ihb hρ hΔ; repeat move/[apply]. by asimpl.
+  - move => *.
+    apply : E_AppEta'; eauto. by asimpl.
+  - qauto l:on use:E_PairEta.
+  - hauto lq:on ctrs:LEq.
+  - qauto l:on ctrs:LEq.
+  - hauto lq:on ctrs:Wff use:morphing_up, Su_Pi.
+  - hauto lq:on ctrs:Wff use:Su_Sig, morphing_up.
+  - hauto q:on ctrs:LEq.
+  - hauto lq:on ctrs:LEq.
+  - qauto l:on ctrs:LEq.
+  - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
+  - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
+Qed.
 
 Lemma regularity :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> forall i, exists j, Γ ⊢ Γ i ∈ PUniv j) /\
