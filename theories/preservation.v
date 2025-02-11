@@ -174,3 +174,9 @@ Proof.
     apply : E_Conv; eauto.
     apply E_Bind'; eauto using E_Refl.
 Qed.
+
+Theorem subject_reduction n Γ (a b A : PTm n) :
+  Γ ⊢ a ∈ A ->
+  RRed.R a b ->
+  Γ ⊢ b ∈ A.
+Proof. hauto lq:on use:RRed_Eq, regularity. Qed.
