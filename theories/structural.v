@@ -36,32 +36,44 @@ Proof.
   hauto lq:on ctrs:Wt use:wff_mutual.
 Qed.
 
-
-Lemma Pi_Inv n Γ (A : PTm n) B U :
-  Γ ⊢ PBind PPi A B ∈ U ->
+Lemma Bind_Inv n Γ p (A : PTm n) B U :
+  Γ ⊢ PBind p A B ∈ U ->
   exists i, Γ ⊢ A ∈ PUniv i /\
   funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\
   Γ ⊢ PUniv i ≲ U.
 Proof.
-  move E :(PBind PPi A B) => T h.
-  move : A B E.
+  move E :(PBind p A B) => T h.
+  move : p A B E.
   elim : n Γ T U / h => //=.
   - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Sig_Inv n Γ (A : PTm n) B U :
-  Γ ⊢ PBind PSig A B ∈ U ->
-  exists i, Γ ⊢ A ∈ PUniv i /\
-  funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\
-  Γ ⊢ PUniv i ≲ U.
-Proof.
-  move E :(PBind PSig A B) => T h.
-  move : A B E.
-  elim : n Γ T U / h => //=.
-  - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ.
-  - hauto lq:on rew:off ctrs:LEq.
-Qed.
+(* Lemma Pi_Inv n Γ (A : PTm n) B U : *)
+(*   Γ ⊢ PBind PPi A B ∈ U -> *)
+(*   exists i, Γ ⊢ A ∈ PUniv i /\ *)
+(*   funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\ *)
+(*   Γ ⊢ PUniv i ≲ U. *)
+(* Proof. *)
+(*   move E :(PBind PPi A B) => T h. *)
+(*   move : A B E. *)
+(*   elim : n Γ T U / h => //=. *)
+(*   - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ. *)
+(*   - hauto lq:on rew:off ctrs:LEq. *)
+(* Qed. *)
+
+(* Lemma Bind_Inv n Γ (A : PTm n) B U : *)
+(*   Γ ⊢ PBind PSig A B ∈ U -> *)
+(*   exists i, Γ ⊢ A ∈ PUniv i /\ *)
+(*   funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\ *)
+(*   Γ ⊢ PUniv i ≲ U. *)
+(* Proof. *)
+(*   move E :(PBind PSig A B) => T h. *)
+(*   move : A B E. *)
+(*   elim : n Γ T U / h => //=. *)
+(*   - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ. *)
+(*   - hauto lq:on rew:off ctrs:LEq. *)
+(* Qed. *)
 
 Lemma T_App' n Γ (b a : PTm n) A B U :
   U = subst_PTm (scons a VarPTm) B ->
@@ -166,7 +178,7 @@ Proof.
   - hauto lq:on rew:off ctrs:Wt, Wff  use:renaming_up.
   - move => n Γ a A B i hP ihP ha iha m Δ ξ hΔ hξ.
     apply : T_Abs; eauto.
-    move : ihP(hΔ) (hξ); repeat move/[apply]. move/Pi_Inv.
+    move : ihP(hΔ) (hξ); repeat move/[apply]. move/Bind_Inv.
     hauto lq:on rew:off ctrs:Wff,Wt use:renaming_up.
   - move => *. apply : T_App'; eauto. by asimpl.
   - move => n Γ a A b B i hA ihA hB ihB hS ihS m Δ ξ hξ hΔ.
@@ -177,7 +189,7 @@ Proof.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, renaming_up.
   - move => n Γ a b A B i hPi ihPi ha iha m Δ ξ hΔ hξ.
     move : ihPi (hΔ) (hξ). repeat move/[apply].
-    move => /Pi_Inv [j][h0][h1]h2.
+    move => /Bind_Inv [j][h0][h1]h2.
     have ? : Δ ⊢ PBind PPi (ren_PTm ξ A) (ren_PTm (upRen_PTm_PTm ξ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
     move {hPi}.
     apply : E_Abs; eauto. qauto l:on ctrs:Wff use:renaming_up.
@@ -190,14 +202,14 @@ Proof.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ξ hΔ hξ.
     move : ihP (hξ) (hΔ). repeat move/[apply].
-    move /Pi_Inv.
+    move /Bind_Inv.
     move => [j][h0][h1]h2.
     have ? : Δ ⊢ PBind PPi (ren_PTm ξ A) (ren_PTm (upRen_PTm_PTm ξ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
     apply : E_AppAbs'; eauto. by asimpl. by asimpl.
     hauto lq:on ctrs:Wff use:renaming_up.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ξ hΔ hξ.
     move : {hP} ihP (hξ) (hΔ). repeat move/[apply].
-    move /Sig_Inv => [i0][h0][h1]h2.
+    move /Bind_Inv => [i0][h0][h1]h2.
     have ? : Δ ⊢ PBind PSig (ren_PTm ξ A) (ren_PTm (upRen_PTm_PTm ξ) B) ∈ PUniv i0 by qauto l:on ctrs:Wt.
     apply : E_ProjPair1; eauto.
     move : ihb hξ hΔ. repeat move/[apply]. by asimpl.
@@ -317,11 +329,11 @@ Proof.
   - hauto lq:on use:morphing_up, Wff_Cons', T_Bind.
   - move => n Γ a A B i hP ihP ha iha m Δ ρ hΔ hρ.
     move : ihP (hΔ) (hρ); repeat move/[apply].
-    move /Pi_Inv => [j][h0][h1]h2. move {hP}.
+    move /Bind_Inv => [j][h0][h1]h2. move {hP}.
     have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv i by hauto lq:on ctrs:Wt.
     apply : T_Abs; eauto.
     apply : iha.
-    hauto lq:on use:Wff_Cons', Pi_Inv.
+    hauto lq:on use:Wff_Cons', Bind_Inv.
     apply : morphing_up; eauto.
   - move => *; apply : T_App'; eauto; by asimpl.
   - move => n Γ a A b B i hA ihA hB ihB hS ihS m Δ ρ hρ hΔ.
@@ -336,7 +348,7 @@ Proof.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, morphing_up.
   - move => n Γ a b A B i hPi ihPi ha iha m Δ ρ hΔ hρ.
     move : ihPi (hΔ) (hρ). repeat move/[apply].
-    move => /Pi_Inv [j][h0][h1]h2.
+    move => /Bind_Inv [j][h0][h1]h2.
     have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
     move {hPi}.
     apply : E_Abs; eauto. qauto l:on ctrs:Wff use:morphing_up.
@@ -350,14 +362,14 @@ Proof.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ρ hΔ hρ.
     move : ihP (hρ) (hΔ). repeat move/[apply].
-    move /Pi_Inv.
+    move /Bind_Inv.
     move => [j][h0][h1]h2.
     have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
     apply : E_AppAbs'; eauto. by asimpl. by asimpl.
     hauto lq:on ctrs:Wff use:morphing_up.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ρ hΔ hρ.
     move : {hP} ihP (hρ) (hΔ). repeat move/[apply].
-    move /Sig_Inv => [i0][h0][h1]h2.
+    move /Bind_Inv => [i0][h0][h1]h2.
     have ? : Δ ⊢ PBind PSig (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv i0 by qauto l:on ctrs:Wt.
     apply : E_ProjPair1; eauto.
     move : ihb hρ hΔ. repeat move/[apply]. by asimpl.
@@ -484,12 +496,12 @@ Proof.
     econstructor; eauto.
     apply : renaming_shift; eauto.
   - move => n Γ b a A B hb [i ihb] ha [j iha].
-    move /Pi_Inv : ihb => [k][h0][h1]h2.
+    move /Bind_Inv : ihb => [k][h0][h1]h2.
     move : substing_wt ha h1; repeat move/[apply].
     move => h. exists k.
     move : h. by asimpl.
-  - hauto lq:on use:Sig_Inv.
-  - move => n Γ a A B ha [i /Sig_Inv[j][h0][h1]h2].
+  - hauto lq:on use:Bind_Inv.
+  - move => n Γ a A B ha [i /Bind_Inv[j][h0][h1]h2].
     exists j. have : Γ ⊢ PProj PL a ∈ A by qauto use:T_Proj1.
     move : substing_wt h1; repeat move/[apply].
     by asimpl.
@@ -513,23 +525,23 @@ Proof.
     qauto use:T_App.
     move /E_Symmetric in ha.
     by eauto using bind_inst.
-    hauto lq:on ctrs:Wt,Eq,LEq lq:on use:Pi_Inv, substing_wt.
+    hauto lq:on ctrs:Wt,Eq,LEq lq:on use:Bind_Inv, substing_wt.
   - hauto lq:on use:bind_inst db:wt.
-  - hauto lq:on use:Sig_Inv db:wt.
+  - hauto lq:on use:Bind_Inv db:wt.
   - move => n Γ i a b A B hS _ hab [iha][ihb][j]ihs.
     repeat split => //=; eauto with wt.
     apply : T_Conv; eauto with wt.
     move /E_Symmetric /E_Proj1 in hab.
     eauto using bind_inst.
     move /T_Proj1 in iha.
-    hauto lq:on ctrs:Wt,Eq,LEq use:Sig_Inv, substing_wt.
+    hauto lq:on ctrs:Wt,Eq,LEq use:Bind_Inv, substing_wt.
   - hauto lq:on ctrs:Wt.
   - hauto q:on use:substing_wt db:wt.
   - hauto l:on use:bind_inst db:wt.
   - move => n Γ b A B i hΓ ihΓ hP _ hb [i0 ihb].
     repeat split => //=; eauto with wt.
     have {}hb : funcomp (ren_PTm shift) (scons A Γ) ⊢ ren_PTm shift b ∈ ren_PTm shift (PBind PPi A B)
-                        by hauto lq:on use:weakening_wt, Pi_Inv.
+                        by hauto lq:on use:weakening_wt, Bind_Inv.
     apply : T_Abs; eauto.
     apply : T_App'; eauto; rewrite-/ren_PTm.
     by asimpl.
@@ -554,22 +566,22 @@ Proof.
     sfirstorder use:ctx_eq_subst_one.
   - sfirstorder.
   - move => n Γ A0 A1 B0 B1 _ [i][ih0 ih1].
-    move /Pi_Inv : ih0 => [i0][h _].
-    move /Pi_Inv : ih1 => [i1][h' _].
+    move /Bind_Inv : ih0 => [i0][h _].
+    move /Bind_Inv : ih1 => [i1][h' _].
     exists (max i0 i1).
     have [? ?] : i0 <= Nat.max i0 i1 /\ i1 <= Nat.max i0 i1 by lia.
     eauto using Cumulativity.
   - move => n Γ A0 A1 B0 B1 _ [i][ih0 ih1].
-    move /Sig_Inv : ih0 => [i0][h _].
-    move /Sig_Inv : ih1 => [i1][h' _].
+    move /Bind_Inv : ih0 => [i0][h _].
+    move /Bind_Inv : ih1 => [i1][h' _].
     exists (max i0 i1).
     have [? ?] : i0 <= Nat.max i0 i1 /\ i1 <= Nat.max i0 i1 by lia.
     eauto using Cumulativity.
   - move => n Γ a0 a1 A0 A1 B0 B1 /Su_Pi_Proj1 hA1.
     move => [i][ihP0]ihP1.
     move => ha [iha0][iha1][j]ihA1.
-    move /Pi_Inv :ihP0 => [i0][ih0][ih0' _].
-    move /Pi_Inv :ihP1 => [i1][ih1][ih1' _].
+    move /Bind_Inv :ihP0 => [i0][ih0][ih0' _].
+    move /Bind_Inv :ihP1 => [i1][ih1][ih1' _].
     have [*] : i0 <= max i0 i1 /\ i1 <= max i0 i1 by lia.
     exists (max i0 i1).
     split.
@@ -581,8 +593,8 @@ Proof.
   - move => n Γ a0 a1 A0 A1 B0 B1 /Su_Sig_Proj1 hA1.
     move => [i][ihP0]ihP1.
     move => ha [iha0][iha1][j]ihA1.
-    move /Sig_Inv :ihP0 => [i0][ih0][ih0' _].
-    move /Sig_Inv :ihP1 => [i1][ih1][ih1' _].
+    move /Bind_Inv :ihP0 => [i0][ih0][ih0' _].
+    move /Bind_Inv :ihP1 => [i1][ih1][ih1' _].
     have [*] : i0 <= max i0 i1 /\ i1 <= max i0 i1 by lia.
     exists (max i0 i1).
     split.

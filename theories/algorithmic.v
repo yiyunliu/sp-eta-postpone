@@ -103,3 +103,17 @@ with CoqEq_R {n} : PTm n -> PTm n -> Prop :=
   (* ----------------------- *)
   a ↔ b
 where "a ⇔ b" := (CoqEq a b) and "a ↔ b" := (CoqEq_R a b).
+
+Scheme coqeq_ind := Induction for CoqEq Sort Prop
+  with coqeq_r_ind := Induction for CoqEq_R Sort Prop.
+
+Combined Scheme coqeq_mutual from coqeq_ind, coqeq_r_ind.
+
+Lemma coqeq_sound_mutual : forall n,
+    (forall (a b : PTm n), a ⇔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A) /\
+    (forall (a b : PTm n), a ↔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A).
+Proof.
+  apply coqeq_mutual.
+  - move => n a b ha iha Γ U wta wtb.
+    (* Need to use the fundamental lemma to show that U normalizes to a Pi type *)
+Admitted.
