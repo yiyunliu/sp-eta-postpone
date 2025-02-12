@@ -200,11 +200,16 @@ Proof.
     move : ihu hu0 hu1. repeat move/[apply].
     move => [C][hC0][hC1]hu01.
     have [i [A2 [B2 hPi]]] : exists i A2 B2, Γ ⊢ PBind PPi A2 B2 ≡ C ∈ PUniv i by admit.
+    have ? : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A0 B0 by eauto using Su_Eq, Su_Transitive.
+    have ? : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A1 B1 by eauto using Su_Eq, Su_Transitive.
     exists (subst_PTm (scons a0 VarPTm) B2).
-    repeat split. admit. admit.
-    apply E_App with (A := A2). apply : E_Conv; eauto.
-    apply : Su_Eq; apply : E_Symmetric; eauto.
-    admit.
+    repeat split. apply : Su_Transitive; eauto.
+    apply : Su_Pi_Proj2'; eauto using E_Refl.
+    apply : Su_Transitive; eauto.
+    eapply Su_Pi_Proj2' with (A0 := A2) (A1 := A2); eauto using E_Refl. admit.
+    apply iha. admit. admit.
+    apply E_App with (A := A2); eauto.
+    admit. admit.
   - move => n a b ha iha Γ A h0 h1.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
     move /Abs_Inv : h1 => [A1][B1][h1]h1'.
