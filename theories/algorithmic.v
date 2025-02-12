@@ -1,4 +1,5 @@
-Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common typing preservation admissible.
+Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax
+  common typing preservation admissible fp_red.
 From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
 Require Import Psatz.
@@ -21,7 +22,29 @@ Module HRed.
   | ProjCong p a0 a1 :
     R a0 a1 ->
     R (PProj p a0) (PProj p a1).
+
+  Lemma ToRRed n (a b : PTm n) : HRed.R a b -> RRed.R a b.
+  Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
+
+  Lemma preservation n Γ (a b A : PTm n) : Γ ⊢ a ∈ A -> HRed.R a b -> Γ ⊢ b ∈ A.
+  Proof.
+    sfirstorder use:subject_reduction, ToRRed.
+  Qed.
+
+  Lemma ToEq n Γ (a b : PTm n) A : Γ ⊢ a ∈ A -> HRed.R a b -> Γ ⊢ a ≡ b ∈ A.
+  Proof. sfirstorder use:ToRRed, RRed_Eq. Qed.
+
 End HRed.
+
+Module HReds.
+  Lemma preservation n Γ (a b A : PTm n) : Γ ⊢ a ∈ A -> rtc HRed.R a b -> Γ ⊢ b ∈ A.
+  Proof. induction 2; sfirstorder use:HRed.preservation. Qed.
+
+  Lemma ToEq n Γ (a b : PTm n) A : Γ ⊢ a ∈ A -> rtc HRed.R a b -> Γ ⊢ a ≡ b ∈ A.
+  Proof.
+    induction 2; sauto lq:on use:HRed.ToEq, E_Transitive, HRed.preservation.
+  Qed.
+End HReds.
 
 (* Coquand's algorithm with subtyping *)
 Reserved Notation "a ∼ b" (at level 70).
@@ -181,6 +204,15 @@ Proof.
       move /regularity_sub0 : ih1 => [i ?].
       apply : E_Proj2; eauto.
   - move => n u0 u1 a0 a1 neu0 neu1 hu ihu ha iha Γ A B wta0 wta1.
+    move /App_Inv : wta0 => [A0][B0][hu0][ha0]hU.
+    move /App_Inv : wta1 => [A1][B1][hu1][ha1]hU1.
+    move : ihu hu0 hu1. repeat move/[apply].
+    move => [C][hC0][hC1]hu01.
+    have [i [A2 [B2 hPi]]] : exists i A2 B2, Γ ⊢ PBind PPi A2 B2 ≡ C ∈ PUniv i by admit.
+    exists (subst_PTm (scons a0 VarPTm) B2).
+    repeat split. admit. admit.
+    apply E_App with (A := A2). apply : E_Conv; eauto.
+    apply : Su_Eq; apply : E_Symmetric; eauto.
     admit.
   - move => n a b ha iha Γ A h0 h1.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
@@ -221,15 +253,47 @@ Proof.
     apply : E_Abs; eauto. hauto l:on use:structural.regularity.
     apply iha.
     admit.
+    eapply structural.T_App' with (A := ren_PTm shift A2) (B := ren_PTm (upRen_PTm_PTm shift) B2). by asimpl.
+    eapply structural.weakening_wt' with (a := u) (A := PBind PPi A2 B2). reflexivity. by asimpl.
+    admit.
+    apply : T_Conv; eauto. apply : Su_Eq; eauto.
+    apply T_Var. apply : structural.Wff_Cons'; eauto.
     admit.
   (* Mirrors the last case *)
   - admit.
-  - admit.
-  - admit.
+  - move => n a0 a1 b0 b1 ha iha hb ihb Γ A.
+    move /Pair_Inv => [A0][B0][h00][h01]h02.
+    move /Pair_Inv => [A1][B1][h10][h11]h12.
+    have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
+    apply E_Conv with (A := PBind PSig A2 B2); last by eauto using E_Symmetric, Su_Eq.
+    apply : E_Pair; eauto. hauto l:on use:structural.regularity.
+    apply iha. admit. admit.
+    admit.
+  - move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
+    move /Pair_Inv : ha => [A0][B0][ha0][ha1]ha.
+    have [i [A2 [B2 hA]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
+    have hA' : Γ ⊢ PBind PSig A2 B2 ≲ A by eauto using E_Symmetric, Su_Eq.
+    move /E_Conv : (hA'). apply.
+    apply : E_Transitive; last (apply E_Symmetric; apply : E_PairEta).
+    apply : E_Pair; eauto. hauto l:on use:structural.regularity.
+    apply ih0. admit. admit.
+    apply ih1. admit. admit.
+    hauto l:on use:structural.regularity.
+    apply : T_Conv; eauto using Su_Eq.
+  (* Same as before *)
   - admit.
   - sfirstorder use:E_Refl.
-  - admit.
-  - hauto lq:on ctrs:Eq,LEq,Wt.
-  - move => n a a' b b' ha hb.
+  - move => n p A0 A1 B0 B1 hA ihA hB ihB Γ A hA0 hA1.
+    move /structural.Bind_Inv : hA0 => [i][hA0][hB0]hU.
+    move /structural.Bind_Inv : hA1 => [j][hA1][hB1]hU1.
+    have [l [k hk]] : exists l k, Γ ⊢ A ≡ PUniv k ∈ PUniv l by admit.
+    apply E_Conv with (A := PUniv k); last by eauto using Su_Eq, E_Symmetric.
+    apply E_Bind. admit.
+    apply ihB.
     admit.
+    admit.
+  - hauto lq:on ctrs:Eq,LEq,Wt.
+  - move => n a a' b b' ha hb hab ihab Γ A ha0 hb0.
+    have [*] : Γ ⊢ a' ∈ A /\ Γ ⊢ b' ∈ A by eauto using HReds.preservation.
+    hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
 Admitted.
