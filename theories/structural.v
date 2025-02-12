@@ -604,3 +604,19 @@ Proof.
       have : Γ ⊢ a1 ∈ A1 by eauto using T_Conv.
       move : substing_wt ih1';repeat move/[apply]. by asimpl.
 Qed.
+
+Lemma Var_Inv n Γ (i : fin n) A :
+  Γ ⊢ VarPTm i ∈ A ->
+  ⊢ Γ /\ Γ ⊢ Γ i ≲ A.
+Proof.
+  move E : (VarPTm i) => u hu.
+  move : i E.
+  elim : n Γ u A / hu=>//=.
+  - move => n Γ i hΓ i0 [?]. subst.
+    repeat split => //=.
+    have h : Γ ⊢ VarPTm i ∈ Γ i by eauto using T_Var.
+    eapply regularity in h.
+    move : h => [i0]?.
+    apply : Su_Eq. apply E_Refl; eassumption.
+  - sfirstorder use:Su_Transitive.
+Qed.

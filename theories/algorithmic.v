@@ -1,5 +1,5 @@
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax
-  common typing preservation admissible fp_red.
+  common typing preservation admissible fp_red structural.
 From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
 Require Import Psatz.
@@ -140,22 +140,6 @@ Scheme
 
 Combined Scheme coqeq_mutual from coqeq_neu_ind, coqeq_ind, coqeq_r_ind.
 
-Lemma Var_Inv n Γ (i : fin n) A :
-  Γ ⊢ VarPTm i ∈ A ->
-  ⊢ Γ /\ Γ ⊢ Γ i ≲ A.
-Proof.
-  move E : (VarPTm i) => u hu.
-  move : i E.
-  elim : n Γ u A / hu=>//=.
-  - move => n Γ i hΓ i0 [?]. subst.
-    repeat split => //=.
-    have h : Γ ⊢ VarPTm i ∈ Γ i by eauto using T_Var.
-    eapply structural.regularity in h.
-    move : h => [i0]?.
-    apply : Su_Eq. apply E_Refl; eassumption.
-  - sfirstorder use:Su_Transitive.
-Qed.
-
 Lemma coqeq_sound_mutual : forall n,
     (forall (a b : PTm n), a ∼ b -> forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> exists C,
        Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ≡ b ∈ C) /\
@@ -193,7 +177,7 @@ Proof.
       move => [C][ih0][ih1]ih.
       have [A2 [B2 [{}ih0 [{}ih1 {}ih]]]] : exists A2 B2, Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 /\ Γ ⊢ u0 ≡ u1 ∈ PBind PSig A2 B2 by admit.
       exists (subst_PTm (scons (PProj PL u0) VarPTm) B2).
-      have [? ?] : Γ ⊢ u0 ∈ PBind PSig A2 B2 /\ Γ ⊢ u1 ∈ PBind PSig A2 B2 by hauto l:on use:structural.regularity.
+      have [? ?] : Γ ⊢ u0 ∈ PBind PSig A2 B2 /\ Γ ⊢ u1 ∈ PBind PSig A2 B2 by hauto l:on use:regularity.
       repeat split => //=.
       apply : Su_Transitive ;eauto.
       apply : Su_Sig_Proj2; eauto.
@@ -223,13 +207,13 @@ Proof.
     have [h2 h3] : Γ ⊢ A2 ≲ A0 /\ Γ ⊢ A2 ≲ A1 by hauto l:on use:Su_Pi_Proj1.
     apply E_Conv with (A := PBind PPi A2 B2); cycle 1.
     eauto using E_Symmetric, Su_Eq.
-    apply : E_Abs; eauto. hauto l:on use:structural.regularity.
+    apply : E_Abs; eauto. hauto l:on use:regularity.
     apply iha.
-    eapply structural.ctx_eq_subst_one with (A0 := A0); eauto.
+    eapply ctx_eq_subst_one with (A0 := A0); eauto.
     admit.
     admit.
     admit.
-    eapply structural.ctx_eq_subst_one with (A0 := A1); eauto.
+    eapply ctx_eq_subst_one with (A0 := A1); eauto.
     admit.
     admit.
     admit.
@@ -243,21 +227,21 @@ Proof.
     have /regularity_sub0 [i' hPi0] := hPi.
     have : Γ ⊢ PAbs (PApp (ren_PTm shift u) (VarPTm var_zero)) ≡ u ∈ PBind PPi A2 B2.
     apply : E_AppEta; eauto.
-    sfirstorder use:structural.wff_mutual.
-    hauto l:on use:structural.regularity.
+    sfirstorder use:wff_mutual.
+    hauto l:on use:regularity.
     apply T_Conv with (A := A);eauto.
     eauto using Su_Eq.
     move => ?.
     suff : Γ ⊢ PAbs a ≡ PAbs (PApp (ren_PTm shift u) (VarPTm var_zero)) ∈ PBind PPi A2 B2
       by eauto using E_Transitive.
-    apply : E_Abs; eauto. hauto l:on use:structural.regularity.
+    apply : E_Abs; eauto. hauto l:on use:regularity.
     apply iha.
     admit.
-    eapply structural.T_App' with (A := ren_PTm shift A2) (B := ren_PTm (upRen_PTm_PTm shift) B2). by asimpl.
-    eapply structural.weakening_wt' with (a := u) (A := PBind PPi A2 B2). reflexivity. by asimpl.
+    eapply T_App' with (A := ren_PTm shift A2) (B := ren_PTm (upRen_PTm_PTm shift) B2). by asimpl.
+    eapply weakening_wt' with (a := u) (A := PBind PPi A2 B2). reflexivity. by asimpl.
     admit.
     apply : T_Conv; eauto. apply : Su_Eq; eauto.
-    apply T_Var. apply : structural.Wff_Cons'; eauto.
+    apply T_Var. apply : Wff_Cons'; eauto.
     admit.
   (* Mirrors the last case *)
   - admit.
@@ -266,7 +250,7 @@ Proof.
     move /Pair_Inv => [A1][B1][h10][h11]h12.
     have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
     apply E_Conv with (A := PBind PSig A2 B2); last by eauto using E_Symmetric, Su_Eq.
-    apply : E_Pair; eauto. hauto l:on use:structural.regularity.
+    apply : E_Pair; eauto. hauto l:on use:regularity.
     apply iha. admit. admit.
     admit.
   - move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
@@ -275,17 +259,17 @@ Proof.
     have hA' : Γ ⊢ PBind PSig A2 B2 ≲ A by eauto using E_Symmetric, Su_Eq.
     move /E_Conv : (hA'). apply.
     apply : E_Transitive; last (apply E_Symmetric; apply : E_PairEta).
-    apply : E_Pair; eauto. hauto l:on use:structural.regularity.
+    apply : E_Pair; eauto. hauto l:on use:regularity.
     apply ih0. admit. admit.
     apply ih1. admit. admit.
-    hauto l:on use:structural.regularity.
+    hauto l:on use:regularity.
     apply : T_Conv; eauto using Su_Eq.
   (* Same as before *)
   - admit.
   - sfirstorder use:E_Refl.
   - move => n p A0 A1 B0 B1 hA ihA hB ihB Γ A hA0 hA1.
-    move /structural.Bind_Inv : hA0 => [i][hA0][hB0]hU.
-    move /structural.Bind_Inv : hA1 => [j][hA1][hB1]hU1.
+    move /Bind_Inv : hA0 => [i][hA0][hB0]hU.
+    move /Bind_Inv : hA1 => [j][hA1][hB1]hU1.
     have [l [k hk]] : exists l k, Γ ⊢ A ≡ PUniv k ∈ PUniv l by admit.
     apply E_Conv with (A := PUniv k); last by eauto using Su_Eq, E_Symmetric.
     apply E_Bind. admit.
