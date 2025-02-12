@@ -140,12 +140,19 @@ Scheme
 
 Combined Scheme coqeq_mutual from coqeq_neu_ind, coqeq_ind, coqeq_r_ind.
 
+Lemma coqeq_symmetric_mutual : forall n,
+    (forall (a b : PTm n), a ∼ b -> b ∼ a) /\
+    (forall (a b : PTm n), a ↔ b -> b ↔ a) /\
+    (forall (a b : PTm n), a ⇔ b -> b ⇔ a).
+Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
+
 Lemma coqeq_sound_mutual : forall n,
     (forall (a b : PTm n), a ∼ b -> forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> exists C,
        Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ≡ b ∈ C) /\
     (forall (a b : PTm n), a ↔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A) /\
     (forall (a b : PTm n), a ⇔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A).
 Proof.
+  move => [:hAppL hPairL].
   apply coqeq_mutual.
   - move => n i Γ A B hi0 hi1.
     move /Var_Inv : hi0 => [hΓ h0].
@@ -218,7 +225,8 @@ Proof.
     admit.
     admit.
     (* Need to use the fundamental lemma to show that U normalizes to a Pi type *)
-  - move => n a u hneu ha iha Γ A wta wtu.
+  - abstract : hAppL.
+    move => n a u hneu ha iha Γ A wta wtu.
     move /Abs_Inv : wta => [A0][B0][wta]hPi.
     have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
     have hPi'' : Γ ⊢ PBind PPi A2 B2 ≲ A by eauto using Su_Eq, Su_Transitive, E_Symmetric.
@@ -244,8 +252,12 @@ Proof.
     apply T_Var. apply : Wff_Cons'; eauto.
     admit.
   (* Mirrors the last case *)
-  - admit.
-  - move => n a0 a1 b0 b1 ha iha hb ihb Γ A.
+  - move => n a u hu ha iha Γ A hu0 ha0.
+    apply E_Symmetric.
+    apply : hAppL; eauto.
+    sfirstorder use:coqeq_symmetric_mutual.
+    sfirstorder use:E_Symmetric.
+  - move => {hAppL hPairL} n a0 a1 b0 b1 ha iha hb ihb Γ A.
     move /Pair_Inv => [A0][B0][h00][h01]h02.
     move /Pair_Inv => [A1][B1][h10][h11]h12.
     have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
@@ -253,7 +265,9 @@ Proof.
     apply : E_Pair; eauto. hauto l:on use:regularity.
     apply iha. admit. admit.
     admit.
-  - move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
+  - move => {hAppL}.
+    abstract : hPairL.
+    move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
     move /Pair_Inv : ha => [A0][B0][ha0][ha1]ha.
     have [i [A2 [B2 hA]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
     have hA' : Γ ⊢ PBind PSig A2 B2 ≲ A by eauto using E_Symmetric, Su_Eq.
@@ -265,17 +279,25 @@ Proof.
     hauto l:on use:regularity.
     apply : T_Conv; eauto using Su_Eq.
   (* Same as before *)
-  - admit.
+  - move {hAppL}.
+    move => *. apply E_Symmetric. apply : hPairL;
+      sfirstorder use:coqeq_symmetric_mutual, E_Symmetric.
   - sfirstorder use:E_Refl.
-  - move => n p A0 A1 B0 B1 hA ihA hB ihB Γ A hA0 hA1.
+  - move => {hAppL hPairL} n p A0 A1 B0 B1 hA ihA hB ihB Γ A hA0 hA1.
     move /Bind_Inv : hA0 => [i][hA0][hB0]hU.
     move /Bind_Inv : hA1 => [j][hA1][hB1]hU1.
     have [l [k hk]] : exists l k, Γ ⊢ A ≡ PUniv k ∈ PUniv l by admit.
     apply E_Conv with (A := PUniv k); last by eauto using Su_Eq, E_Symmetric.
-    apply E_Bind. admit.
+    move => [:eqA].
+    apply E_Bind. abstract : eqA. apply ihA.
+    apply T_Conv with (A := PUniv i); eauto.
+    by eauto using Su_Transitive, Su_Eq, E_Symmetric.
+    apply T_Conv with (A := PUniv j); eauto.
+    by eauto using Su_Transitive, Su_Eq, E_Symmetric.
     apply ihB.
-    admit.
-    admit.
+    apply T_Conv with (A := PUniv i); eauto. admit.
+    apply T_Conv with (A := PUniv j); eauto.
+    apply : ctx_eq_subst_one; eauto. apply : Su_Eq; apply eqA.  admit.
   - hauto lq:on ctrs:Eq,LEq,Wt.
   - move => n a a' b b' ha hb hab ihab Γ A ha0 hb0.
     have [*] : Γ ⊢ a' ∈ A /\ Γ ⊢ b' ∈ A by eauto using HReds.preservation.
