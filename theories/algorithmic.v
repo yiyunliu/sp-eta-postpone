@@ -386,4 +386,18 @@ Proof.
 Qed.
 
 Definition algo_metric n (a b : PTm n) :=
-  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j a vb /\ size_PTm va + size_PTm vb + i + j = n.
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j a vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = n.
+
+Lemma ishne_red n (a : PTm n) : SN a -> ~ ishne a -> exists b, HRed.R a b.
+Admitted.
+
+Lemma coqeq_complete n (a b : PTm n) :
+  algo_metric n a b -> DJoin.R a b ->
+  (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
+  (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B).
+Proof.
+  move : n a b.
+  elim /Wf_nat.lt_wf_ind.
+  move => n ih.
+  move => a.
+  case /orP : (orNb (ishf a)).
