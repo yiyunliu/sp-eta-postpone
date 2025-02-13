@@ -232,8 +232,8 @@ Proof.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
     move /Abs_Inv : h1 => [A1][B1][h1]h1'.
     have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
-    have ? : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
-    have ? : Γ ⊢ PBind PPi A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+    have hp0 : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+    have hp1 : Γ ⊢ PBind PPi A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
     have [j ?] : exists j, Γ ⊢ A0 ∈ PUniv j by qauto l:on use:Wff_Cons_Inv, wff_mutual.
     have [k ?] : exists j, Γ ⊢ A1 ∈ PUniv j by qauto l:on use:Wff_Cons_Inv, wff_mutual.
     have [l ?] : exists j, Γ ⊢ A2 ∈ PUniv j by hauto lq:on rew:off use:regularity, Bind_Inv.
@@ -242,21 +242,21 @@ Proof.
     eauto using E_Symmetric, Su_Eq.
     apply : E_Abs; eauto. hauto l:on use:regularity.
     apply iha.
+    move /Su_Pi_Proj2_Var in hp0.
+    apply : T_Conv; eauto.
     eapply ctx_eq_subst_one with (A0 := A0); eauto.
-    admit.
-    admit.
-    admit.
+    move /Su_Pi_Proj2_Var in hp1.
+    apply : T_Conv; eauto.
     eapply ctx_eq_subst_one with (A0 := A1); eauto.
-    admit.
-    admit.
-    admit.
-    (* Need to use the fundamental lemma to show that U normalizes to a Pi type *)
   - abstract : hAppL.
     move => n a u hneu ha iha Γ A wta wtu.
     move /Abs_Inv : wta => [A0][B0][wta]hPi.
     have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
     have hPi'' : Γ ⊢ PBind PPi A2 B2 ≲ A by eauto using Su_Eq, Su_Transitive, E_Symmetric.
+    have [j0 ?] : exists j0, Γ ⊢ A0 ∈ PUniv j0 by move /regularity_sub0 in hPi; hauto lq:on use:Bind_Inv.
+    have [j2 ?] : exists j0, Γ ⊢ A2 ∈ PUniv j0 by move /regularity_sub0 in hPi''; hauto lq:on use:Bind_Inv.
     have hPi' : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Eq, Su_Transitive.
+    have hPidup := hPi'.
     apply E_Conv with (A := PBind PPi A2 B2); eauto.
     have /regularity_sub0 [i' hPi0] := hPi.
     have : Γ ⊢ PAbs (PApp (ren_PTm shift u) (VarPTm var_zero)) ≡ u ∈ PBind PPi A2 B2.
@@ -270,13 +270,16 @@ Proof.
       by eauto using E_Transitive.
     apply : E_Abs; eauto. hauto l:on use:regularity.
     apply iha.
-    admit.
+    move /Su_Pi_Proj2_Var in hPi'.
+    apply : T_Conv; eauto.
+    eapply ctx_eq_subst_one with (A0 := A0); eauto.
+    sfirstorder use:Su_Pi_Proj1.
+
+    (* move /Su_Pi_Proj2_Var in hPidup. *)
+    (* apply : T_Conv; eauto. *)
     eapply T_App' with (A := ren_PTm shift A2) (B := ren_PTm (upRen_PTm_PTm shift) B2). by asimpl.
-    eapply weakening_wt' with (a := u) (A := PBind PPi A2 B2). reflexivity. by asimpl.
-    admit.
-    apply : T_Conv; eauto. apply : Su_Eq; eauto.
-    apply T_Var. apply : Wff_Cons'; eauto.
-    admit.
+    eapply weakening_wt' with (a := u) (A := PBind PPi A2 B2);eauto.
+    by eauto using T_Conv_E. apply T_Var. apply : Wff_Cons'; eauto.
   (* Mirrors the last case *)
   - move => n a u hu ha iha Γ A hu0 ha0.
     apply E_Symmetric.

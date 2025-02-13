@@ -658,3 +658,19 @@ Proof.
   by asimpl.
   by asimpl.
 Qed.
+
+Lemma Su_Sig_Proj2_Var n Γ (A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A1 B1 ->
+  funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B0 ≲ B1.
+Proof.
+  move => h.
+  have /Su_Sig_Proj1 h1 := h.
+  have /regularity_sub0 [i h2] := h1.
+  move /weakening_su : (h) h2. move => /[apply].
+  move => h2.
+  apply : Su_Sig_Proj2'; try eassumption; rewrite -?/ren_PTm; cycle 2.
+  apply E_Refl. apply T_Var' with (i := var_zero); eauto.
+  sfirstorder use:wff_mutual.
+  by asimpl.
+  by asimpl.
+Qed.
