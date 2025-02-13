@@ -291,22 +291,51 @@ Proof.
     move /Pair_Inv => [A1][B1][h10][h11]h12.
     have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
     apply E_Conv with (A := PBind PSig A2 B2); last by eauto using E_Symmetric, Su_Eq.
+    have h0 : Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A2 B2 by eauto using Su_Transitive, Su_Eq, E_Symmetric.
+    have h1 : Γ ⊢ PBind PSig A1 B1 ≲ PBind PSig A2 B2 by eauto using Su_Transitive, Su_Eq, E_Symmetric.
+    have /Su_Sig_Proj1 h0' := h0.
+    have /Su_Sig_Proj1 h1' := h1.
+    move => [:eqa].
     apply : E_Pair; eauto. hauto l:on use:regularity.
-    apply iha. admit. admit.
-    admit.
+    abstract : eqa. apply iha; eauto using T_Conv.
+    apply ihb.
+    + apply T_Conv with (A := subst_PTm (scons a0 VarPTm) B0); eauto.
+      have : Γ ⊢ a0 ≡ a0 ∈A0 by eauto using E_Refl.
+      hauto l:on use:Su_Sig_Proj2.
+    + apply T_Conv with (A := subst_PTm (scons a1 VarPTm) B2); eauto; cycle 1.
+      move /E_Symmetric in eqa.
+      have ? : Γ ⊢ PBind PSig A2 B2 ∈ PUniv i by hauto use:regularity.
+      apply:bind_inst; eauto.
+      apply : T_Conv; eauto.
+      have : Γ ⊢ a1 ≡ a1 ∈ A1 by eauto using E_Refl.
+      hauto l:on use:Su_Sig_Proj2.
   - move => {hAppL}.
     abstract : hPairL.
+    move => {hAppL}.
     move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
     move /Pair_Inv : ha => [A0][B0][ha0][ha1]ha.
     have [i [A2 [B2 hA]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
     have hA' : Γ ⊢ PBind PSig A2 B2 ≲ A by eauto using E_Symmetric, Su_Eq.
     move /E_Conv : (hA'). apply.
+    have hSig : Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A2 B2 by eauto using E_Symmetric, Su_Eq, Su_Transitive.
+    have hA02 : Γ ⊢ A0 ≲ A2 by sfirstorder use:Su_Sig_Proj1.
+    have hu'  : Γ ⊢ u ∈ PBind PSig A2 B2 by eauto using T_Conv_E.
+    move => [:ih0'].
     apply : E_Transitive; last (apply E_Symmetric; apply : E_PairEta).
     apply : E_Pair; eauto. hauto l:on use:regularity.
-    apply ih0. admit. admit.
-    apply ih1. admit. admit.
+    abstract : ih0'.
+    apply ih0. apply : T_Conv; eauto.
+    by eauto using T_Proj1.
+    apply ih1. apply : T_Conv; eauto.
+    move /E_Refl in ha0.
+    hauto l:on use:Su_Sig_Proj2.
+    move /T_Proj2 in hu'.
+    apply : T_Conv; eauto.
+    move /E_Symmetric in ih0'.
+    move /regularity_sub0 in hA'.
+    hauto l:on use:bind_inst.
     hauto l:on use:regularity.
-    apply : T_Conv; eauto using Su_Eq.
+    eassumption.
   (* Same as before *)
   - move {hAppL}.
     move => *. apply E_Symmetric. apply : hPairL;
