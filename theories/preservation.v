@@ -76,9 +76,6 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma regularity_sub0 : forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i.
-Proof. hauto lq:on use:regularity. Qed.
-
 Lemma E_AppAbs : forall n (a : PTm (S n)) (b : PTm n) (Γ : fin n -> PTm n) (A : PTm n),
   Γ ⊢ PApp (PAbs a) b ∈ A -> Γ ⊢ PApp (PAbs a) b ≡ subst_PTm (scons b VarPTm) a ∈ A.
 Proof.

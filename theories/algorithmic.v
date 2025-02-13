@@ -58,25 +58,6 @@ Lemma E_Conv_E n Γ (a b : PTm n) A B i :
   Γ ⊢ a ≡ b ∈ B.
 Proof. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
 
-Lemma renaming_su' : forall n m Δ Γ (ξ : fin n -> fin m) (A B : PTm n) u U ,
-    u = ren_PTm ξ A ->
-    U = ren_PTm ξ B ->
-    Γ ⊢ A ≲ B ->
-    ⊢ Δ -> renaming_ok Δ Γ ξ ->
-    Δ ⊢ u ≲ U.
-Proof. move => > -> ->. hauto l:on use:renaming. Qed.
-
-Lemma weakening_su : forall n Γ (A0 A1 B : PTm n) i,
-    Γ ⊢ B ∈ PUniv i ->
-    Γ ⊢ A0 ≲ A1 ->
-    funcomp (ren_PTm shift) (scons B Γ) ⊢ ren_PTm shift A0 ≲ ren_PTm shift A1.
-Proof.
-  move => n Γ A0 A1 B i hB hlt.
-  apply : renaming_su'; eauto.
-  apply : Wff_Cons'; eauto.
-  apply : renaming_shift; eauto.
-Qed.
-
 (* Coquand's algorithm with subtyping *)
 Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
@@ -253,6 +234,9 @@ Proof.
     have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
     have ? : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
     have ? : Γ ⊢ PBind PPi A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+    have [j ?] : exists j, Γ ⊢ A0 ∈ PUniv j by qauto l:on use:Wff_Cons_Inv, wff_mutual.
+    have [k ?] : exists j, Γ ⊢ A1 ∈ PUniv j by qauto l:on use:Wff_Cons_Inv, wff_mutual.
+    have [l ?] : exists j, Γ ⊢ A2 ∈ PUniv j by hauto lq:on rew:off use:regularity, Bind_Inv.
     have [h2 h3] : Γ ⊢ A2 ≲ A0 /\ Γ ⊢ A2 ≲ A1 by hauto l:on use:Su_Pi_Proj1.
     apply E_Conv with (A := PBind PPi A2 B2); cycle 1.
     eauto using E_Symmetric, Su_Eq.

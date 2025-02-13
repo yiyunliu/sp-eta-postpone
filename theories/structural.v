@@ -620,3 +620,41 @@ Proof.
     apply : Su_Eq. apply E_Refl; eassumption.
   - sfirstorder use:Su_Transitive.
 Qed.
+
+Lemma renaming_su' : forall n m Δ Γ (ξ : fin n -> fin m) (A B : PTm n) u U ,
+    u = ren_PTm ξ A ->
+    U = ren_PTm ξ B ->
+    Γ ⊢ A ≲ B ->
+    ⊢ Δ -> renaming_ok Δ Γ ξ ->
+    Δ ⊢ u ≲ U.
+Proof. move => > -> ->. hauto l:on use:renaming. Qed.
+
+Lemma weakening_su : forall n Γ (A0 A1 B : PTm n) i,
+    Γ ⊢ B ∈ PUniv i ->
+    Γ ⊢ A0 ≲ A1 ->
+    funcomp (ren_PTm shift) (scons B Γ) ⊢ ren_PTm shift A0 ≲ ren_PTm shift A1.
+Proof.
+  move => n Γ A0 A1 B i hB hlt.
+  apply : renaming_su'; eauto.
+  apply : Wff_Cons'; eauto.
+  apply : renaming_shift; eauto.
+Qed.
+
+Lemma regularity_sub0 : forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> exists i, Γ ⊢ A ∈ PUniv i.
+Proof. hauto lq:on use:regularity. Qed.
+
+Lemma Su_Pi_Proj2_Var n Γ (A0 A1 : PTm n) B0 B1 :
+  Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A1 B1 ->
+  funcomp (ren_PTm shift) (scons A1 Γ) ⊢ B0 ≲ B1.
+Proof.
+  move => h.
+  have /Su_Pi_Proj1 h1 := h.
+  have /regularity_sub0 [i h2] := h1.
+  move /weakening_su : (h) h2. move => /[apply].
+  move => h2.
+  apply : Su_Pi_Proj2'; try eassumption; rewrite -?/ren_PTm; cycle 2.
+  apply E_Refl. apply T_Var' with (i := var_zero); eauto.
+  sfirstorder use:wff_mutual.
+  by asimpl.
+  by asimpl.
+Qed.
