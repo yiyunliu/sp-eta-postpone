@@ -158,6 +158,26 @@ Lemma coqeq_symmetric_mutual : forall n,
     (forall (a b : PTm n), a ⇔ b -> b ⇔ a).
 Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
 
+Lemma Sub_Bind_InvR n Γ p (A : PTm n) B C :
+  Γ ⊢ PBind p A B ≲ C ->
+  exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
+Proof.
+Admitted.
+
+Lemma Sub_Bind_InvL n Γ p (A : PTm n) B C :
+  Γ ⊢ C ≲ PBind p A B ->
+  exists i A0 B0, Γ ⊢ PBind p A0 B0 ≡ C ∈ PUniv i.
+Proof.
+Admitted.
+
+Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
+  Γ ⊢ PUniv i ≲ C ->
+  exists j, Γ ⊢ C ≡ PUniv j ∈ PUniv (S j).
+Proof.
+Admitted.
+
+(* Lemma Sub_Univ_InvR *)
+
 Lemma coqeq_sound_mutual : forall n,
     (forall (a b : PTm n), a ∼ b -> forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> exists C,
        Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ≡ b ∈ C) /\
@@ -180,7 +200,7 @@ Proof.
       specialize ihu with (1 := hu0') (2 := hu1').
       move : ihu.
       move => [C][ih0][ih1]ih.
-      have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by admit.
+      have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by sfirstorder use:Sub_Bind_InvL.
       exists  A2.
       have [h3 h4] : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 by qauto l:on use:Su_Eq, Su_Transitive.
       repeat split;
@@ -193,7 +213,7 @@ Proof.
       specialize ihu with (1 := hu0') (2 := hu1').
       move : ihu.
       move => [C][ih0][ih1]ih.
-      have [A2 [B2 [i hi]]] : exists A2 B2 i, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by admit.
+      have [A2 [B2 [i hi]]] : exists A2 B2 i, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by hauto q:on use:Sub_Bind_InvL.
       have [h3 h4] : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 by qauto l:on use:Su_Eq, Su_Transitive.
       have h5 : Γ ⊢ u0 ≡ u1 ∈ PBind PSig A2 B2 by eauto using E_Conv_E.
       exists (subst_PTm (scons (PProj PL u0) VarPTm) B2).
@@ -211,7 +231,7 @@ Proof.
     move /App_Inv : wta1 => [A1][B1][hu1][ha1]hU1.
     move : ihu hu0 hu1. repeat move/[apply].
     move => [C][hC0][hC1]hu01.
-    have [i [A2 [B2 hPi]]] : exists i A2 B2, Γ ⊢ PBind PPi A2 B2 ≡ C ∈ PUniv i by admit.
+    have [i [A2 [B2 hPi]]] : exists i A2 B2, Γ ⊢ PBind PPi A2 B2 ≡ C ∈ PUniv i by sfirstorder use:Sub_Bind_InvL.
     have ? : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A0 B0 by eauto using Su_Eq, Su_Transitive.
     have h : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A1 B1 by eauto using Su_Eq, Su_Transitive.
     have ha' : Γ ⊢ a0 ≡ a1 ∈ A2 by
@@ -231,7 +251,7 @@ Proof.
   - move => n a b ha iha Γ A h0 h1.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
     move /Abs_Inv : h1 => [A1][B1][h1]h1'.
-    have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
+    have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by hauto l:on use:Sub_Bind_InvR.
     have hp0 : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
     have hp1 : Γ ⊢ PBind PPi A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
     have [j ?] : exists j, Γ ⊢ A0 ∈ PUniv j by qauto l:on use:Wff_Cons_Inv, wff_mutual.
@@ -251,7 +271,7 @@ Proof.
   - abstract : hAppL.
     move => n a u hneu ha iha Γ A wta wtu.
     move /Abs_Inv : wta => [A0][B0][wta]hPi.
-    have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by admit.
+    have [i [A2 [B2 h]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PPi A2 B2 ∈ PUniv i by hauto l:on use:Sub_Bind_InvR.
     have hPi'' : Γ ⊢ PBind PPi A2 B2 ≲ A by eauto using Su_Eq, Su_Transitive, E_Symmetric.
     have [j0 ?] : exists j0, Γ ⊢ A0 ∈ PUniv j0 by move /regularity_sub0 in hPi; hauto lq:on use:Bind_Inv.
     have [j2 ?] : exists j0, Γ ⊢ A2 ∈ PUniv j0 by move /regularity_sub0 in hPi''; hauto lq:on use:Bind_Inv.
@@ -289,7 +309,7 @@ Proof.
   - move => {hAppL hPairL} n a0 a1 b0 b1 ha iha hb ihb Γ A.
     move /Pair_Inv => [A0][B0][h00][h01]h02.
     move /Pair_Inv => [A1][B1][h10][h11]h12.
-    have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
+    have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by hauto l:on use:Sub_Bind_InvR.
     apply E_Conv with (A := PBind PSig A2 B2); last by eauto using E_Symmetric, Su_Eq.
     have h0 : Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A2 B2 by eauto using Su_Transitive, Su_Eq, E_Symmetric.
     have h1 : Γ ⊢ PBind PSig A1 B1 ≲ PBind PSig A2 B2 by eauto using Su_Transitive, Su_Eq, E_Symmetric.
@@ -314,7 +334,7 @@ Proof.
     move => {hAppL}.
     move => n a0 a1 u neu h0 ih0 h1 ih1 Γ A ha hu.
     move /Pair_Inv : ha => [A0][B0][ha0][ha1]ha.
-    have [i [A2 [B2 hA]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by admit.
+    have [i [A2 [B2 hA]]] : exists i A2 B2, Γ ⊢ A ≡ PBind PSig A2 B2 ∈ PUniv i by hauto l:on use:Sub_Bind_InvR.
     have hA' : Γ ⊢ PBind PSig A2 B2 ≲ A by eauto using E_Symmetric, Su_Eq.
     move /E_Conv : (hA'). apply.
     have hSig : Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A2 B2 by eauto using E_Symmetric, Su_Eq, Su_Transitive.
@@ -344,20 +364,23 @@ Proof.
   - move => {hAppL hPairL} n p A0 A1 B0 B1 hA ihA hB ihB Γ A hA0 hA1.
     move /Bind_Inv : hA0 => [i][hA0][hB0]hU.
     move /Bind_Inv : hA1 => [j][hA1][hB1]hU1.
-    have [l [k hk]] : exists l k, Γ ⊢ A ≡ PUniv k ∈ PUniv l by admit.
+    have [l [k hk]] : exists l k, Γ ⊢ A ≡ PUniv k ∈ PUniv l
+        by hauto lq:on use:Sub_Univ_InvR.
+    have hjk : Γ ⊢ PUniv j ≲ PUniv k by eauto using Su_Eq, Su_Transitive.
+    have hik : Γ ⊢ PUniv i ≲ PUniv k by eauto using Su_Eq, Su_Transitive.
     apply E_Conv with (A := PUniv k); last by eauto using Su_Eq, E_Symmetric.
     move => [:eqA].
     apply E_Bind. abstract : eqA. apply ihA.
     apply T_Conv with (A := PUniv i); eauto.
-    by eauto using Su_Transitive, Su_Eq, E_Symmetric.
     apply T_Conv with (A := PUniv j); eauto.
-    by eauto using Su_Transitive, Su_Eq, E_Symmetric.
     apply ihB.
-    apply T_Conv with (A := PUniv i); eauto. admit.
+    apply T_Conv with (A := PUniv i); eauto.
+    move : weakening_su hik hA0. by repeat move/[apply].
     apply T_Conv with (A := PUniv j); eauto.
-    apply : ctx_eq_subst_one; eauto. apply : Su_Eq; apply eqA.  admit.
+    apply : ctx_eq_subst_one; eauto. apply : Su_Eq; apply eqA.
+    move : weakening_su hjk hA0. by repeat move/[apply].
   - hauto lq:on ctrs:Eq,LEq,Wt.
   - move => n a a' b b' ha hb hab ihab Γ A ha0 hb0.
     have [*] : Γ ⊢ a' ∈ A /\ Γ ⊢ b' ∈ A by eauto using HReds.preservation.
     hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
-Admitted.
+Qed.
