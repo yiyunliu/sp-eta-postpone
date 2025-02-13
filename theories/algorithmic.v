@@ -3,7 +3,7 @@ Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax
 From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
 Require Import Psatz.
-From stdpp Require Import relations (rtc(..)).
+From stdpp Require Import relations (rtc(..), nsteps(..)).
 Require Import Coq.Logic.FunctionalExtensionality.
 
 Module HRed.
@@ -384,3 +384,6 @@ Proof.
     have [*] : Γ ⊢ a' ∈ A /\ Γ ⊢ b' ∈ A by eauto using HReds.preservation.
     hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
 Qed.
+
+Definition algo_metric n (a b : PTm n) :=
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j a vb /\ size_PTm va + size_PTm vb + i + j = n.
