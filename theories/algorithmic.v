@@ -46,6 +46,37 @@ Module HReds.
   Qed.
 End HReds.
 
+Lemma T_Conv_E n Γ (a : PTm n) A B i :
+  Γ ⊢ a ∈ A ->
+  Γ ⊢ A ≡ B ∈ PUniv i \/ Γ ⊢ B ≡ A ∈ PUniv i ->
+  Γ ⊢ a ∈ B.
+Proof. qauto use:T_Conv, Su_Eq, E_Symmetric. Qed.
+
+Lemma E_Conv_E n Γ (a b : PTm n) A B i :
+  Γ ⊢ a ≡ b ∈ A ->
+  Γ ⊢ A ≡ B ∈ PUniv i \/ Γ ⊢ B ≡ A ∈ PUniv i ->
+  Γ ⊢ a ≡ b ∈ B.
+Proof. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
+
+Lemma renaming_su' : forall n m Δ Γ (ξ : fin n -> fin m) (A B : PTm n) u U ,
+    u = ren_PTm ξ A ->
+    U = ren_PTm ξ B ->
+    Γ ⊢ A ≲ B ->
+    ⊢ Δ -> renaming_ok Δ Γ ξ ->
+    Δ ⊢ u ≲ U.
+Proof. move => > -> ->. hauto l:on use:renaming. Qed.
+
+Lemma weakening_su : forall n Γ (A0 A1 B : PTm n) i,
+    Γ ⊢ B ∈ PUniv i ->
+    Γ ⊢ A0 ≲ A1 ->
+    funcomp (ren_PTm shift) (scons B Γ) ⊢ ren_PTm shift A0 ≲ ren_PTm shift A1.
+Proof.
+  move => n Γ A0 A1 B i hB hlt.
+  apply : renaming_su'; eauto.
+  apply : Wff_Cons'; eauto.
+  apply : renaming_shift; eauto.
+Qed.
+
 (* Coquand's algorithm with subtyping *)
 Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
@@ -168,13 +199,12 @@ Proof.
       specialize ihu with (1 := hu0') (2 := hu1').
       move : ihu.
       move => [C][ih0][ih1]ih.
-      have [A2 [B2 [{}ih0 [{}ih1 {}ih]]]] : exists A2 B2, Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 /\ Γ ⊢ u0 ≡ u1 ∈ PBind PSig A2 B2 by admit.
-
-      have /Su_Sig_Proj1 hs0 := ih0.
-      have /Su_Sig_Proj1 hs1 := ih1.
-      exists A2.
-      repeat split; eauto using Su_Transitive.
-      apply : E_Proj1; eauto.
+      have [i[A2[B2 h2]]] : exists i A2 B2, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by admit.
+      exists  A2.
+      have [h3 h4] : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 by qauto l:on use:Su_Eq, Su_Transitive.
+      repeat split;
+        eauto using Su_Sig_Proj1, Su_Transitive;[idtac].
+      apply E_Proj1 with (B := B2); eauto using E_Conv_E.
     + move /Proj2_Inv : hu0'.
       move => [A0][B0][hu0']hu0''.
       move /Proj2_Inv : hu1'.
@@ -182,7 +212,9 @@ Proof.
       specialize ihu with (1 := hu0') (2 := hu1').
       move : ihu.
       move => [C][ih0][ih1]ih.
-      have [A2 [B2 [{}ih0 [{}ih1 {}ih]]]] : exists A2 B2, Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 /\ Γ ⊢ u0 ≡ u1 ∈ PBind PSig A2 B2 by admit.
+      have [A2 [B2 [i hi]]] : exists A2 B2 i, Γ ⊢ PBind PSig A2 B2 ≡ C ∈ PUniv i by admit.
+      have [h3 h4] : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0 /\ Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1 by qauto l:on use:Su_Eq, Su_Transitive.
+      have h5 : Γ ⊢ u0 ≡ u1 ∈ PBind PSig A2 B2 by eauto using E_Conv_E.
       exists (subst_PTm (scons (PProj PL u0) VarPTm) B2).
       have [? ?] : Γ ⊢ u0 ∈ PBind PSig A2 B2 /\ Γ ⊢ u1 ∈ PBind PSig A2 B2 by hauto l:on use:regularity.
       repeat split => //=.
@@ -192,7 +224,6 @@ Proof.
       apply : Su_Transitive ;eauto.
       apply : Su_Sig_Proj2; eauto.
       apply : E_Proj1; eauto.
-      move /regularity_sub0 : ih1 => [i ?].
       apply : E_Proj2; eauto.
   - move => n u0 u1 a0 a1 neu0 neu1 hu ihu ha iha Γ A B wta0 wta1.
     move /App_Inv : wta0 => [A0][B0][hu0][ha0]hU.
@@ -201,15 +232,21 @@ Proof.
     move => [C][hC0][hC1]hu01.
     have [i [A2 [B2 hPi]]] : exists i A2 B2, Γ ⊢ PBind PPi A2 B2 ≡ C ∈ PUniv i by admit.
     have ? : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A0 B0 by eauto using Su_Eq, Su_Transitive.
-    have ? : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A1 B1 by eauto using Su_Eq, Su_Transitive.
+    have h : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A1 B1 by eauto using Su_Eq, Su_Transitive.
+    have ha' : Γ ⊢ a0 ≡ a1 ∈ A2 by
+      sauto lq:on use:Su_Transitive, Su_Pi_Proj1.
+    have hwf : Γ ⊢ PBind PPi A2 B2 ∈ PUniv i by hauto l:on use:regularity.
+    have [j hj'] : exists j,Γ ⊢ A2 ∈ PUniv j by hauto l:on use:regularity.
+    have ? : ⊢ Γ by sfirstorder use:wff_mutual.
     exists (subst_PTm (scons a0 VarPTm) B2).
     repeat split. apply : Su_Transitive; eauto.
-    apply : Su_Pi_Proj2'; eauto using E_Refl.
+    apply : Su_Pi_Proj2';  eauto using E_Refl.
     apply : Su_Transitive; eauto.
-    eapply Su_Pi_Proj2' with (A0 := A2) (A1 := A2); eauto using E_Refl. admit.
-    apply iha. admit. admit.
-    apply E_App with (A := A2); eauto.
-    admit. admit.
+    have ? : Γ ⊢ A1 ≲ A2 by eauto using Su_Pi_Proj1.
+    apply Su_Transitive with (B := subst_PTm (scons a1 VarPTm) B2);
+      first by sfirstorder use:bind_inst.
+    apply : Su_Pi_Proj2';  eauto using E_Refl.
+    apply E_App with (A := A2); eauto using E_Conv_E.
   - move => n a b ha iha Γ A h0 h1.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
     move /Abs_Inv : h1 => [A1][B1][h1]h1'.
