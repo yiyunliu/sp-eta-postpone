@@ -489,6 +489,18 @@ Proof.
   clear. move /synsub_to_usub. hauto l:on use:Sub.bind_inj.
 Qed.
 
+Lemma T_PairBind_Imp n Γ (a0 a1 : PTm n) p A0 B0 U :
+  Γ ⊢ PPair a0 a1 ∈ U ->
+  Γ ⊢ PBind p A0 B0  ∈ U ->
+  False.
+Proof.
+  move /Pair_Inv => [A1][B1][_][_]hbU.
+  move /Bind_Inv => [i][_ [_ haU]].
+  move /Sub_Univ_InvR : haU => [j]hU.
+  have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub. hauto l:on use:Sub.bind_univ_noconf.
+Qed.
+
 Lemma Univ_Inv n Γ i U :
   Γ ⊢ @PUniv n i ∈ U ->
   Γ ⊢ PUniv i ∈ PUniv (S i)  /\ Γ ⊢ PUniv (S i) ≲ U.
@@ -497,6 +509,19 @@ Proof.
   move : i E. elim : n Γ u U / hu => n //=.
   - hauto l:on use:E_Refl, Su_Eq, T_Univ.
   - hauto lq:on rew:off ctrs:LEq.
+Qed.
+
+Lemma T_PairUniv_Imp n Γ (a0 a1 : PTm n) i U :
+  Γ ⊢ PPair a0 a1 ∈ U ->
+  Γ ⊢ PUniv i ∈ U ->
+  False.
+Proof.
+  move /Pair_Inv => [A1][B1][_][_]hbU.
+  move /Univ_Inv => [h0 h1].
+  move /Sub_Univ_InvR : h1 => [j hU].
+  have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub.
+  hauto lq:on use:Sub.bind_univ_noconf.
 Qed.
 
 Lemma T_AbsUniv_Imp n Γ a i (A : PTm n) :
@@ -556,10 +581,11 @@ Proof.
   hauto lq:on use:coqeq_symmetric_mutual, algo_metric_sym.
   (* Cases where a and b can't take wh steps *)
   move {hstepL}.
-  move : k a b h. (* move => [:hAppNeu hProjNeu]. *)
+  move : k a b h. move => [:hnfneu].
   move => k a b h.
   case => fb; case => fa.
   - split; last by sfirstorder use:hf_not_hne.
+    move {hnfneu}.
     case : a h fb fa => //=.
     + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_AbsBind_Imp, T_AbsUniv_Imp.
       move => a0 a1 ha0 _ _ Γ A wt0 wt1.
@@ -578,4 +604,31 @@ Proof.
       suff [v0 [hv00 hv01]] : exists v0, rtc ERed.R va' v0 /\ rtc ERed.R vb' v0.
       exists v0. repeat split =>//=. simpl in har. lia.
       admit.
+    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
+      move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.
+      apply : CE_HRed; eauto using rtc_refl.
+      admit.
+      (* suff : exists l, l < n /\ algo_metric l a0 b0 /\ algo_metric l a1 b1. *)
+      (* move => [l [hl [hal0 hal1]]]. *)
+      (* apply CE_PairPair. eapply ih; eauto. *)
+      (* by eapply ih; eauto. *)
+    + admit.
+    + admit.
+  - move : k a b h fb fa. abstract : hnfneu.
+    admit.
+  - move {ih}.
+    move /algo_metric_sym in h.
+    qauto l:on use:coqeq_symmetric_mutual.
+  - move {hnfneu}.
+
+    (* Clear out some trivial cases *)
+    suff : (forall (Γ : fin k -> PTm k) (A B : PTm k), Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ (exists C : PTm k, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B)).
+    move => h0.
+    split. move => *. apply : CE_HRed; eauto using rtc_refl. apply CE_NeuNeu. by firstorder.
+    by firstorder.
+
+    case : a h fb fa => //=.
     + case : b => //=.
+      move => i j hi _ _.
+      * rewrite /algo_metric in hi.
+Admitted.
