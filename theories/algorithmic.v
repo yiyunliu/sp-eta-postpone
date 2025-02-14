@@ -146,6 +146,14 @@ with CoqEq_R {n} : PTm n -> PTm n -> Prop :=
   a ⇔ b
 where "a ↔ b" := (CoqEq a b) and "a ⇔ b" := (CoqEq_R a b) and "a ∼ b" := (CoqEq_Neu a b).
 
+Lemma CE_HRedL n (a a' b : PTm n)  :
+  HRed.R a a' ->
+  a' ⇔ b ->
+  a ⇔ b.
+Proof.
+  hauto lq:on ctrs:rtc, CoqEq_R inv:CoqEq_R.
+Qed.
+
 Scheme
   coqeq_neu_ind := Induction for CoqEq_Neu Sort Prop
   with coqeq_ind := Induction for CoqEq Sort Prop
@@ -387,7 +395,7 @@ Proof.
 Qed.
 
 Definition algo_metric {n} k (a b : PTm n) :=
-  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = k.
+  exists i j va vb v, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ rtc ERed.R va v /\ rtc ERed.R vb v /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = k.
 
 Lemma ne_hne n (a : PTm n) : ne a -> ishne a.
 Proof. elim : a => //=; sfirstorder b:on. Qed.
@@ -404,12 +412,11 @@ Proof.
   - sfirstorder use:ne_hne.
   - hauto lq:on ctrs:HRed.R.
 Qed.
-
 Lemma algo_metric_case n k (a b : PTm n) :
   algo_metric k a b ->
-  ishf a \/ ishne a \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
+  (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
 Proof.
-  move=>[i][j][va][vb][h0][h1][h2][h3]h4.
+  move=>[i][j][va][vb][v][h0][h1][h2][h3][h4][h5]h6.
   case : a h0 => //=; try firstorder.
   - inversion h0 as [|A B C D E F]; subst.
     hauto qb:on use:ne_hne.
@@ -424,13 +431,63 @@ Proof.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
 Qed.
 
-Lemma coqeq_complete n (a b : PTm n) :
-  algo_metric n a b -> DJoin.R a b ->
+Lemma algo_metric_sym n k (a b : PTm n) :
+  algo_metric k a b -> algo_metric k b a.
+Proof. hauto lq:on unfold:algo_metric solve+:lia. Qed.
+
+Lemma hred_hne n (a b : PTm n) :
+  HRed.R a b ->
+  ishne a ->
+  False.
+Proof. induction 1; sfirstorder. Qed.
+
+Lemma hf_not_hne n (a : PTm n) :
+  ishf a -> ishne a -> False.
+Proof. case : a => //=. Qed.
+
+(* Lemma algo_metric_hf_case n Γ k a b (A : PTm n) : *)
+(*   Γ ⊢ a ∈ A -> *)
+(*   Γ ⊢ b ∈ A -> *)
+(*   algo_metric k a b -> ishf a -> ishf b -> *)
+(*   (exists a' b' k', a = PAbs a' /\ b = PAbs b' /\ algo_metric k' a' b' /\ k' < k) \/ *)
+(*   (exists a0' a1' b0' b1' ka kb, a = PPair a0' a1' /\ b = PPair b0' b1' /\ algo_metric ka a0' b0' /\ algo_metric ) *)
+
+Lemma T_AbsPair_Imp n Γ a (b0 b1 : PTm n) A :
+  Γ ⊢ PAbs a ∈ A ->
+  Γ ⊢ PPair b0 b1 ∈ A ->
+  False.
+Proof.
+  move /Abs_Inv => [A0][B0][_]haU.
+  move /Pair_Inv => [A1][B1][_][_]hbU.
+  move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
+  have : Γ ⊢ PBind PSig A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+  clear.
+Admitted.
+
+Lemma coqeq_complete n k (a b : PTm n) :
+  algo_metric k a b ->
   (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
   (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B).
 Proof.
-  move : n a b.
+  move : k n a b.
   elim /Wf_nat.lt_wf_ind.
   move => n ih.
-  move => a.
-  case /orP : (orNb (ishf a || ishne a)).
+  move => k a b /[dup] h /algo_metric_case. move : k a b h => [:hstepL].
+  move => k a b h.
+  (* Cases where a and b can take steps *)
+  case; cycle 1.
+  move : k a b h.
+  abstract : hstepL. qauto l:on use:HRed.preservation, CE_HRedL, hred_hne.
+  move  /algo_metric_sym /algo_metric_case : (h).
+  case; cycle 1.
+  move {ih}. move /algo_metric_sym : h.
+  move : hstepL => /[apply].
+  hauto lq:on use:coqeq_symmetric_mutual, algo_metric_sym.
+  (* Cases where a and b can't take wh steps *)
+  move {hstepL}.
+  move : k a b h. move => [:hAppNeu hProjNeu].
+  move => k a b h.
+  case => fb; case => fa.
+  - split; last by sfirstorder use:hf_not_hne.
+    case : a h fb fa => //=.
+    + case : b => //=.
