@@ -1,5 +1,5 @@
 Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax
-  common typing preservation admissible fp_red structural.
+  common typing preservation admissible fp_red structural soundness.
 From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
 Require Import Psatz.
@@ -58,6 +58,49 @@ Lemma E_Conv_E n Γ (a b : PTm n) A B i :
   Γ ⊢ A ≡ B ∈ PUniv i \/ Γ ⊢ B ≡ A ∈ PUniv i ->
   Γ ⊢ a ≡ b ∈ B.
 Proof. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
+
+Lemma Sub_Bind_InvR n Γ p (A : PTm n) B C :
+  Γ ⊢ PBind p A B ≲ C ->
+  exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
+Proof.
+Admitted.
+
+Lemma Sub_Bind_InvL n Γ p (A : PTm n) B C :
+  Γ ⊢ C ≲ PBind p A B ->
+  exists i A0 B0, Γ ⊢ PBind p A0 B0 ≡ C ∈ PUniv i.
+Proof.
+Admitted.
+
+Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
+  Γ ⊢ PUniv i ≲ C ->
+  exists j, Γ ⊢ C ≡ PUniv j ∈ PUniv (S j).
+Proof.
+Admitted.
+
+Lemma T_Abs_Inv n Γ (a0 a1 : PTm (S n)) U :
+  Γ ⊢ PAbs a0 ∈ U ->
+  Γ ⊢ PAbs a1 ∈ U ->
+  exists Δ V, Δ ⊢ a0 ∈ V /\ Δ ⊢ a1 ∈ V.
+Proof.
+  move /Abs_Inv => [A0][B0][wt0]hU0.
+  move /Abs_Inv => [A1][B1][wt1]hU1.
+  move /Sub_Bind_InvR : (hU0) => [i][A2][B2]hE.
+  have hSu : Γ ⊢ PBind PPi A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Eq, Su_Transitive.
+  have hSu' : Γ ⊢ PBind PPi A0 B0 ≲ PBind PPi A2 B2 by eauto using Su_Eq, Su_Transitive.
+  exists (funcomp (ren_PTm shift) (scons A2 Γ)), B2.
+  have [k ?] : exists k, Γ ⊢ A2 ∈ PUniv k by hauto lq:on use:regularity, Bind_Inv.
+  split.
+  - have /Su_Pi_Proj2_Var ? := hSu'.
+    have /Su_Pi_Proj1 ? := hSu'.
+    move /regularity_sub0 : hSu' => [j] /Bind_Inv [k0 [? ?]].
+    apply T_Conv with (A := B0); eauto.
+    apply : ctx_eq_subst_one; eauto.
+  - have /Su_Pi_Proj2_Var ? := hSu.
+    have /Su_Pi_Proj1 ? := hSu.
+    move /regularity_sub0 : hSu => [j] /Bind_Inv [k0 [? ?]].
+    apply T_Conv with (A := B1); eauto.
+    apply : ctx_eq_subst_one; eauto.
+Qed.
 
 (* Coquand's algorithm with subtyping *)
 Reserved Notation "a ∼ b" (at level 70).
@@ -166,24 +209,6 @@ Lemma coqeq_symmetric_mutual : forall n,
     (forall (a b : PTm n), a ↔ b -> b ↔ a) /\
     (forall (a b : PTm n), a ⇔ b -> b ⇔ a).
 Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
-
-Lemma Sub_Bind_InvR n Γ p (A : PTm n) B C :
-  Γ ⊢ PBind p A B ≲ C ->
-  exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
-Proof.
-Admitted.
-
-Lemma Sub_Bind_InvL n Γ p (A : PTm n) B C :
-  Γ ⊢ C ≲ PBind p A B ->
-  exists i A0 B0, Γ ⊢ PBind p A0 B0 ≡ C ∈ PUniv i.
-Proof.
-Admitted.
-
-Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
-  Γ ⊢ PUniv i ≲ C ->
-  exists j, Γ ⊢ C ≡ PUniv j ∈ PUniv (S j).
-Proof.
-Admitted.
 
 (* Lemma Sub_Univ_InvR *)
 
@@ -395,7 +420,7 @@ Proof.
 Qed.
 
 Definition algo_metric {n} k (a b : PTm n) :=
-  exists i j va vb v, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ rtc ERed.R va v /\ rtc ERed.R vb v /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = k.
+  exists i j va vb v, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ rtc ERed.R va v /\ rtc ERed.R vb v /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
 Lemma ne_hne n (a : PTm n) : ne a -> ishne a.
 Proof. elim : a => //=; sfirstorder b:on. Qed.
@@ -461,8 +486,54 @@ Proof.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
   have : Γ ⊢ PBind PSig A1 B1 ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
-  clear.
-Admitted.
+  clear. move /synsub_to_usub. hauto l:on use:Sub.bind_inj.
+Qed.
+
+Lemma Univ_Inv n Γ i U :
+  Γ ⊢ @PUniv n i ∈ U ->
+  Γ ⊢ PUniv i ∈ PUniv (S i)  /\ Γ ⊢ PUniv (S i) ≲ U.
+Proof.
+  move E : (PUniv i) => u hu.
+  move : i E. elim : n Γ u U / hu => n //=.
+  - hauto l:on use:E_Refl, Su_Eq, T_Univ.
+  - hauto lq:on rew:off ctrs:LEq.
+Qed.
+
+Lemma T_AbsUniv_Imp n Γ a i (A : PTm n) :
+  Γ ⊢ PAbs a ∈ A ->
+  Γ ⊢ PUniv i ∈ A ->
+  False.
+Proof.
+  move /Abs_Inv => [A0][B0][_]haU.
+  move /Univ_Inv => [h0 h1].
+  move /Sub_Univ_InvR : h1 => [j hU].
+  have : Γ ⊢ PBind PPi A0 B0 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub.
+  hauto lq:on use:Sub.bind_univ_noconf.
+Qed.
+
+Lemma T_AbsBind_Imp n Γ a p A0 B0 (U : PTm n) :
+  Γ ⊢ PAbs a ∈ U ->
+  Γ ⊢ PBind p A0 B0 ∈ U ->
+  False.
+Proof.
+  move /Abs_Inv => [A1][B1][_ ha].
+  move /Bind_Inv => [i [_ [_ h]]].
+  move /Sub_Univ_InvR : h => [j hU].
+  have : Γ ⊢ PBind PPi A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub.
+  hauto lq:on use:Sub.bind_univ_noconf.
+Qed.
+
+Lemma lored_nsteps_abs_inv k n (a : PTm (S n)) b :
+  nsteps LoRed.R k (PAbs a) b -> exists b', nsteps LoRed.R k a b' /\ b = PAbs b'.
+Proof.
+  move E : (PAbs a) => u hu.
+  move : a E.
+  elim : u b /hu.
+  - hauto l:on.
+  - hauto lq:on ctrs:nsteps inv:LoRed.R.
+Qed.
 
 Lemma coqeq_complete n k (a b : PTm n) :
   algo_metric k a b ->
@@ -485,9 +556,26 @@ Proof.
   hauto lq:on use:coqeq_symmetric_mutual, algo_metric_sym.
   (* Cases where a and b can't take wh steps *)
   move {hstepL}.
-  move : k a b h. move => [:hAppNeu hProjNeu].
+  move : k a b h. (* move => [:hAppNeu hProjNeu]. *)
   move => k a b h.
   case => fb; case => fa.
   - split; last by sfirstorder use:hf_not_hne.
     case : a h fb fa => //=.
+    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_AbsBind_Imp, T_AbsUniv_Imp.
+      move => a0 a1 ha0 _ _ Γ A wt0 wt1.
+      move : T_Abs_Inv wt0 wt1; repeat move/[apply]. move  => [Δ [V [wt1 wt0]]].
+      apply : CE_HRed; eauto using rtc_refl.
+      apply CE_AbsAbs.
+      suff [l [h0 h1]] : exists l, l < n /\ algo_metric l a1 a0 by eapply ih; eauto.
+      have ? : n > 0 by sauto solve+:lia.
+      exists (n - 1). split; first by lia.
+      move : ha0. rewrite /algo_metric.
+      move => [i][j][va][vb][v][hr0][hr1][hr0'][hr1'][nfva][nfvb]har.
+      apply lored_nsteps_abs_inv in hr0, hr1.
+      move : hr0 => [va' [hr00 hr01]].
+      move : hr1 => [vb' [hr10 hr11]]. move {ih}.
+      exists i,j,va',vb'. subst.
+      suff [v0 [hv00 hv01]] : exists v0, rtc ERed.R va' v0 /\ rtc ERed.R vb' v0.
+      exists v0. repeat split =>//=. simpl in har. lia.
+      admit.
     + case : b => //=.
