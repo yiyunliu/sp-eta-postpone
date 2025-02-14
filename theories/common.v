@@ -60,6 +60,7 @@ Fixpoint ishne {n} (a : PTm n) :=
   | VarPTm _ => true
   | PApp a _ => ishne a
   | PProj _ a => ishne a
+  | PBot => true
   | _ => false
   end.
 

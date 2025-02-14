@@ -5,6 +5,7 @@ Require Import ssreflect ssrbool.
 Require Import Psatz.
 From stdpp Require Import relations (rtc(..), nsteps(..)).
 Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Cdcl.Itauto.
 
 Module HRed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -385,11 +386,43 @@ Proof.
     hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
 Qed.
 
-Definition algo_metric n (a b : PTm n) :=
-  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j a vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = n.
+Definition algo_metric {n} k (a b : PTm n) :=
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j = k.
 
-Lemma ishne_red n (a : PTm n) : SN a -> ~ ishne a -> exists b, HRed.R a b.
-Admitted.
+Lemma ne_hne n (a : PTm n) : ne a -> ishne a.
+Proof. elim : a => //=; sfirstorder b:on. Qed.
+
+Lemma hf_hred_lored n (a b : PTm n) :
+  ~~ ishf a ->
+  LoRed.R a b ->
+  HRed.R a b \/ ishne a.
+Proof.
+  move => + h. elim : n a b/ h=>//=.
+  - hauto l:on use:HRed.AppAbs.
+  - hauto l:on use:HRed.ProjPair.
+  - hauto lq:on ctrs:HRed.R.
+  - sfirstorder use:ne_hne.
+  - hauto lq:on ctrs:HRed.R.
+Qed.
+
+Lemma algo_metric_case n k (a b : PTm n) :
+  algo_metric k a b ->
+  ishf a \/ ishne a \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
+Proof.
+  move=>[i][j][va][vb][h0][h1][h2][h3]h4.
+  case : a h0 => //=; try firstorder.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.AppAbs unfold:algo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder qb:on use:ne_hne.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+Qed.
 
 Lemma coqeq_complete n (a b : PTm n) :
   algo_metric n a b -> DJoin.R a b ->
@@ -400,4 +433,4 @@ Proof.
   elim /Wf_nat.lt_wf_ind.
   move => n ih.
   move => a.
-  case /orP : (orNb (ishf a)).
+  case /orP : (orNb (ishf a || ishne a)).
