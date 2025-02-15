@@ -1686,6 +1686,14 @@ Module REReds.
     hauto lq:on rew:off ctrs:rtc inv:RERed.R.
   Qed.
 
+  Lemma var_inv n (i : fin n) C :
+    rtc RERed.R (VarPTm i) C ->
+    C = VarPTm i.
+  Proof.
+    move E : (VarPTm i) => u hu.
+    move : i E. elim : u C /hu; hauto lq:on rew:off inv:RERed.R.
+  Qed.
+
   Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
     rtc RERed.R a b -> rtc RERed.R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
@@ -2187,6 +2195,10 @@ Module DJoin.
     rewrite /R.
     hauto lq:on rew:off use:REReds.bind_inv.
   Qed.
+
+  Lemma var_inj n (i j : fin n) :
+    R (VarPTm i) (VarPTm j) -> i = j.
+  Proof. sauto lq:on rew:off use:REReds.var_inv unfold:R. Qed.
 
   Lemma univ_inj n i j :
     @R n (PUniv i) (PUniv j)  -> i = j.

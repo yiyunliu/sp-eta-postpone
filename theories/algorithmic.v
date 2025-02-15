@@ -550,6 +550,13 @@ Proof.
   hauto lq:on use:Sub.bind_univ_noconf.
 Qed.
 
+Lemma T_Bot_Imp n Γ (A : PTm n) :
+  Γ ⊢ PBot ∈ A -> False.
+  move E : PBot => u hu.
+  move : E.
+  induction hu => //=.
+Qed.
+
 Lemma lored_nsteps_abs_inv k n (a : PTm (S n)) b :
   nsteps LoRed.R k (PAbs a) b -> exists b', nsteps LoRed.R k a b' /\ b = PAbs b'.
 Proof.
@@ -558,6 +565,19 @@ Proof.
   elim : u b /hu.
   - hauto l:on.
   - hauto lq:on ctrs:nsteps inv:LoRed.R.
+Qed.
+
+Lemma algo_metric_join n k (a b : PTm n) :
+  algo_metric k a b ->
+  DJoin.R a b.
+  rewrite /algo_metric.
+  move => [i][j][va][vb][v][h0][h1][h2][h3]h4.
+  have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
+  have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
+  apply REReds.FromEReds in h2,h3.
+  apply LoReds.ToRReds in h0,h1.
+  apply REReds.FromRReds in h0,h1.
+  rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
 Qed.
 
 Lemma coqeq_complete n k (a b : PTm n) :
@@ -630,5 +650,27 @@ Proof.
     case : a h fb fa => //=.
     + case : b => //=.
       move => i j hi _ _.
-      * rewrite /algo_metric in hi.
+      * have ? : j = i by hauto lq:on use:algo_metric_join, DJoin.var_inj. subst.
+        move => Γ A B hA hB.
+        split. apply CE_VarCong.
+        exists (Γ i). hauto l:on use:Var_Inv.
+      * admit.
+      * admit.
+      * sfirstorder use:T_Bot_Imp.
+    + case : b => //=.
+      * admit.
+      (* real case *)
+      * move => b1 a1 b0 a0 halg hne1 hne0 Γ A B wtA wtB.
+        move /App_Inv : wtA => [A0][B0][hb0][ha0]hS0.
+        move /App_Inv : wtB => [A1][B1][hb1][ha1]hS1.
+        admit.
+      * admit.
+      * sfirstorder use:T_Bot_Imp.
+    + case : b => //=.
+      * admit.
+      * admit.
+      (* real case *)
+      * admit.
+      * sfirstorder use:T_Bot_Imp.
+    + sfirstorder use:T_Bot_Imp.
 Admitted.
