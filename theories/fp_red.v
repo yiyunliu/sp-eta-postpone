@@ -1554,6 +1554,13 @@ Module EJoin.
     hauto lq:on use:EReds.app_inv.
   Qed.
 
+  Lemma hne_proj_inj n p0 p1 (a0 a1 : PTm n) :
+    R (PProj p0 a0) (PProj p1 a1) ->
+    p0 = p1 /\ R a0 a1.
+  Proof.
+    hauto lq:on rew:off use:EReds.proj_inv.
+  Qed.
+
 End EJoin.
 
 Module RERed.
