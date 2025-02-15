@@ -20,7 +20,7 @@ Ltac2 spec_refl () :=
                try (specialize $h with (1 := eq_refl))
            end)  (Control.hyps ()).
 
-Ltac spec_refl := ltac2:(spec_refl ()).
+Ltac spec_refl := ltac2:(Control.enter spec_refl).
 
 Module EPar.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -1510,10 +1510,45 @@ Module EReds.
     induction 1; hauto lq:on ctrs:rtc use:ERed.substing.
   Qed.
 
+  Lemma app_inv n (a0 b0 C : PTm n) :
+    rtc ERed.R (PApp a0 b0) C ->
+    exists a1 b1, C = PApp a1 b1 /\
+               rtc ERed.R a0 a1 /\
+               rtc ERed.R b0 b1.
+  Proof.
+    move E : (PApp a0 b0) => u hu.
+    move : a0 b0 E.
+    elim : u C / hu.
+    - hauto lq:on ctrs:rtc.
+    - move => a b c ha ha' iha a0 b0 ?. subst.
+      hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R.
+  Qed.
+
+  Lemma proj_inv n p (a C : PTm n) :
+    rtc ERed.R (PProj p a) C ->
+    exists c, C = PProj p c /\ rtc ERed.R a c.
+  Proof.
+    move E : (PProj p a) => u hu.
+    move : p a E.
+    elim : u C /hu;
+      hauto q:on ctrs:rtc,ERed.R inv:ERed.R.
+  Qed.
+
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
 
+Module EJoin.
+  Definition R {n} (a b : PTm n) := exists c, rtc ERed.R a c /\ rtc ERed.R b c.
+
+  Lemma hne_app_inj n (a0 b0 a1 b1 : PTm n) :
+    R (PApp a0 b0) (PApp a1 b1) ->
+    R a0 a1 /\ R b0 b1.
+  Proof.
+    hauto lq:on use:EReds.app_inv.
+  Qed.
+
+End EJoin.
 
 Module RERed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
@@ -1601,6 +1636,10 @@ Module RERed.
   Proof.
     hauto q:on use:ToBetaEta, FromBeta, FromEta, RRed.substing, ERed.substing.
   Qed.
+
+  Lemma hne_preservation n (a b : PTm n) :
+    RERed.R a b -> ishne a -> ishne b.
+  Proof.  induction 1; sfirstorder. Qed.
 
 End RERed.
 
@@ -1692,6 +1731,32 @@ Module REReds.
   Proof.
     move E : (VarPTm i) => u hu.
     move : i E. elim : u C /hu; hauto lq:on rew:off inv:RERed.R.
+  Qed.
+
+  Lemma hne_app_inv n (a0 b0 C : PTm n) :
+    rtc RERed.R (PApp a0 b0) C ->
+    ishne a0 ->
+    exists a1 b1, C = PApp a1 b1 /\
+               rtc RERed.R a0 a1 /\
+               rtc RERed.R b0 b1.
+  Proof.
+    move E : (PApp a0 b0) => u hu.
+    move : a0 b0 E.
+    elim : u C / hu.
+    - hauto lq:on ctrs:rtc.
+    - move => a b c ha ha' iha a0 b0 ?. subst.
+      hauto lq:on rew:off ctrs:rtc, RERed.R use:RERed.hne_preservation inv:RERed.R.
+  Qed.
+
+  Lemma hne_proj_inv n p (a C : PTm n) :
+    rtc RERed.R (PProj p a) C ->
+    ishne a ->
+    exists c, C = PProj p c /\ rtc RERed.R a c.
+  Proof.
+    move E : (PProj p a) => u hu.
+    move : p a E.
+    elim : u C /hu;
+      hauto q:on ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
   Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
@@ -2204,6 +2269,24 @@ Module DJoin.
     @R n (PUniv i) (PUniv j)  -> i = j.
   Proof.
     sauto lq:on rew:off use:REReds.univ_inv.
+  Qed.
+
+  Lemma hne_app_inj n (a0 b0 a1 b1 : PTm n) :
+    R (PApp a0 b0) (PApp a1 b1) ->
+    ishne a0 ->
+    ishne a1 ->
+    R a0 a1 /\ R b0 b1.
+  Proof.
+    hauto lq:on use:REReds.hne_app_inv.
+  Qed.
+
+  Lemma hne_proj_inj n p0 p1 (a0 a1 : PTm n) :
+    R (PProj p0 a0) (PProj p1 a1) ->
+    ishne a0 ->
+    ishne a1 ->
+    p0 = p1 /\ R a0 a1.
+  Proof.
+    sauto lq:on use:REReds.hne_proj_inv.
   Qed.
 
   Lemma FromRRed0 n (a b : PTm n) :

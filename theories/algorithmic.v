@@ -567,6 +567,53 @@ Proof.
   - hauto lq:on ctrs:nsteps inv:LoRed.R.
 Qed.
 
+Lemma lored_hne_preservation n (a b : PTm n) :
+    LoRed.R a b -> ishne a -> ishne b.
+Proof.  induction 1; sfirstorder. Qed.
+
+Lemma lored_nsteps_app_inv k n (a0 b0 C : PTm n) :
+    nsteps LoRed.R k (PApp a0 b0) C ->
+    ishne a0 ->
+    exists i j a1 b1,
+      i <= k /\ j <= k /\
+        C = PApp a1 b1 /\
+        nsteps LoRed.R i a0 a1 /\
+        nsteps LoRed.R j b0 b1.
+Proof.
+  move E : (PApp a0 b0) => u hu. move : a0 b0 E.
+  elim : k u C / hu.
+  - sauto lq:on.
+  - move => k a0 a1 a2 ha01 ha12 ih a3 b0 ?.  subst.
+    inversion ha01; subst => //=.
+    spec_refl.
+    move => h.
+    have : ishne a4 by sfirstorder use:lored_hne_preservation.
+    move : ih => /[apply]. move => [i][j][a1][b1][?][?][?][h0]h1.
+    subst. exists (S i),j,a1,b1. sauto lq:on solve+:lia.
+    spec_refl. move : ih => /[apply].
+    move => [i][j][a1][b1][?][?][?][h0]h1. subst.
+    exists i, (S j), a1, b1. sauto lq:on solve+:lia.
+Qed.
+
+Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
+  algo_metric k (PApp a0 b0) (PApp a1 b1) ->
+  ishne a0 ->
+  ishne a1 ->
+  exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
+Proof.
+  move => [i][j][va][vb][v][h0][h1][h2][h3][h4][h5]h6.
+  move => hne0 hne1.
+  move : lored_nsteps_app_inv h0 (hne0);repeat move/[apply].
+  move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
+  move : lored_nsteps_app_inv h1 (hne1);repeat move/[apply].
+  move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
+  simpl in *. exists (k - 1).
+  split. lia.
+  split.
+  + rewrite /algo_metric.
+    have : exists a4 b4, rtc ERed.R a2 a4 /\ ERed.R
+    exists i0,i1,a2,b2.
+
 Lemma algo_metric_join n k (a b : PTm n) :
   algo_metric k a b ->
   DJoin.R a b.
@@ -663,6 +710,12 @@ Proof.
       * move => b1 a1 b0 a0 halg hne1 hne0 Γ A B wtA wtB.
         move /App_Inv : wtA => [A0][B0][hb0][ha0]hS0.
         move /App_Inv : wtB => [A1][B1][hb1][ha1]hS1.
+        have : DJoin.R (PApp b0 a0) (PApp b1 a1)
+          by hauto l:on use:algo_metric_join.
+        move : DJoin.hne_app_inj (hne0) (hne1). repeat move/[apply].
+        move => [hjb hja].
+        split. apply CE_AppCong => //=.
+        eapply ih; eauto.
         admit.
       * admit.
       * sfirstorder use:T_Bot_Imp.
