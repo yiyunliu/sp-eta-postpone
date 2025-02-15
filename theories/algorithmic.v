@@ -685,6 +685,26 @@ Lemma lored_hne_preservation n (a b : PTm n) :
     LoRed.R a b -> ishne a -> ishne b.
 Proof.  induction 1; sfirstorder. Qed.
 
+Lemma lored_nsteps_bind_inv k n p (a0 : PTm n) b0 C :
+    nsteps LoRed.R k (PBind p a0 b0) C ->
+    exists i j a1 b1,
+      i <= k /\ j <= k /\
+        C = PBind p a1 b1 /\
+        nsteps LoRed.R i a0 a1 /\
+        nsteps LoRed.R j b0 b1.
+Proof.
+  move E : (PBind p a0 b0) => u hu. move : p a0 b0 E.
+  elim : k u C / hu.
+  - sauto lq:on.
+  - move => k a0 a1 a2 ha ha' ih p a3 b0 ?. subst.
+    inversion ha; subst => //=;
+    spec_refl.
+    move : ih => [i][j][a1][b1][?][?][?][h0]h1. subst.
+    exists (S i),j,a1,b1. sauto lq:on solve+:lia.
+    move : ih => [i][j][a1][b1][?][?][?][h0]h1. subst.
+    exists i,(S j),a1,b1. sauto lq:on solve+:lia.
+Qed.
+
 Lemma lored_nsteps_app_inv k n (a0 b0 C : PTm n) :
     nsteps LoRed.R k (PApp a0 b0) C ->
     ishne a0 ->
@@ -779,6 +799,25 @@ Proof.
     repeat split => //=; sfirstorder b:on use:ne_nf.
 Qed.
 
+Lemma algo_metric_bind n k p0 (A0 : PTm n) B0 p1 A1 B1  :
+  algo_metric k (PBind p0 A0 B0) (PBind p1 A1 B1) ->
+  p0 = p1 /\ exists j, j < k /\ algo_metric j A0 A1 /\ algo_metric j B0 B1.
+Proof.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
+  move : lored_nsteps_bind_inv h0 => /[apply].
+  move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
+  move : lored_nsteps_bind_inv h1 => /[apply].
+  move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
+  move /EJoin.bind_inj : h4 => [?][hEa]hEb. subst.
+  split => //.
+  exists (k - 1). split. simpl in *; lia.
+  simpl in *.
+  split.
+  - exists i0,j0,a2,a3.
+    repeat split => //=; sfirstorder b:on solve+:lia.
+  - exists i1,j1,b2,b3. sfirstorder b:on solve+:lia.
+Qed.
+
 Lemma algo_metric_join n k (a b : PTm n) :
   algo_metric k a b ->
   DJoin.R a b.
@@ -861,10 +900,31 @@ Proof.
       * hauto lq:on use:T_AbsBind_Imp.
       * hauto lq:on rew:off use:T_PairBind_Imp.
       * move => p1 A1 B1 p0 A0 B0.
+        move /algo_metric_bind.
+        move => [?][j [ih0 [ih1 ih2]]]_ _. subst.
+        move => Γ A hU0 hU1.
+        move /Bind_Inv : hU0 => [i0 [hA0 [hB0 hS0]]].
+        move /Bind_Inv : hU1 => [i1 [hA1 [hB1 hS1]]].
+        have ? : Γ ⊢ PUniv i0 ≲ PUniv (max i0 i1)
+          by hauto lq:on rew:off use:Su_Univ, wff_mutual solve+:lia.
+        have ? : Γ ⊢ PUniv i1 ≲ PUniv (max i0 i1)
+          by hauto lq:on rew:off use:Su_Univ, wff_mutual solve+:lia.
+        have hA0' : Γ ⊢ A0 ∈ PUniv (max i0 i1) by eauto using T_Conv.
+        have hA1' : Γ ⊢ A1 ∈ PUniv (max i0 i1) by eauto using T_Conv.
+        have ihA : A0 ⇔ A1 by hauto l:on.
+        have hAE : Γ ⊢ A0 ≡ A1 ∈ PUniv (Nat.max i0 i1)
+          by hauto l:on use:coqeq_sound_mutual.
+        apply : CE_HRed; eauto using rtc_refl.
+        constructor => //.
+        admit.
+        (* eapply ih; eauto. *)
+        (* move /Su_Eq in hAE. *)
+        (* apply : ctx_eq_subst_one; eauto. *)
+
       (* Show that A0 and A1 are algorithmically equal *)
       (* Use soundness to show that they are actually definitionally equal *)
       (* Use that to show that B0 and B1 can be assigned the same type *)
-        admit.
+        (* admit. *)
       * move => > /algo_metric_join.
         hauto lq:on use:DJoin.bind_univ_noconf.
     + case : b => //=.
@@ -877,7 +937,15 @@ Proof.
   - move : k a b h fb fa. abstract : hnfneu.
     move => k.
     move => + b.
-    case : b => //=; admit.
+    case : b => //=.
+    (* NeuAbs *)
+    + admit.
+    (* NeuPair *)
+    + admit.
+    (* NeuBind: Impossible *)
+    + admit.
+    (* NeuUniv: Impossible *)
+    + admit.
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.

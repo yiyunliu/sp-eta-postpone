@@ -1540,6 +1540,17 @@ Module EReds.
       hauto q:on ctrs:rtc,ERed.R inv:ERed.R.
   Qed.
 
+  Lemma bind_inv n p (A : PTm n) B C :
+    rtc ERed.R (PBind p A B) C ->
+    exists A0 B0, C = PBind p A0 B0 /\ rtc ERed.R A A0 /\ rtc ERed.R B B0.
+  Proof.
+    move E : (PBind p A B) => u hu.
+    move : p A B E.
+    elim : u C / hu.
+    hauto lq:on ctrs:rtc.
+    hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
+  Qed.
+
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
@@ -1559,6 +1570,13 @@ Module EJoin.
     p0 = p1 /\ R a0 a1.
   Proof.
     hauto lq:on rew:off use:EReds.proj_inv.
+  Qed.
+
+  Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
+    R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
+    p0 = p1 /\ R A0 A1 /\ R B0 B1.
+  Proof.
+    hauto lq:on rew:off use:EReds.bind_inv.
   Qed.
 
 End EJoin.
