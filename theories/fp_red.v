@@ -2366,6 +2366,26 @@ Module DJoin.
     eauto.
   Qed.
 
+  Lemma standardization n (a b : PTm n) :
+    SN a -> SN b -> R a b ->
+    exists va vb, rtc RRed.R a va /\ rtc RRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb.
+  Proof.
+    move => h0 h1 [ab [hv0 hv1]].
+    have hv : SN ab by sfirstorder use:REReds.sn_preservation.
+    have : exists v, rtc RRed.R ab v  /\ nf v by hauto q:on use:LoReds.FromSN, LoReds.ToRReds.
+    move => [v [hv2 hv3]].
+    have : rtc RERed.R a v by hauto q:on use:@relations.rtc_transitive, REReds.FromRReds.
+    have : rtc RERed.R b v by hauto q:on use:@relations.rtc_transitive, REReds.FromRReds.
+    move : h0 h1 hv3. clear.
+    move => h0 h1 hv hbv hav.
+    move : rered_standardization (h0) hav. repeat move/[apply].
+    move => [a1 [ha0 ha1]].
+    move : rered_standardization (h1) hbv. repeat move/[apply].
+    move => [b1 [hb0 hb1]].
+    have [*] : nf a1 /\ nf b1 by sfirstorder use:NeEPars.R_nonelim_nf.
+    hauto q:on use:NeEPars.ToEReds unfold:EJoin.R.
+  Qed.
+
 End DJoin.
 
 
