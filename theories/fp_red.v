@@ -293,6 +293,12 @@ Proof.
   apply N_β'. by asimpl. eauto.
 Qed.
 
+Lemma ne_nf_embed n (a : PTm n) :
+  (ne a -> SNe a) /\ (nf a -> SN a).
+Proof.
+  elim : n  / a => //=; hauto qb:on ctrs:SNe, SN.
+Qed.
+
 #[export]Hint Constructors SN SNe TRedSN : sn.
 
 Ltac2 rec solve_anti_ren () :=

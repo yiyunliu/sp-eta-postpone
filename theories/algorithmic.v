@@ -59,23 +59,143 @@ Lemma E_Conv_E n Γ (a b : PTm n) A B i :
   Γ ⊢ a ≡ b ∈ B.
 Proof. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
 
+Lemma lored_embed n Γ (a b : PTm n) A :
+  Γ ⊢ a ∈ A -> LoRed.R a b -> Γ ⊢ a ≡ b ∈ A.
+Proof. sfirstorder use:LoRed.ToRRed, RRed_Eq. Qed.
+
+Lemma loreds_embed n Γ (a b : PTm n) A :
+  Γ ⊢ a ∈ A -> rtc LoRed.R a b -> Γ ⊢ a ≡ b ∈ A.
+Proof.
+  move => + h. move : Γ A.
+  elim : a b /h.
+  - sfirstorder use:E_Refl.
+  - move => a b c ha hb ih Γ A hA.
+    have ? : Γ ⊢ a ≡ b ∈ A by sfirstorder use:lored_embed.
+    have ? : Γ ⊢ b ∈ A by hauto l:on use:regularity.
+    hauto lq:on ctrs:Eq.
+Qed.
+
+Lemma T_Bot_Imp n Γ (A : PTm n) :
+  Γ ⊢ PBot ∈ A -> False.
+  move E : PBot => u hu.
+  move : E.
+  induction hu => //=.
+Qed.
+
 Lemma Sub_Bind_InvR n Γ p (A : PTm n) B C :
   Γ ⊢ PBind p A B ≲ C ->
   exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
 Proof.
-Admitted.
+  move => /[dup] h.
+  move /synsub_to_usub.
+  move => [h0 [h1 h2]].
+  move /LoReds.FromSN : h1.
+  move => [C' [hC0 hC1]].
+  have [i hC] : exists i, Γ ⊢ C ∈ PUniv i by qauto l:on use:regularity.
+  have hE : Γ ⊢ C ≡ C' ∈ PUniv i by sfirstorder use:loreds_embed.
+  have : Γ ⊢ PBind p A B ≲ C' by eauto using Su_Transitive, Su_Eq.
+  move : hE hC1. clear.
+  case : C' => //=.
+  - move => k _ _ /synsub_to_usub.
+    clear. move => [_ [_ h]]. exfalso.
+    rewrite /Sub.R in h.
+    move : h => [c][d][+ []].
+    move /REReds.bind_inv => ?.
+    move /REReds.var_inv => ?.
+    sauto lq:on.
+  - move => p0 h. exfalso.
+    have {h} : Γ ⊢ PAbs p0 ∈ PUniv i by hauto l:on use:regularity.
+    move /Abs_Inv => [A0][B0][_]/synsub_to_usub.
+    hauto l:on use:Sub.bind_univ_noconf.
+  - move => u v hC /andP [h0 h1] /synsub_to_usub ?.
+    exfalso.
+    suff : SNe (PApp u v) by hauto l:on use:Sub.bind_sne_noconf.
+    eapply ne_nf_embed => //=. itauto.
+  - move => p0 p1 hC  h  ?. exfalso.
+    have {hC} : Γ ⊢ PPair p0 p1 ∈ PUniv i by hauto l:on use:regularity.
+    hauto lq:on use:Sub.bind_univ_noconf, synsub_to_usub, Pair_Inv.
+  - move => p0 p1 _ + /synsub_to_usub.
+    hauto lq:on use:Sub.bind_sne_noconf, ne_nf_embed.
+  - move => b p0 p1 h0 h1 /[dup] h2 /synsub_to_usub *.
+    have ? : b = p by hauto l:on use:Sub.bind_inj. subst.
+    eauto.
+  - hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf.
+  - hauto lq:on use:regularity, T_Bot_Imp.
+Qed.
+
+Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
+  Γ ⊢ PUniv i ≲ C ->
+  exists j k, Γ ⊢ C ≡ PUniv j ∈ PUniv k.
+Proof.
+  move => /[dup] h.
+  move /synsub_to_usub.
+  move => [h0 [h1 h2]].
+  move /LoReds.FromSN : h1.
+  move => [C' [hC0 hC1]].
+  have [j hC] : exists i, Γ ⊢ C ∈ PUniv i by qauto l:on use:regularity.
+  have hE : Γ ⊢ C ≡ C' ∈ PUniv j by sfirstorder use:loreds_embed.
+  have : Γ ⊢ PUniv i ≲ C' by eauto using Su_Transitive, Su_Eq.
+  move : hE hC1. clear.
+  case : C' => //=.
+  - move => f => _ _ /synsub_to_usub.
+    move => [_ [_]].
+    move => [v0][v1][/REReds.univ_inv + [/REReds.var_inv ]].
+    hauto lq:on inv:Sub1.R.
+  - move => p hC.
+    have {hC} : Γ ⊢ PAbs p ∈ PUniv j by hauto l:on use:regularity.
+    hauto lq:on rew:off use:Abs_Inv, synsub_to_usub,
+            Sub.bind_univ_noconf.
+  - hauto q:on use:synsub_to_usub, Sub.univ_sne_noconf, ne_nf_embed.
+  - move => a b hC.
+    have {hC} : Γ ⊢ PPair a b ∈ PUniv j by hauto l:on use:regularity.
+    hauto lq:on rew:off use:Pair_Inv, synsub_to_usub,
+            Sub.bind_univ_noconf.
+  - hauto q:on use:synsub_to_usub, Sub.univ_sne_noconf, ne_nf_embed.
+  - hauto lq:on use:synsub_to_usub, Sub.univ_bind_noconf.
+  - sfirstorder.
+  - hauto lq:on use:regularity, T_Bot_Imp.
+Qed.
 
 Lemma Sub_Bind_InvL n Γ p (A : PTm n) B C :
   Γ ⊢ C ≲ PBind p A B ->
   exists i A0 B0, Γ ⊢ PBind p A0 B0 ≡ C ∈ PUniv i.
 Proof.
-Admitted.
-
-Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
-  Γ ⊢ PUniv i ≲ C ->
-  exists j, Γ ⊢ C ≡ PUniv j ∈ PUniv (S j).
-Proof.
-Admitted.
+  move => /[dup] h.
+  move /synsub_to_usub.
+  move => [h0 [h1 h2]].
+  move /LoReds.FromSN : h0.
+  move => [C' [hC0 hC1]].
+  have [i hC] : exists i, Γ ⊢ C ∈ PUniv i by qauto l:on use:regularity.
+  have hE : Γ ⊢ C ≡ C' ∈ PUniv i by sfirstorder use:loreds_embed.
+  have : Γ ⊢ C' ≲ PBind p A B by eauto using Su_Transitive, Su_Eq, E_Symmetric.
+  move : hE hC1. clear.
+  case : C' => //=.
+  - move => k _ _ /synsub_to_usub.
+    clear. move => [_ [_ h]]. exfalso.
+    rewrite /Sub.R in h.
+    move : h => [c][d][+ []].
+    move /REReds.var_inv => ?.
+    move /REReds.bind_inv => ?.
+    hauto lq:on inv:Sub1.R.
+  - move => p0 h. exfalso.
+    have {h} : Γ ⊢ PAbs p0 ∈ PUniv i by hauto l:on use:regularity.
+    move /Abs_Inv => [A0][B0][_]/synsub_to_usub.
+    hauto l:on use:Sub.bind_univ_noconf.
+  - move => u v hC /andP [h0 h1] /synsub_to_usub ?.
+    exfalso.
+    suff : SNe (PApp u v) by hauto l:on use:Sub.sne_bind_noconf.
+    eapply ne_nf_embed => //=. itauto.
+  - move => p0 p1 hC  h  ?. exfalso.
+    have {hC} : Γ ⊢ PPair p0 p1 ∈ PUniv i by hauto l:on use:regularity.
+    hauto lq:on use:Sub.bind_univ_noconf, synsub_to_usub, Pair_Inv.
+  - move => p0 p1 _ + /synsub_to_usub.
+    hauto lq:on use:Sub.sne_bind_noconf, ne_nf_embed.
+  - move => b p0 p1 h0 h1 /[dup] h2 /synsub_to_usub *.
+    have ? : b = p by hauto l:on use:Sub.bind_inj. subst.
+    eauto using E_Symmetric.
+  - hauto lq:on use:synsub_to_usub, Sub.univ_bind_noconf.
+  - hauto lq:on use:regularity, T_Bot_Imp.
+Qed.
 
 Lemma T_Abs_Inv n Γ (a0 a1 : PTm (S n)) U :
   Γ ⊢ PAbs a0 ∈ U ->
@@ -209,6 +329,7 @@ Lemma coqeq_symmetric_mutual : forall n,
     (forall (a b : PTm n), a ↔ b -> b ↔ a) /\
     (forall (a b : PTm n), a ⇔ b -> b ⇔ a).
 Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
+
 
 (* Lemma Sub_Univ_InvR *)
 
@@ -496,7 +617,7 @@ Lemma T_PairBind_Imp n Γ (a0 a1 : PTm n) p A0 B0 U :
 Proof.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Bind_Inv => [i][_ [_ haU]].
-  move /Sub_Univ_InvR : haU => [j]hU.
+  move /Sub_Univ_InvR : haU => [j][k]hU.
   have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
   clear. move /synsub_to_usub. hauto l:on use:Sub.bind_univ_noconf.
 Qed.
@@ -518,7 +639,7 @@ Lemma T_PairUniv_Imp n Γ (a0 a1 : PTm n) i U :
 Proof.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Univ_Inv => [h0 h1].
-  move /Sub_Univ_InvR : h1 => [j hU].
+  move /Sub_Univ_InvR : h1 => [j [k hU]].
   have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
   clear. move /synsub_to_usub.
   hauto lq:on use:Sub.bind_univ_noconf.
@@ -531,7 +652,7 @@ Lemma T_AbsUniv_Imp n Γ a i (A : PTm n) :
 Proof.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Univ_Inv => [h0 h1].
-  move /Sub_Univ_InvR : h1 => [j hU].
+  move /Sub_Univ_InvR : h1 => [j [k hU]].
   have : Γ ⊢ PBind PPi A0 B0 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
   clear. move /synsub_to_usub.
   hauto lq:on use:Sub.bind_univ_noconf.
@@ -544,17 +665,10 @@ Lemma T_AbsBind_Imp n Γ a p A0 B0 (U : PTm n) :
 Proof.
   move /Abs_Inv => [A1][B1][_ ha].
   move /Bind_Inv => [i [_ [_ h]]].
-  move /Sub_Univ_InvR : h => [j hU].
+  move /Sub_Univ_InvR : h => [j [k hU]].
   have : Γ ⊢ PBind PPi A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
   clear. move /synsub_to_usub.
   hauto lq:on use:Sub.bind_univ_noconf.
-Qed.
-
-Lemma T_Bot_Imp n Γ (A : PTm n) :
-  Γ ⊢ PBot ∈ A -> False.
-  move E : PBot => u hu.
-  move : E.
-  induction hu => //=.
 Qed.
 
 Lemma lored_nsteps_abs_inv k n (a : PTm (S n)) b :
@@ -681,7 +795,6 @@ Proof.
       suff [v0 [hv00 hv01]] : exists v0, rtc ERed.R va' v0 /\ rtc ERed.R vb' v0.
       repeat split =>//=. sfirstorder.
       simpl in *; by lia.
-
       admit.
     + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
       move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.
