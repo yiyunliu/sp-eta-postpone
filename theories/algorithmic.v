@@ -712,11 +712,14 @@ Proof.
         move => Γ A B hA hB.
         split. apply CE_VarCong.
         exists (Γ i). hauto l:on use:Var_Inv.
-      * admit.
-      * admit.
+      * move => p p0 f /algo_metric_join. clear => ? ? _. exfalso.
+        hauto l:on use:REReds.var_inv, REReds.hne_app_inv.
+      * move => a0 a1 i /algo_metric_join. clear => ? ? _. exfalso.
+        hauto l:on use:REReds.var_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
     + case : b => //=.
-      * admit.
+      * clear. move => i a a0 /algo_metric_join h _ ?. exfalso.
+        hauto l:on use:REReds.hne_app_inv, REReds.var_inv.
       (* real case *)
       * move => b1 a1 b0 a0 halg hne1 hne0 Γ A B wtA wtB.
         move /App_Inv : wtA => [A0][B0][hb0][ha0]hS0.
@@ -753,11 +756,14 @@ Proof.
         have : Γ ⊢ a0 ≡ a1 ∈ A2 by sfirstorder use:coqeq_sound_mutual.
         hauto l:on use:bind_inst.
         hauto lq:on rew:off use:Su_Pi_Proj2, Su_Transitive, E_Refl.
-      * admit.
+      * move => p p0 p1 p2 /algo_metric_join. clear => ? ? ?. exfalso.
+        hauto q:on use:REReds.hne_app_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
     + case : b => //=.
-      * admit.
-      * admit.
+      * move => i p h /algo_metric_join. clear => ? _ ?. exfalso.
+        hauto l:on use:REReds.hne_proj_inv, REReds.var_inv.
+      * move => > /algo_metric_join. clear => ? ? ?. exfalso.
+        hauto l:on use:REReds.hne_proj_inv, REReds.hne_app_inv.
       (* real case *)
       * admit.
       * sfirstorder use:T_Bot_Imp.
