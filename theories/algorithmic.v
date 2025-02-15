@@ -681,6 +681,7 @@ Proof.
       suff [v0 [hv00 hv01]] : exists v0, rtc ERed.R va' v0 /\ rtc ERed.R vb' v0.
       repeat split =>//=. sfirstorder.
       simpl in *; by lia.
+
       admit.
     + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
       move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.

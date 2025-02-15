@@ -2319,12 +2319,45 @@ Module DJoin.
     hauto lq:on rew:off ctrs:rtc unfold:R use:REReds.substing.
   Qed.
 
+  Lemma renaming n m (a b : PTm n) (ρ : fin n -> fin m) :
+    R a b -> R (ren_PTm ρ a) (ren_PTm ρ b).
+  Proof. substify. apply substing. Qed.
+
+  Lemma weakening n (a b : PTm n)  :
+    R a b -> R (ren_PTm shift a) (ren_PTm shift b).
+  Proof. apply renaming. Qed.
+
   Lemma cong n m (a : PTm (S n)) c d (ρ : fin n -> PTm m) :
     R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) a).
   Proof.
     rewrite /R. move => [cd [h0 h1]].
     exists (subst_PTm (scons cd ρ) a).
     hauto q:on ctrs:rtc inv:option use:REReds.cong.
+  Qed.
+
+  Lemma abs_inj n (a0 a1 : PTm (S n)) :
+    SN a0 -> SN a1 ->
+    R (PAbs a0) (PAbs a1) ->
+    R a0 a1.
+  Proof.
+    move => sn0 sn1.
+    move /weakening => /=.
+    move /AppCong. move /(_ (VarPTm var_zero) (VarPTm var_zero)).
+    move => /(_ ltac:(sfirstorder use:refl)).
+    move => h.
+    have /FromRRed1 h0 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a0)) (VarPTm var_zero)) a0 by apply RRed.AppAbs'; asimpl.
+    have /FromRRed0 h1 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a1)) (VarPTm var_zero)) a1 by apply RRed.AppAbs'; asimpl.
+    have sn0' := sn0.
+    have sn1' := sn1.
+    eapply sn_renaming with (ξ := (upRen_PTm_PTm shift)) in sn0.
+    eapply sn_renaming with (ξ := (upRen_PTm_PTm shift)) in sn1.
+    apply : transitive; try apply h0.
+    apply : N_Exp. apply N_β. sauto.
+    by asimpl.
+    apply : transitive; try apply h1.
+    apply : N_Exp. apply N_β. sauto.
+    by asimpl.
+    eauto.
   Qed.
 
 End DJoin.
