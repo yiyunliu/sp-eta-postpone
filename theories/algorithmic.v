@@ -420,7 +420,7 @@ Proof.
 Qed.
 
 Definition algo_metric {n} k (a b : PTm n) :=
-  exists i j va vb v, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ rtc ERed.R va v /\ rtc ERed.R vb v /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j <= k.
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ EJoin.R va vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
 Lemma ne_hne n (a : PTm n) : ne a -> ishne a.
 Proof. elim : a => //=; sfirstorder b:on. Qed.
@@ -441,7 +441,7 @@ Lemma algo_metric_case n k (a b : PTm n) :
   algo_metric k a b ->
   (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
 Proof.
-  move=>[i][j][va][vb][v][h0][h1][h2][h3][h4][h5]h6.
+  move=>[i][j][va][vb][h0] [h1][h2][h3][[v [h4 h5]]] h6.
   case : a h0 => //=; try firstorder.
   - inversion h0 as [|A B C D E F]; subst.
     hauto qb:on use:ne_hne.
@@ -601,27 +601,37 @@ Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
   ishne a1 ->
   exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
 Proof.
-  move => [i][j][va][vb][v][h0][h1][h2][h3][h4][h5]h6.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
   move => hne0 hne1.
   move : lored_nsteps_app_inv h0 (hne0);repeat move/[apply].
   move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
   move : lored_nsteps_app_inv h1 (hne1);repeat move/[apply].
   move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
   simpl in *. exists (k - 1).
+  move /andP : h2 => [h20 h21].
+  move /andP : h3 => [h30 h31].
+  move /EJoin.hne_app_inj : h4 => [h40 h41].
   split. lia.
   split.
   + rewrite /algo_metric.
-    have : exists a4 b4, rtc ERed.R a2 a4 /\ ERed.R
-    exists i0,i1,a2,b2.
+    exists i0,j0,a2,a3.
+    repeat split => //=.
+    sfirstorder b:on use:ne_nf.
+    sfirstorder b:on use:ne_nf.
+    lia.
+  + rewrite /algo_metric.
+    exists i1,j1,b2,b3.
+    repeat split => //=; sfirstorder b:on use:ne_nf.
+Qed.
 
 Lemma algo_metric_join n k (a b : PTm n) :
   algo_metric k a b ->
   DJoin.R a b.
   rewrite /algo_metric.
-  move => [i][j][va][vb][v][h0][h1][h2][h3]h4.
+  move => [i][j][va][vb][h0][h1][h2][h3][[v [h40 h41]]]h5.
   have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
   have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
-  apply REReds.FromEReds in h2,h3.
+  apply REReds.FromEReds in h40,h41.
   apply LoReds.ToRReds in h0,h1.
   apply REReds.FromRReds in h0,h1.
   rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
@@ -663,13 +673,14 @@ Proof.
       have ? : n > 0 by sauto solve+:lia.
       exists (n - 1). split; first by lia.
       move : ha0. rewrite /algo_metric.
-      move => [i][j][va][vb][v][hr0][hr1][hr0'][hr1'][nfva][nfvb]har.
+      move => [i][j][va][vb][hr0][hr1][nfva][nfvb][[v [hr0' hr1']]] har.
       apply lored_nsteps_abs_inv in hr0, hr1.
       move : hr0 => [va' [hr00 hr01]].
       move : hr1 => [vb' [hr10 hr11]]. move {ih}.
       exists i,j,va',vb'. subst.
       suff [v0 [hv00 hv01]] : exists v0, rtc ERed.R va' v0 /\ rtc ERed.R vb' v0.
-      exists v0. repeat split =>//=. simpl in har. lia.
+      repeat split =>//=. sfirstorder.
+      simpl in *; by lia.
       admit.
     + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
       move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.
@@ -710,13 +721,38 @@ Proof.
       * move => b1 a1 b0 a0 halg hne1 hne0 Γ A B wtA wtB.
         move /App_Inv : wtA => [A0][B0][hb0][ha0]hS0.
         move /App_Inv : wtB => [A1][B1][hb1][ha1]hS1.
-        have : DJoin.R (PApp b0 a0) (PApp b1 a1)
-          by hauto l:on use:algo_metric_join.
-        move : DJoin.hne_app_inj (hne0) (hne1). repeat move/[apply].
-        move => [hjb hja].
-        split. apply CE_AppCong => //=.
-        eapply ih; eauto.
-        admit.
+        move : algo_metric_app (hne0) (hne1) halg. repeat move/[apply].
+        move => [j [hj [hal0 hal1]]].
+        have /ih := hal0.
+        move /(_ hj).
+        move => [_ ihb].
+        move : ihb (hne0) (hne1) hb0 hb1. repeat move/[apply].
+        move => [hb01][C][hT0]hT1.
+        move /Sub_Bind_InvL : (hT0).
+        move => [i][A2][B2]hE.
+        have hSu20 : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A0 B0 by
+          eauto using Su_Eq, Su_Transitive.
+        have hSu10 : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A1 B1 by
+          eauto using Su_Eq, Su_Transitive.
+        have hSuA0 : Γ ⊢ A0 ≲ A2 by sfirstorder use:Su_Pi_Proj1.
+        have hSuA1 : Γ ⊢ A1 ≲ A2 by sfirstorder use:Su_Pi_Proj1.
+        have ha1' : Γ ⊢ a1 ∈ A2 by eauto using T_Conv.
+        have ha0' : Γ ⊢ a0 ∈ A2 by eauto using T_Conv.
+        move : ih (hj) hal1. repeat move/[apply].
+        move => [ih _].
+        move : ih (ha0') (ha1'); repeat move/[apply].
+        move => iha.
+        split. sauto lq:on.
+        exists (subst_PTm (scons a0 VarPTm) B2).
+        split.
+        apply : Su_Transitive; eauto.
+        move /E_Refl in ha0.
+        hauto l:on use:Su_Pi_Proj2.
+        apply Su_Transitive with (B := subst_PTm (scons a1 VarPTm) B2).
+        move /regularity_sub0 : hSu10 => [i0].
+        have : Γ ⊢ a0 ≡ a1 ∈ A2 by sfirstorder use:coqeq_sound_mutual.
+        hauto l:on use:bind_inst.
+        hauto lq:on rew:off use:Su_Pi_Proj2, Su_Transitive, E_Refl.
       * admit.
       * sfirstorder use:T_Bot_Imp.
     + case : b => //=.
