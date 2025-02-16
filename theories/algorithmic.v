@@ -558,6 +558,7 @@ Proof.
   - sfirstorder use:ne_hne.
   - hauto lq:on ctrs:HRed.R.
 Qed.
+
 Lemma algo_metric_case n k (a b : PTm n) :
   algo_metric k a b ->
   (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
@@ -769,6 +770,23 @@ Proof.
   sfirstorder use:ne_nf.
   lia.
 Qed.
+
+Lemma algo_metric_pair n k (a0 b0 a1 b1 : PTm n) :
+  SN (PPair a0 b0) ->
+  SN (PPair a1 b1) ->
+  algo_metric k (PPair a0 b0) (PPair a1 b1) ->
+  exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
+Admitted.
+
+Lemma algo_metric_neu_abs n k (a0 : PTm (S n)) u :
+  algo_metric k u (PAbs a0) ->
+  exists j, j < k /\ algo_metric j (PApp (ren_PTm shift u) (VarPTm var_zero)) a0.
+Admitted.
+
+Lemma algo_metric_neu_pair n k (a0 b0 : PTm n) u :
+  algo_metric k u (PPair a0 b0) ->
+  exists j, j < k /\ algo_metric j (PProj PL u) a0 /\ algo_metric j (PProj PR u) b0.
+Admitted.
 
 Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
   algo_metric k (PApp a0 b0) (PApp a1 b1) ->
