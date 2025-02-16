@@ -831,6 +831,12 @@ Lemma algo_metric_join n k (a b : PTm n) :
   rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
 Qed.
 
+Lemma T_Univ_Raise n Γ (a : PTm n) i j :
+  Γ ⊢ a ∈ PUniv i ->
+  i <= j ->
+  Γ ⊢ a ∈ PUniv j.
+Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
+
 Lemma coqeq_complete n k (a b : PTm n) :
   algo_metric k a b ->
   (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
@@ -909,22 +915,24 @@ Proof.
           by hauto lq:on rew:off use:Su_Univ, wff_mutual solve+:lia.
         have ? : Γ ⊢ PUniv i1 ≲ PUniv (max i0 i1)
           by hauto lq:on rew:off use:Su_Univ, wff_mutual solve+:lia.
-        have hA0' : Γ ⊢ A0 ∈ PUniv (max i0 i1) by eauto using T_Conv.
-        have hA1' : Γ ⊢ A1 ∈ PUniv (max i0 i1) by eauto using T_Conv.
+        have {}hA0 : Γ ⊢ A0 ∈ PUniv (max i0 i1) by eauto using T_Conv.
+        have {}hA1 : Γ ⊢ A1 ∈ PUniv (max i0 i1) by eauto using T_Conv.
+        have {}hB0 : funcomp (ren_PTm shift) (scons A0 Γ) ⊢
+                       B0 ∈ PUniv (max i0 i1)
+          by hauto lq:on use:T_Univ_Raise solve+:lia.
+        have {}hB1 : funcomp (ren_PTm shift) (scons A1 Γ) ⊢
+                       B1 ∈ PUniv (max i0 i1)
+          by hauto lq:on use:T_Univ_Raise solve+:lia.
+
         have ihA : A0 ⇔ A1 by hauto l:on.
         have hAE : Γ ⊢ A0 ≡ A1 ∈ PUniv (Nat.max i0 i1)
           by hauto l:on use:coqeq_sound_mutual.
         apply : CE_HRed; eauto using rtc_refl.
         constructor => //.
-        admit.
-        (* eapply ih; eauto. *)
-        (* move /Su_Eq in hAE. *)
-        (* apply : ctx_eq_subst_one; eauto. *)
 
-      (* Show that A0 and A1 are algorithmically equal *)
-      (* Use soundness to show that they are actually definitionally equal *)
-      (* Use that to show that B0 and B1 can be assigned the same type *)
-        (* admit. *)
+        eapply ih; eauto.
+        apply : ctx_eq_subst_one; eauto.
+        eauto using Su_Eq.
       * move => > /algo_metric_join.
         hauto lq:on use:DJoin.bind_univ_noconf.
     + case : b => //=.
@@ -943,9 +951,12 @@ Proof.
     (* NeuPair *)
     + admit.
     (* NeuBind: Impossible *)
-    + admit.
+    + move => b p p0 a /algo_metric_join h _ h0. exfalso.
+      move : h h0. clear.
+      move /Sub.FromJoin.
+      hauto l:on use:Sub.hne_bind_noconf.
     (* NeuUniv: Impossible *)
-    + admit.
+    + hauto lq:on rew:off use:DJoin.hne_univ_noconf, algo_metric_join.
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.

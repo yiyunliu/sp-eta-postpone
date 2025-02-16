@@ -1675,6 +1675,10 @@ Module RERed.
 End RERed.
 
 Module REReds.
+  Lemma hne_preservation n (a b : PTm n) :
+    rtc RERed.R a b -> ishne a -> ishne b.
+  Proof.  induction 1; eauto using RERed.hne_preservation, rtc_refl, rtc. Qed.
+
   Lemma sn_preservation n (a b : PTm n) :
     rtc RERed.R a b ->
     SN a ->
@@ -2284,6 +2288,17 @@ Module DJoin.
     case : c => //=; itauto.
   Qed.
 
+  Lemma hne_univ_noconf n (a b : PTm n) :
+    R a b -> ishne a -> isuniv b -> False.
+  Proof.
+    move => [c [h0 h1]] h2 h3.
+    have {h0 h1 h2 h3} : ishne c /\ isuniv c by
+      hauto l:on use:REReds.hne_preservation,
+          REReds.univ_preservation.
+    move => [].
+    case : c => //=.
+  Qed.
+
   Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
     DJoin.R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
     p0 = p1 /\ DJoin.R A0 A1 /\ DJoin.R B0 B1.
@@ -2562,6 +2577,17 @@ Module Sub.
     have : SNe c /\ isbind c by
       hauto l:on use:REReds.sne_preservation, REReds.bind_preservation, Sub1.sne_preservation, Sub1.bind_preservation.
     qauto l:on inv:SNe.
+  Qed.
+
+  Lemma hne_bind_noconf n (a b : PTm n) :
+    R a b -> ishne a -> isbind b -> False.
+  Proof.
+    rewrite /R.
+    move => [c[d] [? []]] h0 h1 h2 h3.
+    have : ishne c by eauto using REReds.hne_preservation.
+    have : isbind d by eauto using REReds.bind_preservation.
+    move : h1. clear. inversion 1; subst => //=.
+    clear. case : d => //=.
   Qed.
 
   Lemma bind_sne_noconf n (a b : PTm n) :
