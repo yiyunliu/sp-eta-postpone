@@ -1900,6 +1900,22 @@ Module LoRed.
     RRed.R a b.
   Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
 
+  Lemma AppAbs' n a (b : PTm n) u :
+    u = (subst_PTm (scons b VarPTm) a) ->
+    R (PApp (PAbs a) b)  u.
+  Proof. move => ->. apply AppAbs. Qed.
+
+  Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    move => h. move : m ξ.
+    elim : n a b /h.
+
+    move => n a b m ξ /=.
+    apply AppAbs'. by asimpl.
+    all : try qauto ctrs:R use:ne_nf_ren, ishf_ren.
+  Qed.
+
 End LoRed.
 
 Module LoReds.
@@ -2465,6 +2481,18 @@ Module DJoin.
     apply : N_Exp. apply N_β. sauto.
     by asimpl.
     eauto.
+  Qed.
+
+  Lemma ejoin_abs_inj n (a0 a1 : PTm (S n)) :
+    nf a0 -> nf a1 ->
+    EJoin.R (PAbs a0) (PAbs a1) ->
+    EJoin.R a0 a1.
+  Proof.
+    move => h0 h1.
+    have [? [? [? ?]]] : SN a0 /\ SN a1 /\ SN (PAbs a0) /\ SN (PAbs a1) by sauto lqb:on rew:off use:ne_nf_embed.
+    move /FromEJoin.
+    move /abs_inj.
+    hauto l:on use:ToEJoin.
   Qed.
 
   Lemma standardization n (a b : PTm n) :

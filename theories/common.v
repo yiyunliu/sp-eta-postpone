@@ -91,3 +91,7 @@ Proof. case : a => //=. Qed.
 Definition ispair_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
   ispair (ren_PTm ξ a) = ispair a.
 Proof. case : a => //=. Qed.
+
+Definition ishne_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
+  ishne (ren_PTm ξ a) = ishne a.
+Proof. move : m ξ. elim : n / a => //=. Qed.

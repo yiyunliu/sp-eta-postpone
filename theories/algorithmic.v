@@ -686,6 +686,10 @@ Lemma lored_hne_preservation n (a b : PTm n) :
     LoRed.R a b -> ishne a -> ishne b.
 Proof.  induction 1; sfirstorder. Qed.
 
+Lemma loreds_hne_preservation n (a b : PTm n) :
+  rtc LoRed.R a b -> ishne a -> ishne b.
+Proof. induction 1; hauto lq:on ctrs:rtc use:lored_hne_preservation. Qed.
+
 Lemma lored_nsteps_bind_inv k n p (a0 : PTm n) b0 C :
     nsteps LoRed.R k (PBind p a0 b0) C ->
     exists i j a1 b1,
@@ -771,6 +775,20 @@ Proof.
   lia.
 Qed.
 
+Lemma lored_nsteps_app_cong k n (a0 a1 b : PTm n) :
+  nsteps LoRed.R k a0 a1 ->
+  ishne a0 ->
+  nsteps LoRed.R k (PApp a0 b) (PApp a1 b).
+  move => h. move : b.
+  elim : k a0 a1 / h.
+  - sauto.
+  - move => m a0 a1 a2 h0 h1 ih.
+    move => b hneu.
+    apply : nsteps_l; eauto using LoRed.AppCong0.
+    apply LoRed.AppCong0;eauto. move : hneu. clear. case : a0 => //=.
+    apply ih. sfirstorder use:lored_hne_preservation.
+Qed.
+
 Lemma lored_nsteps_pair_inv k n (a0 b0 C : PTm n) :
     nsteps LoRed.R k (PPair a0 b0) C ->
     exists i j a1 b1,
@@ -822,10 +840,38 @@ Lemma algo_metric_pair n k (a0 b0 a1 b1 : PTm n) :
   hauto l:on use:DJoin.ejoin_pair_inj.
 Qed.
 
+Lemma hne_nf_ne n (a : PTm n) :
+  ishne a -> nf a -> ne a.
+Proof. case : a => //=. Qed.
+
+Lemma lored_nsteps_renaming k n m (a b : PTm n) (ξ : fin n -> fin m) :
+  nsteps LoRed.R k a b ->
+  nsteps LoRed.R k (ren_PTm ξ a) (ren_PTm ξ b).
+Proof.
+  induction 1; hauto lq:on ctrs:nsteps use:LoRed.renaming.
+Qed.
+
 Lemma algo_metric_neu_abs n k (a0 : PTm (S n)) u :
   algo_metric k u (PAbs a0) ->
+  ishne u ->
   exists j, j < k /\ algo_metric j (PApp (ren_PTm shift u) (VarPTm var_zero)) a0.
-Admitted.
+Proof.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 neu.
+  have neva : ne va by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
+  move /lored_nsteps_abs_inv : h1 => [a1][h01]?. subst.
+  exists (k - 1). simpl in *. split. lia.
+  have {}h0 : nsteps LoRed.R i (ren_PTm shift u) (ren_PTm shift va)
+    by eauto using lored_nsteps_renaming.
+  have {}h0 : nsteps LoRed.R i (PApp (ren_PTm shift u) (VarPTm var_zero)) (PApp (ren_PTm shift va) (VarPTm var_zero)).
+  apply lored_nsteps_app_cong => //=.
+  scongruence use:ishne_ren.
+  do 4 eexists. repeat split; eauto.
+  hauto b:on use:ne_nf_ren.
+  have h : EJoin.R (PAbs (PApp (ren_PTm shift va) (VarPTm var_zero))) (PAbs a1) by hauto q:on ctrs:rtc,ERed.R.
+  apply DJoin.ejoin_abs_inj; eauto.
+  hauto b:on drew:off use:ne_nf_ren.
+  simpl in *.  rewrite size_PTm_ren. lia.
+Qed.
 
 Lemma algo_metric_neu_pair n k (a0 b0 : PTm n) u :
   algo_metric k u (PPair a0 b0) ->
@@ -903,6 +949,24 @@ Proof.
   by asimpl.
   rewrite -/ren_PTm.
   by asimpl.
+Qed.
+
+Lemma Pair_Sig_Inv n Γ (a b : PTm n) A B :
+  Γ ⊢ PPair a b ∈ PBind PSig A B ->
+  Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B.
+Proof.
+  move => /[dup] h0 h1.
+  have [i hr] : exists i, Γ ⊢ PBind PSig A B ∈ PUniv i by sfirstorder use:regularity.
+  move /T_Proj1 in h0.
+  move /T_Proj2 in h1.
+  split.
+  hauto lq:on use:subject_reduction ctrs:RRed.R.
+  have hE : Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A by
+    hauto lq:on use:RRed_Eq ctrs:RRed.R.
+  apply : T_Conv.
+  move /subject_reduction : h1. apply.
+  apply RRed.ProjPair.
+  apply : bind_inst; eauto.
 Qed.
 
 Lemma coqeq_complete n k (a b : PTm n) :
@@ -1060,13 +1124,32 @@ Proof.
       by apply T_Var.
       rewrite -/ren_PTm. by asimpl.
       move /Abs_Pi_Inv in ha.
-      move /algo_metric_neu_abs : halg.
+      move /algo_metric_neu_abs /(_ nea) : halg.
       move => [j0][hj0]halg.
       apply : CE_HRed; eauto using rtc_refl.
       eapply CE_NeuAbs => //=.
       eapply ih; eauto.
     (* NeuPair *)
-    + admit.
+    + move => a0 b0 u halg _ neu.
+      split => // Γ A hu /[dup] wt.
+      move /Pair_Inv => [A0][B0][ha0][hb0]hU.
+      move /Sub_Bind_InvR : (hU) => [i][A2][B2]hE.
+      have {}wt : Γ ⊢ PPair a0 b0 ∈ PBind PSig A2 B2 by sauto lq:on.
+      have {}hu : Γ ⊢ u ∈ PBind PSig A2 B2 by eauto using T_Conv_E.
+      move /Pair_Sig_Inv : wt => [{}ha0 {}hb0].
+      have /T_Proj1 huL := hu.
+      have /T_Proj2 {hu} huR := hu.
+      move /algo_metric_neu_pair : halg => [j [hj [hL hR]]].
+      have heL : PProj PL u ⇔ a0 by hauto l:on.
+      eapply CE_HRed; eauto using rtc_refl.
+      apply CE_NeuPair; eauto.
+      eapply ih; eauto.
+      apply : T_Conv; eauto.
+      have {}hE : Γ ⊢ PBind PSig A2 B2 ∈ PUniv i
+        by hauto l:on use:regularity.
+      have /E_Symmetric : Γ ⊢ PProj PL u  ≡ a0 ∈ A2 by
+        hauto l:on use:coqeq_sound_mutual.
+      hauto l:on use:bind_inst.
     (* NeuBind: Impossible *)
     + move => b p p0 a /algo_metric_join h _ h0. exfalso.
       move : h h0. clear.
@@ -1131,7 +1214,6 @@ Proof.
         apply : Su_Transitive; eauto.
         move /E_Refl in ha0.
         hauto l:on use:Su_Pi_Proj2.
-        move => [:hsub].
         have h01 : Γ ⊢ a0 ≡ a1 ∈ A2 by sfirstorder use:coqeq_sound_mutual.
         split.
         apply Su_Transitive with (B := subst_PTm (scons a1 VarPTm) B2).
@@ -1210,4 +1292,4 @@ Proof.
                sfirstorder use:bind_inst.
       * sfirstorder use:T_Bot_Imp.
     + sfirstorder use:T_Bot_Imp.
-Admitted.
+Qed.
