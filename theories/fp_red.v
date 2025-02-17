@@ -2515,6 +2515,20 @@ Module DJoin.
     hauto q:on use:NeEPars.ToEReds unfold:EJoin.R.
   Qed.
 
+  Lemma standardization_lo n (a b : PTm n) :
+    SN a -> SN b -> R a b ->
+    exists va vb, rtc LoRed.R a va /\ rtc LoRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb.
+  Proof.
+    move => /[dup] sna + /[dup] snb.
+    move : standardization; repeat move/[apply].
+    move => [va][vb][hva][hvb][nfva][nfvb]hj.
+    move /LoReds.FromSN : sna => [va' [hva' hva'0]].
+    move /LoReds.FromSN : snb => [vb' [hvb' hvb'0]].
+    exists va', vb'.
+    repeat split => //=.
+    have : va = va' /\ vb = vb' by sfirstorder use:red_uniquenf, LoReds.ToRReds.
+    case; congruence.
+  Qed.
 End DJoin.
 
 

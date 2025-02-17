@@ -875,7 +875,10 @@ Qed.
 
 Lemma algo_metric_neu_pair n k (a0 b0 : PTm n) u :
   algo_metric k u (PPair a0 b0) ->
+  ishne u ->
   exists j, j < k /\ algo_metric j (PProj PL u) a0 /\ algo_metric j (PProj PR u) b0.
+Proof.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 neu.
 Admitted.
 
 Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
