@@ -771,12 +771,56 @@ Proof.
   lia.
 Qed.
 
+Lemma lored_nsteps_pair_inv k n (a0 b0 C : PTm n) :
+    nsteps LoRed.R k (PPair a0 b0) C ->
+    exists i j a1 b1,
+      i <= k /\ j <= k /\
+        C = PPair a1 b1 /\
+        nsteps LoRed.R i a0 a1 /\
+        nsteps LoRed.R j b0 b1.
+  move E : (PPair a0 b0) => u hu. move : a0 b0 E.
+  elim : k u C / hu.
+  - sauto lq:on.
+  - move => k a0 a1 a2 ha01 ha12 ih a3 b0 ?.  subst.
+    inversion ha01; subst => //=.
+    spec_refl.
+    move : ih => [i][j][a1][b1][?][?][?][h0]h1.
+    subst. exists (S i),j,a1,b1. sauto lq:on solve+:lia.
+    spec_refl.
+    move : ih => [i][j][a1][b1][?][?][?][h0]h1. subst.
+    exists i, (S j), a1, b1. sauto lq:on solve+:lia.
+Qed.
+
+Lemma algo_metric_join n k (a b : PTm n) :
+  algo_metric k a b ->
+  DJoin.R a b.
+  rewrite /algo_metric.
+  move => [i][j][va][vb][h0][h1][h2][h3][[v [h40 h41]]]h5.
+  have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
+  have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
+  apply REReds.FromEReds in h40,h41.
+  apply LoReds.ToRReds in h0,h1.
+  apply REReds.FromRReds in h0,h1.
+  rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
+Qed.
+
 Lemma algo_metric_pair n k (a0 b0 a1 b1 : PTm n) :
   SN (PPair a0 b0) ->
   SN (PPair a1 b1) ->
   algo_metric k (PPair a0 b0) (PPair a1 b1) ->
   exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
-Admitted.
+  move => sn0 sn1 /[dup] /algo_metric_join hj.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
+  move : lored_nsteps_pair_inv h0;repeat move/[apply].
+  move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
+  move : lored_nsteps_pair_inv h1;repeat move/[apply].
+  move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
+  simpl in *. exists (k - 1).
+  move /andP : h2 => [h20 h21].
+  move /andP : h3 => [h30 h31].
+  suff : EJoin.R a2 a3 /\ EJoin.R b2 b3 by hauto lq:on solve+:lia.
+  hauto l:on use:DJoin.ejoin_pair_inj.
+Qed.
 
 Lemma algo_metric_neu_abs n k (a0 : PTm (S n)) u :
   algo_metric k u (PAbs a0) ->
@@ -834,19 +878,6 @@ Proof.
   - exists i0,j0,a2,a3.
     repeat split => //=; sfirstorder b:on solve+:lia.
   - exists i1,j1,b2,b3. sfirstorder b:on solve+:lia.
-Qed.
-
-Lemma algo_metric_join n k (a b : PTm n) :
-  algo_metric k a b ->
-  DJoin.R a b.
-  rewrite /algo_metric.
-  move => [i][j][va][vb][h0][h1][h2][h3][[v [h40 h41]]]h5.
-  have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
-  have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
-  apply REReds.FromEReds in h40,h41.
-  apply LoReds.ToRReds in h0,h1.
-  apply REReds.FromRReds in h0,h1.
-  rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
 Qed.
 
 Lemma T_Univ_Raise n Γ (a : PTm n) i j :

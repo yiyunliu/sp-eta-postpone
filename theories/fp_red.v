@@ -262,6 +262,12 @@ end.
 Lemma ne_nf n a : @ne n a -> nf a.
 Proof. elim : a => //=. Qed.
 
+Lemma ne_nf_ren n m (a : PTm n) (ξ : fin n -> fin m) :
+  (ne a <-> ne (ren_PTm ξ a)) /\ (nf a <-> nf (ren_PTm ξ a)).
+Proof.
+  move : m ξ. elim : n / a => //=; solve [hauto b:on].
+Qed.
+
 Inductive TRedSN' {n} (a : PTm n) : PTm n -> Prop :=
 | T_Refl :
   TRedSN' a a
@@ -841,12 +847,6 @@ Module RReds.
 
 End RReds.
 
-
-Lemma ne_nf_ren n m (a : PTm n) (ξ : fin n -> fin m) :
-  (ne a <-> ne (ren_PTm ξ a)) /\ (nf a <-> nf (ren_PTm ξ a)).
-Proof.
-  move : m ξ. elim : n / a => //=; solve [hauto b:on].
-Qed.
 
 Module NeEPar.
   Inductive R_nonelim {n} : PTm n -> PTm n ->  Prop :=
@@ -1446,6 +1446,14 @@ Module ERed.
     all : hauto lq:on ctrs:R.
   Qed.
 
+  Lemma nf_preservation n (a b : PTm n) :
+    ERed.R a b -> (nf a -> nf b) /\ (ne a -> ne b).
+  Proof.
+    move => h.
+    elim : n a b /h => //=;
+                        hauto lqb:on use:ne_nf_ren,ne_nf.
+  Qed.
+
 End ERed.
 
 Module EReds.
@@ -1827,6 +1835,14 @@ Module REReds.
     have : rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a) by eauto using cong.
     move => ?. apply : relations.rtc_transitive; eauto.
     hauto l:on use:substing.
+  Qed.
+
+  Lemma ToEReds n (a b : PTm n) :
+    nf a ->
+    rtc RERed.R a b -> rtc ERed.R a b.
+  Proof.
+    move => + h.
+    induction h; hauto lq:on rew:off ctrs:rtc use:RERed.ToBetaEta, RReds.nf_refl, @rtc_once, ERed.nf_preservation.
   Qed.
 
 End REReds.
@@ -2215,6 +2231,12 @@ Module DJoin.
   Lemma refl n (a : PTm n) : R a a.
   Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
 
+  Lemma FromEJoin n (a b : PTm n) : EJoin.R a b -> DJoin.R a b.
+  Proof. hauto q:on use:REReds.FromEReds. Qed.
+
+  Lemma ToEJoin n (a b : PTm n) : nf a -> nf b -> DJoin.R a b -> EJoin.R a b.
+  Proof. hauto q:on use:REReds.ToEReds. Qed.
+
   Lemma symmetric n (a b : PTm n) : R a b -> R b a.
   Proof. sfirstorder unfold:R. Qed.
 
@@ -2379,6 +2401,45 @@ Module DJoin.
     rewrite /R. move => [cd [h0 h1]].
     exists (subst_PTm (scons cd ρ) a).
     hauto q:on ctrs:rtc inv:option use:REReds.cong.
+  Qed.
+
+  Lemma pair_inj n (a0 a1 b0 b1 : PTm n) :
+    SN (PPair a0 b0) ->
+    SN (PPair a1 b1) ->
+    R (PPair a0 b0) (PPair a1 b1) ->
+    R a0 a1 /\ R b0 b1.
+  Proof.
+    move => sn0 sn1.
+    have [? [? [? ?]]] : SN a0 /\ SN b0 /\ SN a1 /\ SN b1 by sfirstorder use:SN_NoForbid.P_PairInv.
+    have ? : SN (PProj PL (PPair a0 b0)) by hauto lq:on db:sn.
+    have ? : SN (PProj PR (PPair a0 b0)) by hauto lq:on db:sn.
+    have ? : SN (PProj PL (PPair a1 b1)) by hauto lq:on db:sn.
+    have ? : SN (PProj PR (PPair a1 b1)) by hauto lq:on db:sn.
+    have h0L : RRed.R (PProj PL (PPair a0 b0)) a0 by eauto with red.
+    have h0R : RRed.R (PProj PR (PPair a0 b0)) b0 by eauto with red.
+    have h1L : RRed.R (PProj PL (PPair a1 b1)) a1 by eauto with red.
+    have h1R : RRed.R (PProj PR (PPair a1 b1)) b1 by eauto with red.
+    move => h2.
+    move /ProjCong in h2.
+    have h2L := h2 PL.
+    have {h2}h2R := h2 PR.
+    move /FromRRed1 in h0L.
+    move /FromRRed0 in h1L.
+    move /FromRRed1 in h0R.
+    move /FromRRed0 in h1R.
+    split; eauto using transitive.
+  Qed.
+
+  Lemma ejoin_pair_inj n (a0 a1 b0 b1 : PTm n) :
+    nf a0 -> nf b0 -> nf a1 -> nf b1 ->
+    EJoin.R (PPair a0 b0) (PPair a1 b1) ->
+    EJoin.R a0 a1 /\ EJoin.R b0 b1.
+  Proof.
+    move => h0 h1 h2 h3 /FromEJoin.
+    have [? ?] : SN (PPair a0 b0) /\ SN (PPair a1 b1) by sauto lqb:on rew:off use:ne_nf_embed.
+    move => ?.
+    have : R a0 a1 /\ R b0 b1 by hauto l:on use:pair_inj.
+    hauto l:on use:ToEJoin.
   Qed.
 
   Lemma abs_inj n (a0 a1 : PTm (S n)) :
