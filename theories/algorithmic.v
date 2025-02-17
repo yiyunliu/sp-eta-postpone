@@ -945,12 +945,39 @@ Proof.
       sfirstorder.
     + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
       move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.
+      have [sn0 sn1] : SN (PPair a0 b0) /\ SN (PPair a1 b1)
+        by qauto l:on use:fundamental_theorem, logrel.SemWt_SN.
       apply : CE_HRed; eauto using rtc_refl.
-      admit.
-      (* suff : exists l, l < n /\ algo_metric l a0 b0 /\ algo_metric l a1 b1. *)
-      (* move => [l [hl [hal0 hal1]]]. *)
-      (* apply CE_PairPair. eapply ih; eauto. *)
-      (* by eapply ih; eauto. *)
+      move /Pair_Inv : hu0 => [A0][B0][ha0][hb0]hSu0.
+      move /Pair_Inv : hu1 => [A1][B1][ha1][hb1]hSu1.
+      move /Sub_Bind_InvR :  (hSu0).
+      move => [i][A2][B2]hE.
+      have hSu12 : Γ ⊢ PBind PSig A1 B1 ≲ PBind PSig A2 B2
+        by eauto using Su_Transitive, Su_Eq.
+      have hSu02 : Γ ⊢ PBind PSig A0 B0 ≲ PBind PSig A2 B2
+        by eauto using Su_Transitive, Su_Eq.
+      have hA02 : Γ ⊢ A0 ≲ A2 by eauto using Su_Sig_Proj1.
+      have hA12 : Γ ⊢ A1 ≲ A2 by eauto using Su_Sig_Proj1.
+      have ha0A2 : Γ ⊢ a0 ∈ A2 by eauto using T_Conv.
+      have ha1A2 : Γ ⊢ a1 ∈ A2 by eauto using T_Conv.
+      move /algo_metric_pair : h sn0 sn1; repeat move/[apply].
+      move => [j][hj][ih0 ih1].
+      have haE : a0 ⇔ a1 by hauto l:on.
+      apply CE_PairPair => //.
+      have {}haE : Γ ⊢ a0 ≡ a1 ∈ A2
+        by hauto l:on use:coqeq_sound_mutual.
+      have {}hb1 : Γ ⊢ b1 ∈ subst_PTm (scons a1 VarPTm) B2.
+      apply : T_Conv; eauto.
+      move /E_Refl in ha1. hauto l:on use:Su_Sig_Proj2.
+      eapply ih; cycle -1; eauto.
+      apply : T_Conv; eauto.
+      apply Su_Transitive with (B := subst_PTm (scons a0 VarPTm) B2).
+      move /E_Refl in ha0. hauto l:on use:Su_Sig_Proj2.
+      move : hE haE. clear.
+      move => h.
+      eapply regularity in h.
+      move : h => [_ [hB _]].
+      eauto using bind_inst.
     + case : b => //=.
       * hauto lq:on use:T_AbsBind_Imp.
       * hauto lq:on rew:off use:T_PairBind_Imp.
