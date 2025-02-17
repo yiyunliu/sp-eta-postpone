@@ -886,6 +886,25 @@ Lemma T_Univ_Raise n Γ (a : PTm n) i j :
   Γ ⊢ a ∈ PUniv j.
 Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
 
+Lemma Abs_Pi_Inv n Γ (a : PTm (S n)) A B :
+  Γ ⊢ PAbs a ∈ PBind PPi A B ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B.
+Proof.
+  move => h.
+  have [i hi] : exists i, Γ ⊢ PBind PPi A B ∈ PUniv i by hauto use:regularity.
+  have  [{}i {}hi] : exists i, Γ ⊢ A ∈ PUniv i by hauto use:Bind_Inv.
+  apply : subject_reduction; last apply RRed.AppAbs'.
+  apply : T_App'; cycle 1.
+  apply : weakening_wt'; cycle 2. apply hi.
+  apply h. reflexivity. reflexivity. rewrite -/ren_PTm.
+  apply T_Var' with (i := var_zero).  by asimpl.
+  by eauto using Wff_Cons'.
+  rewrite -/ren_PTm.
+  by asimpl.
+  rewrite -/ren_PTm.
+  by asimpl.
+Qed.
+
 Lemma coqeq_complete n k (a b : PTm n) :
   algo_metric k a b ->
   (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
@@ -1023,7 +1042,29 @@ Proof.
     move => + b.
     case : b => //=.
     (* NeuAbs *)
-    + admit.
+    + move => a u halg _ nea. split => // Γ A hu /[dup] ha.
+      move /Abs_Inv => [A0][B0][_]hSu.
+      move /Sub_Bind_InvR : (hSu) => [i][A2][B2]hE.
+      have {}hu : Γ ⊢ u ∈ PBind PPi A2 B2 by eauto using T_Conv_E.
+      have {}ha : Γ ⊢ PAbs a ∈ PBind PPi A2 B2 by eauto using T_Conv_E.
+      have {}hE : Γ ⊢ PBind PPi A2 B2 ∈ PUniv i
+        by hauto l:on use:regularity.
+      have {i} [j {}hE] : exists j, Γ ⊢ A2 ∈ PUniv j
+          by qauto l:on use:Bind_Inv.
+      have hΓ : ⊢ funcomp (ren_PTm shift) (scons A2 Γ) by eauto using Wff_Cons'.
+      set Δ := funcomp _ _ in hΓ.
+      have {}hu : Δ ⊢ PApp (ren_PTm shift u) (VarPTm var_zero) ∈ B2.
+      apply : T_App'; cycle 1. apply : weakening_wt' => //=; eauto.
+      reflexivity.
+      rewrite -/ren_PTm.
+      by apply T_Var.
+      rewrite -/ren_PTm. by asimpl.
+      move /Abs_Pi_Inv in ha.
+      move /algo_metric_neu_abs : halg.
+      move => [j0][hj0]halg.
+      apply : CE_HRed; eauto using rtc_refl.
+      eapply CE_NeuAbs => //=.
+      eapply ih; eauto.
     (* NeuPair *)
     + admit.
     (* NeuBind: Impossible *)
