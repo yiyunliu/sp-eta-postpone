@@ -998,7 +998,7 @@ Proof.
   apply : bind_inst; eauto.
 Qed.
 
-Lemma coqeq_complete n k (a b : PTm n) :
+Lemma coqeq_complete' n k (a b : PTm n) :
   algo_metric k a b ->
   (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
   (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C).
@@ -1322,4 +1322,27 @@ Proof.
                sfirstorder use:bind_inst.
       * sfirstorder use:T_Bot_Imp.
     + sfirstorder use:T_Bot_Imp.
+Qed.
+
+Lemma coqeq_sound : forall n Γ (a b : PTm n) A,
+    Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b -> Γ ⊢ a ≡ b ∈ A.
+Proof. sfirstorder use:coqeq_sound_mutual. Qed.
+
+Lemma coqeq_complete n Γ (a b A : PTm n) :
+  Γ ⊢ a ≡ b ∈ A -> a ⇔ b.
+Proof.
+  move => h.
+  suff : exists k, algo_metric k a b by hauto lq:on use:coqeq_complete', regularity.
+  eapply fundamental_theorem in h.
+  move /logrel.SemEq_SN_Join : h.
+  move => h.
+  have : exists va vb : PTm n,
+         rtc LoRed.R a va /\
+         rtc LoRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb
+      by hauto l:on use:DJoin.standardization_lo.
+  move => [va][vb][hva][hvb][nva][nvb]hj.
+  move /relations.rtc_nsteps : hva => [i hva].
+  move /relations.rtc_nsteps : hvb => [j hvb].
+  exists (i + j + size_PTm va + size_PTm vb).
+  hauto lq:on solve+:lia.
 Qed.
