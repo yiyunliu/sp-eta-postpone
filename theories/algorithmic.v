@@ -789,6 +789,19 @@ Lemma lored_nsteps_app_cong k n (a0 a1 b : PTm n) :
     apply ih. sfirstorder use:lored_hne_preservation.
 Qed.
 
+Lemma lored_nsteps_proj_cong k n p (a0 a1 : PTm n) :
+  nsteps LoRed.R k a0 a1 ->
+  ishne a0 ->
+  nsteps LoRed.R k (PProj p a0) (PProj p a1).
+  move => h. move : p.
+  elim : k a0 a1 / h.
+  - sauto.
+  - move => m a0 a1 a2 h0 h1 ih p hneu.
+    apply : nsteps_l; eauto using LoRed.ProjCong.
+    apply LoRed.ProjCong;eauto. move : hneu. clear. case : a0 => //=.
+    apply ih. sfirstorder use:lored_hne_preservation.
+Qed.
+
 Lemma lored_nsteps_pair_inv k n (a0 b0 C : PTm n) :
     nsteps LoRed.R k (PPair a0 b0) C ->
     exists i j a1 b1,
@@ -879,7 +892,20 @@ Lemma algo_metric_neu_pair n k (a0 b0 : PTm n) u :
   exists j, j < k /\ algo_metric j (PProj PL u) a0 /\ algo_metric j (PProj PR u) b0.
 Proof.
   move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 neu.
-Admitted.
+  move /lored_nsteps_pair_inv : h1.
+  move => [i0][j0][a1][b1][hi][hj][?][ha01]hb01. subst.
+  simpl in *.
+  have ? : ishne va by
+    hauto lq:on use:loreds_hne_preservation, @relations.rtc_nsteps.
+  have ? : ne va by sfirstorder use:hne_nf_ne.
+  exists (k - 1). split. lia.
+  move :lored_nsteps_proj_cong (neu) h0; repeat move/[apply].
+  move => h. have hL := h PL. have {h} hR := h PR.
+  suff [? ?] : EJoin.R (PProj PL va) a1  /\ EJoin.R (PProj PR va) b1.
+  rewrite /algo_metric.
+  split; do 4 eexists; repeat split;eauto; sfirstorder b:on solve+:lia.
+  eapply DJoin.ejoin_pair_inj; hauto qb:on ctrs:rtc, ERed.R.
+Qed.
 
 Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
   algo_metric k (PApp a0 b0) (PApp a1 b1) ->
@@ -1021,6 +1047,7 @@ Proof.
       move => /[dup] [[ha00 ha10]] [].
       move : DJoin.abs_inj; repeat move/[apply].
       move : DJoin.standardization ha00 ha10; repeat move/[apply].
+      (* this is awful *)
       move => [vb][va][h' [h'' [h''' [h'''' h'''''']]]].
       have /LoReds.ToRReds {}hr00 : rtc LoRed.R a1 va'
         by hauto lq:on use:@relations.rtc_nsteps.
@@ -1142,7 +1169,7 @@ Proof.
       move /Pair_Sig_Inv : wt => [{}ha0 {}hb0].
       have /T_Proj1 huL := hu.
       have /T_Proj2 {hu} huR := hu.
-      move /algo_metric_neu_pair : halg => [j [hj [hL hR]]].
+      move /algo_metric_neu_pair /(_ neu) : halg => [j [hj [hL hR]]].
       have heL : PProj PL u ⇔ a0 by hauto l:on.
       eapply CE_HRed; eauto using rtc_refl.
       apply CE_NeuPair; eauto.
