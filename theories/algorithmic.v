@@ -226,8 +226,6 @@ Qed.
 Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
 Reserved Notation "a ⇔ b" (at level 70).
-Reserved Notation "a ≪ b" (at level 70).
-Reserved Notation "a ⋖ b" (at level 70).
 Inductive CoqEq {n} : PTm n -> PTm n -> Prop :=
 | CE_AbsAbs a b :
   a ⇔ b ->
@@ -1346,3 +1344,37 @@ Proof.
   exists (i + j + size_PTm va + size_PTm vb).
   hauto lq:on solve+:lia.
 Qed.
+
+
+Reserved Notation "a ≪ b" (at level 70).
+Reserved Notation "a ⋖ b" (at level 70).
+Inductive CoqLEq {n} : PTm n -> PTm n -> Prop :=
+| CLE_UnivCong i j :
+  i <= j ->
+  (* -------------------------- *)
+  PUniv i ⋖ PUniv j
+
+| CLE_PiCong A0 A1 B0 B1 :
+  A1 ≪  A0 ->
+  B0 ≪ B1 ->
+  (* ---------------------------- *)
+  PBind PPi A0 B0 ⋖ PBind PPi A1 B1
+
+| CLE_SigCong A0 A1 B0 B1 :
+  A0 ≪ A1 ->
+  B0 ≪ B1 ->
+  (* ---------------------------- *)
+  PBind PSig A0 B0 ⋖ PBind PSig A1 B1
+
+| CLE_NeuNeu a0 a1 :
+  a0 ∼ a1 ->
+  a0 ⋖ a1
+
+with CoqLEq_R {n} : PTm n -> PTm n -> Prop :=
+| CLE_HRed a a' b b'  :
+  rtc HRed.R a a' ->
+  rtc HRed.R b b' ->
+  a' ⋖ b' ->
+  (* ----------------------- *)
+  a ≪ b
+where "a ≪ b" := (CoqLEq_R a b) and "a ⋖ b" := (CoqLEq a b).
