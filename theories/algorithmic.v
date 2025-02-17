@@ -959,6 +959,16 @@ Lemma T_Univ_Raise n Γ (a : PTm n) i j :
   Γ ⊢ a ∈ PUniv j.
 Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
 
+Lemma Bind_Univ_Inv n Γ p (A : PTm n) B i :
+  Γ ⊢ PBind p A B ∈ PUniv i ->
+  Γ ⊢ A ∈ PUniv i /\ funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i.
+Proof.
+  move /Bind_Inv.
+  move => [i0][hA][hB]h.
+  move /synsub_to_usub : h => [_ [_ /Sub.univ_inj ? ]].
+  sfirstorder use:T_Univ_Raise.
+Qed.
+
 Lemma Abs_Pi_Inv n Γ (a : PTm (S n)) A B :
   Γ ⊢ PAbs a ∈ PBind PPi A B ->
   funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B.
@@ -1378,3 +1388,41 @@ with CoqLEq_R {n} : PTm n -> PTm n -> Prop :=
   (* ----------------------- *)
   a ≪ b
 where "a ≪ b" := (CoqLEq_R a b) and "a ⋖ b" := (CoqLEq a b).
+
+Scheme coqleq_ind := Induction for CoqLEq Sort Prop
+  with coqleq_r_ind := Induction for CoqLEq_R Sort Prop.
+
+Combined Scheme coqleq_mutual from coqleq_ind, coqleq_r_ind.
+
+Definition salgo_metric {n} k (a b : PTm n) :=
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ ESub.R va vb /\ size_PTm va + size_PTm vb + i + j <= k.
+
+Lemma coqleq_sound_mutual : forall n,
+    (forall (a b : PTm n), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
+    (forall (a b : PTm n), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
+Proof.
+  apply coqleq_mutual.
+  - hauto lq:on use:wff_mutual ctrs:LEq.
+  - move => n A0 A1 B0 B1 hA ihA hB ihB Γ i.
+    move /Bind_Univ_Inv => [hA0]hB0 /Bind_Univ_Inv [hA1]hB1.
+    have hlA  : Γ ⊢ A1 ≲ A0 by sfirstorder.
+    have hΓ : ⊢ Γ by sfirstorder use:wff_mutual.
+    apply Su_Transitive with (B := PBind PPi A1 B0).
+    by apply : Su_Pi; eauto using E_Refl, Su_Eq.
+    apply : Su_Pi; eauto using E_Refl, Su_Eq.
+    apply : ihB; eauto using ctx_eq_subst_one.
+  - move => n A0 A1 B0 B1 hA ihA hB ihB Γ i.
+    move /Bind_Univ_Inv => [hA0]hB0 /Bind_Univ_Inv [hA1]hB1.
+    have hlA  : Γ ⊢ A0 ≲ A1 by sfirstorder.
+    have hΓ : ⊢ Γ by sfirstorder use:wff_mutual.
+    apply Su_Transitive with (B := PBind PSig A0 B1).
+    apply : Su_Sig; eauto using E_Refl, Su_Eq.
+    apply : ihB; by eauto using ctx_eq_subst_one.
+    apply : Su_Sig; eauto using E_Refl, Su_Eq.
+  - sauto lq:on use:coqeq_sound_mutual, Su_Eq.
+  - move => n a a' b b' ? ? ? ih Γ i ha hb.
+    have /Su_Eq ? : Γ ⊢ a ≡ a' ∈ PUniv i by sfirstorder use:HReds.ToEq.
+    have /E_Symmetric /Su_Eq ? : Γ ⊢ b ≡ b' ∈ PUniv i by sfirstorder use:HReds.ToEq.
+    suff : Γ ⊢ a' ≲ b' by eauto using Su_Transitive.
+    eauto using HReds.preservation.
+Qed.

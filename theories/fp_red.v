@@ -2780,3 +2780,7 @@ Module Sub.
     hauto ctrs:rtc use:REReds.cong', Sub1.substing.
   Qed.
 End Sub.
+
+Module ESub.
+  Definition R {n} (a b : PTm n) := exists c0 c1, rtc ERed.R a c0 /\ rtc ERed.R b c1 /\ Sub1.R c0 c1.
+End ESub.
