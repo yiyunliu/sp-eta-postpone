@@ -2620,6 +2620,10 @@ Module Sub1.
     R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof. move => h. move : m ρ. elim : n a b /h; hauto lq:on ctrs:R. Qed.
 
+  Lemma hne_refl n (a b : PTm n) :
+    ishne a \/ ishne b -> R a b -> a = b.
+  Proof. hauto q:on inv:R. Qed.
+
 End Sub1.
 
 Module Sub.
@@ -2627,6 +2631,16 @@ Module Sub.
 
   Lemma refl n (a : PTm n) : R a a.
   Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
+
+  Lemma ToJoin n (a b : PTm n) :
+    ishne a \/ ishne b ->
+    R a b ->
+    DJoin.R a b.
+  Proof.
+    move => h [c][d][h0][h1]h2.
+    have : ishne c \/ ishne d by hauto q:on use:REReds.hne_preservation.
+    hauto lq:on rew:off use:Sub1.hne_refl.
+  Qed.
 
   Lemma transitive n (a b c : PTm n) : SN b -> R a b -> R b c -> R a c.
   Proof.

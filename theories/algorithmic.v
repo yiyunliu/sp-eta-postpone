@@ -657,6 +657,18 @@ Proof.
   hauto lq:on use:Sub.bind_univ_noconf.
 Qed.
 
+Lemma T_AbsUniv_Imp' n Γ (a : PTm (S n)) i  :
+  Γ ⊢ PAbs a ∈ PUniv i -> False.
+Proof.
+  hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf, Abs_Inv.
+Qed.
+
+Lemma T_PairUniv_Imp' n Γ (a b : PTm n) i  :
+  Γ ⊢ PPair a b ∈ PUniv i -> False.
+Proof.
+  hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf, Pair_Inv.
+Qed.
+
 Lemma T_AbsBind_Imp n Γ a p A0 B0 (U : PTm n) :
   Γ ⊢ PAbs a ∈ U ->
   Γ ⊢ PBind p A0 B0 ∈ U ->
@@ -1397,6 +1409,24 @@ Combined Scheme coqleq_mutual from coqleq_ind, coqleq_r_ind.
 Definition salgo_metric {n} k (a b : PTm n) :=
   exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ ESub.R va vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
+Lemma salgo_metric_algo_metric n k (a b : PTm n) :
+  ishne a \/ ishne b ->
+  salgo_metric k a b ->
+  algo_metric k a b.
+Proof.
+  move => h.
+  move => [i][j][va][vb][hva][hvb][nva][nvb][hS]sz.
+  rewrite/ESub.R in hS.
+  move : hS => [va'][vb'][h0][h1]h2.
+  suff : va' = vb' by sauto lq:on.
+  have {}hva : rtc RERed.R a va by hauto lq:on use:@relations.rtc_nsteps, REReds.FromRReds, LoReds.ToRReds.
+  have {}hvb : rtc RERed.R b vb by hauto lq:on use:@relations.rtc_nsteps, REReds.FromRReds, LoReds.ToRReds.
+  apply REReds.FromEReds in h0, h1.
+  have : ishne va' \/ ishne vb' by
+    hauto lq:on rew:off use:@relations.rtc_transitive, REReds.hne_preservation.
+  hauto lq:on use:Sub1.hne_refl.
+Qed.
+
 Lemma coqleq_sound_mutual : forall n,
     (forall (a b : PTm n), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
     (forall (a b : PTm n), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
@@ -1426,3 +1456,111 @@ Proof.
     suff : Γ ⊢ a' ≲ b' by eauto using Su_Transitive.
     eauto using HReds.preservation.
 Qed.
+
+Lemma salgo_metric_case n k (a b : PTm n) :
+  salgo_metric k a b ->
+  (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ salgo_metric k' a' b /\ k' < k.
+Proof.
+  move=>[i][j][va][vb][h0] [h1][h2][h3][[v [h4 h5]]] h6.
+  case : a h0 => //=; try firstorder.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.AppAbs unfold:algo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder qb:on use:ne_hne.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+Qed.
+
+Lemma CLE_HRedL n (a a' b : PTm n)  :
+  HRed.R a a' ->
+  a' ≪ b ->
+  a ≪ b.
+Proof.
+  hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
+Qed.
+
+Lemma CLE_HRedR n (a a' b : PTm n)  :
+  HRed.R a a' ->
+  b ≪ a' ->
+  b ≪ a.
+Proof.
+  hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
+Qed.
+
+
+Lemma algo_metric_caseR n k (a b : PTm n) :
+  salgo_metric k a b ->
+  (ishf b \/ ishne b) \/ exists k' b', HRed.R b b' /\ salgo_metric k' a b' /\ k' < k.
+Proof.
+  move=>[i][j][va][vb][h0] [h1][h2][h3][[v [h4 h5]]] h6.
+  case : b h1 => //=; try by firstorder.
+  - inversion 1 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto q:on use:HRed.AppAbs unfold:salgo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:salgo_metric solve+:lia.
+    + sfirstorder qb:on use:ne_hne.
+  - inversion 1 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+Qed.
+
+Lemma salgo_metric_sub n k (a b : PTm n) :
+  salgo_metric k a b ->
+  Sub.R a b.
+Proof.
+  rewrite /algo_metric.
+  move => [i][j][va][vb][h0][h1][h2][h3][[va' [vb' [hva [hvb hS]]]]]h5.
+  have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
+  have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
+  apply REReds.FromEReds in hva,hvb.
+  apply LoReds.ToRReds in h0,h1.
+  apply REReds.FromRReds in h0,h1.
+  rewrite /Sub.R. exists va', vb'. sfirstorder use:@relations.rtc_transitive.
+Qed.
+
+Lemma coqleq_complete' n k (a b : PTm n) :
+  salgo_metric k a b -> (forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ≪ b).
+Proof.
+  move : k n a b.
+  elim /Wf_nat.lt_wf_ind.
+  move => n ih.
+  move => k a b /[dup] h /salgo_metric_case.
+  (* Cases where a and b can take steps *)
+  case; cycle 1.
+  move : k a b h.
+  qauto l:on use:HRed.preservation, CLE_HRedL, hred_hne.
+  case /algo_metric_caseR : (h); cycle 1.
+  qauto l:on use:HRed.preservation, CLE_HRedR, hred_hne.
+  (* Cases where neither a nor b can take steps *)
+  case => fb; case => fa.
+  - case : a fa h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
+    + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
+      * move => p0 A0 B0 _ p1 A1 B1 _.
+        move => h.
+        have ? : p1 = p0 by
+          hauto lq:on rew:off use:salgo_metric_sub, Sub.bind_inj.
+        subst.
+        case : p0 h => //=; admit.
+      * hauto lq:on use:salgo_metric_sub, Sub.bind_univ_noconf.
+    + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
+      * hauto lq:on use:salgo_metric_sub, Sub.univ_bind_noconf.
+      * move => *. econstructor; eauto using rtc_refl.
+        hauto lq:on use:salgo_metric_sub, Sub.univ_inj, CLE_UnivCong.
+  (* Both cases are impossible *)
+  - admit.
+  - admit.
+  - move => Γ i ha hb.
+    econstructor; eauto using rtc_refl.
+    apply CLE_NeuNeu. move {ih}.
+    have {}h : algo_metric n a b by
+      hauto lq:on use:salgo_metric_algo_metric.
+    eapply coqeq_complete'; eauto.
+Admitted.
