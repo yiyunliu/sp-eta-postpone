@@ -1617,3 +1617,32 @@ Proof.
       hauto lq:on use:salgo_metric_algo_metric.
     eapply coqeq_complete'; eauto.
 Qed.
+
+Lemma coqleq_complete n Γ (a b : PTm n) :
+  Γ ⊢ a ≲ b -> a ≪ b.
+Proof.
+  move => h.
+  suff : exists k, salgo_metric k a b by hauto lq:on use:coqleq_complete', regularity.
+  eapply fundamental_theorem in h.
+  move /logrel.SemLEq_SN_Sub : h.
+  move => h.
+  have : exists va vb : PTm n,
+         rtc LoRed.R a va /\
+         rtc LoRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb
+      by hauto l:on use:Sub.standardization_lo.
+  move => [va][vb][hva][hvb][nva][nvb]hj.
+  move /relations.rtc_nsteps : hva => [i hva].
+  move /relations.rtc_nsteps : hvb => [j hvb].
+  exists (i + j + size_PTm va + size_PTm vb).
+  hauto lq:on solve+:lia.
+Qed.
+
+Lemma coqleq_sound : forall n Γ (a b : PTm n) i j,
+    Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv j -> a ≪ b -> Γ ⊢ a ≲ b.
+Proof.
+  move => n Γ a b i j.
+  have [*] : i <= i + j /\ j <= i + j by lia.
+  have : Γ ⊢ a ∈ PUniv (i + j) /\ Γ ⊢ b ∈ PUniv (i + j)
+    by sfirstorder use:T_Univ_Raise.
+  sfirstorder use:coqleq_sound_mutual.
+Qed.

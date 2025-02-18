@@ -2637,6 +2637,31 @@ Module Sub1.
 
 End Sub1.
 
+Module ESub.
+  Definition R {n} (a b : PTm n) := exists c0 c1, rtc ERed.R a c0 /\ rtc ERed.R b c1 /\ Sub1.R c0 c1.
+
+  Lemma pi_inj n (A0 A1 : PTm n) B0 B1 :
+    R (PBind PPi A0 B0) (PBind PPi A1 B1) ->
+    R A1 A0 /\ R B0 B1.
+  Proof.
+    move => [u0 [u1 [h0 [h1 h2]]]].
+    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
+    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
+    sauto lq:on rew:off inv:Sub1.R.
+  Qed.
+
+  Lemma sig_inj n (A0 A1 : PTm n) B0 B1 :
+    R (PBind PSig A0 B0) (PBind PSig A1 B1) ->
+    R A0 A1 /\ R B0 B1.
+  Proof.
+    move => [u0 [u1 [h0 [h1 h2]]]].
+    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
+    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
+    sauto lq:on rew:off inv:Sub1.R.
+  Qed.
+
+End ESub.
+
 Module Sub.
   Definition R {n} (a b : PTm n) := exists c d, rtc RERed.R a c /\ rtc RERed.R b d /\ Sub1.R c d.
 
@@ -2804,29 +2829,41 @@ Module Sub.
     move => [a0][b0][h0][h1]h2.
     hauto ctrs:rtc use:REReds.cong', Sub1.substing.
   Qed.
+
+  Lemma ToESub n (a b : PTm n) : nf a -> nf b -> R a b -> ESub.R a b.
+  Proof. hauto q:on use:REReds.ToEReds. Qed.
+
+  Lemma standardization n (a b : PTm n) :
+    SN a -> SN b -> R a b ->
+    exists va vb, rtc RRed.R a va /\ rtc RRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb.
+  Proof.
+    move => h0 h1 hS.
+    have : exists v, rtc RRed.R a v  /\ nf v by sfirstorder use:LoReds.FromSN, LoReds.ToRReds.
+    move => [v [hv2 hv3]].
+    have : exists v, rtc RRed.R b v  /\ nf v by sfirstorder use:LoReds.FromSN, LoReds.ToRReds.
+    move => [v' [hv2' hv3']].
+    move : (hv2) (hv2') => *.
+    apply DJoin.FromRReds in hv2, hv2'.
+    move/DJoin.symmetric in hv2'.
+    apply FromJoin in hv2, hv2'.
+    have hv : R v v' by eauto using transitive.
+    have {}hv : ESub.R v v' by hauto l:on use:ToESub.
+    hauto lq:on.
+  Qed.
+
+  Lemma standardization_lo n (a b : PTm n) :
+    SN a -> SN b -> R a b ->
+    exists va vb, rtc LoRed.R a va /\ rtc LoRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb.
+  Proof.
+    move => /[dup] sna + /[dup] snb.
+    move : standardization; repeat move/[apply].
+    move => [va][vb][hva][hvb][nfva][nfvb]hj.
+    move /LoReds.FromSN : sna => [va' [hva' hva'0]].
+    move /LoReds.FromSN : snb => [vb' [hvb' hvb'0]].
+    exists va', vb'.
+    repeat split => //=.
+    have : va = va' /\ vb = vb' by sfirstorder use:red_uniquenf, LoReds.ToRReds.
+    case; congruence.
+  Qed.
+
 End Sub.
-
-Module ESub.
-  Definition R {n} (a b : PTm n) := exists c0 c1, rtc ERed.R a c0 /\ rtc ERed.R b c1 /\ Sub1.R c0 c1.
-
-  Lemma pi_inj n (A0 A1 : PTm n) B0 B1 :
-    R (PBind PPi A0 B0) (PBind PPi A1 B1) ->
-    R A1 A0 /\ R B0 B1.
-  Proof.
-    move => [u0 [u1 [h0 [h1 h2]]]].
-    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
-    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
-    sauto lq:on rew:off inv:Sub1.R.
-  Qed.
-
-  Lemma sig_inj n (A0 A1 : PTm n) B0 B1 :
-    R (PBind PSig A0 B0) (PBind PSig A1 B1) ->
-    R A0 A1 /\ R B0 B1.
-  Proof.
-    move => [u0 [u1 [h0 [h1 h2]]]].
-    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
-    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
-    sauto lq:on rew:off inv:Sub1.R.
-  Qed.
-
-End ESub.
