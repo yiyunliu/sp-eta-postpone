@@ -2337,6 +2337,17 @@ Module DJoin.
     case : c => //=.
   Qed.
 
+  Lemma hne_bind_noconf n (a b : PTm n) :
+    R a b -> ishne a -> isbind b -> False.
+  Proof.
+    move => [c [h0 h1]] h2 h3.
+    have {h0 h1 h2 h3} : ishne c /\ isbind c by
+      hauto l:on use:REReds.hne_preservation,
+          REReds.bind_preservation.
+    move => [].
+    case : c => //=.
+  Qed.
+
   Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
     DJoin.R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
     p0 = p1 /\ DJoin.R A0 A1 /\ DJoin.R B0 B1.
@@ -2797,4 +2808,25 @@ End Sub.
 
 Module ESub.
   Definition R {n} (a b : PTm n) := exists c0 c1, rtc ERed.R a c0 /\ rtc ERed.R b c1 /\ Sub1.R c0 c1.
+
+  Lemma pi_inj n (A0 A1 : PTm n) B0 B1 :
+    R (PBind PPi A0 B0) (PBind PPi A1 B1) ->
+    R A1 A0 /\ R B0 B1.
+  Proof.
+    move => [u0 [u1 [h0 [h1 h2]]]].
+    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
+    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
+    sauto lq:on rew:off inv:Sub1.R.
+  Qed.
+
+  Lemma sig_inj n (A0 A1 : PTm n) B0 B1 :
+    R (PBind PSig A0 B0) (PBind PSig A1 B1) ->
+    R A0 A1 /\ R B0 B1.
+  Proof.
+    move => [u0 [u1 [h0 [h1 h2]]]].
+    move /EReds.bind_inv : h0 => [A2][B2][?][h3]h4. subst.
+    move /EReds.bind_inv : h1 => [A3][B3][?][h5]h6. subst.
+    sauto lq:on rew:off inv:Sub1.R.
+  Qed.
+
 End ESub.
