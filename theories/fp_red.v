@@ -1395,7 +1395,50 @@ Module ERed.
     all : qauto ctrs:R.
   Qed.
 
-  (* Need to generalize to injective renaming *)
+  (* Characterization of variable freeness conditions *)
+  Definition tm_i_free {n} a (i : fin n) := exists m (ξ ξ0 : fin n -> fin m), ξ i <> ξ0 i /\ ren_PTm ξ a = ren_PTm ξ0 a.
+
+  Lemma subst_differ_one_ren_up n m i (ξ0 ξ1 : fin n -> fin m) :
+    (forall j, i <> j -> ξ0 j = ξ1 j) ->
+    (forall j, shift i <> j -> upRen_PTm_PTm ξ0 j =  upRen_PTm_PTm ξ1 j).
+  Proof.
+    move => hξ.
+    destruct j. asimpl.
+    move => h. have :  i<> f by hauto lq:on rew:off inv:option.
+    move /hξ. by rewrite /funcomp => ->.
+    done.
+  Qed.
+
+  Lemma tm_free_ren_any n a i :
+    tm_i_free a i ->
+    forall m (ξ0 ξ1 : fin n -> fin m), (forall j, i <> j -> ξ0 j = ξ1 j) ->
+             ren_PTm ξ0 a = ren_PTm ξ1 a.
+  Proof.
+    rewrite /tm_i_free.
+    move => [+ [+ [+ +]]].
+    move : i.
+    elim : n / a => n.
+    - hauto q:on.
+    - move => a iha i m ρ0 ρ1 [] => h [] h' m' ξ0 ξ1 hξ /=.
+      f_equal. move /subst_differ_one_ren_up in hξ.
+      move /(_ (shift i)) in iha.
+      move : iha hξ; move/[apply].
+      apply=>//. split; eauto.
+      asimpl. rewrite /funcomp. hauto l:on.
+    - hauto lq:on rew:off.
+    - hauto lq:on rew:off.
+    - hauto lq:on rew:off.
+    - move => p A ihA a iha i m ρ0 ρ1 [] ? h m' ξ0 ξ1 hξ /=.
+      f_equal. hauto lq:on rew:off.
+      move /subst_differ_one_ren_up in hξ.
+      move /(_ (shift i)) in iha.
+      move : iha hξ. repeat move/[apply].
+      move /(_ _ (upRen_PTm_PTm ρ0) (upRen_PTm_PTm ρ1)).
+      apply. hauto l:on.
+    - hauto lq:on rew:off.
+    - hauto lq:on rew:off.
+  Qed.
+
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
     (forall i j, ξ i = ξ j -> i = j) ->
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
