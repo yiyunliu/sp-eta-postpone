@@ -85,20 +85,61 @@ Inductive algo_dom {n} : PTm n -> PTm n -> Prop :=
   (* ----------------------- *)
   algo_dom a b.
 
+
+Definition fin_eq {n} (i j : fin n) : bool.
+Proof.
+  induction n.
+  - by exfalso.
+  - refine (match i , j with
+            | None, None => true
+            | Some i, Some j => IHn i j
+            | _, _ => false
+            end).
+Defined.
+
+Lemma fin_eq_dec {n} (i j : fin n) :
+  Bool.reflect (i = j) (fin_eq i j).
+Proof.
+  revert i j. induction n.
+  - destruct i.
+  - destruct i; destruct j.
+    + specialize (IHn f f0).
+      inversion IHn; subst.
+      simpl. rewrite -H.
+      apply ReflectT.
+      reflexivity.
+      simpl. rewrite -H.
+      apply ReflectF.
+      injection. tauto.
+    + by apply ReflectF.
+    + by apply ReflectF.
+    + by apply ReflectT.
+Defined.
+
+
+Equations check_equal {n} (a b : PTm n) (h : algo_dom a b) :
+  bool by struct h :=
+  check_equal a b h with (@idP (ishne a || ishf a)) := {
+    | Bool.ReflectT _ _ => _
+    | Bool.ReflectF _ _ => _
+    }.
+
+
+  (* check_equal (VarPTm i) (VarPTm j) h := fin_eq i j; *)
+  (* check_equal (PAbs a) (PAbs b) h := check_equal a b _; *)
+  (* check_equal (PPair a0 b0) (PPair a1 b1) h := *)
+  (*   check_equal a0 b0 _ && check_equal a1 b1 _; *)
+  (* check_equal (PUniv i) (PUniv j) _ := _; *)
+Next Obligation.
+  simpl.
+  intros ih.
+Admitted.
+
 Search (Bool.reflect (is_true _) _).
 Check idP.
-
 
 Definition metric {n} k (a b : PTm n) :=
   exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\
   nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
 Search (nat -> nat -> bool).
-
-Equations check_equal {n k} (a b : PTm n) (h : metric k a b) :
-  bool by wf k lt :=
-  check_equal (PAbs a) (PAbs b) h := check_equal a b _;
-  check_equal (PPair a0 b0) (PPair a1 b1) h :=
-    check_equal a0 b0 _ && check_equal a1 b1 _;
-  check_equal (PUniv i) (PUniv j) _ := _;
-  check_equal _ _ _ := _.
