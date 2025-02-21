@@ -70,17 +70,7 @@ Module EPar.
   | SucCong a0 a1 :
     R a0 a1 ->
     (* ------------ *)
-    R (PSuc a0) (PSuc a1)
-  (* | IndZero P b0 b1  c : *)
-  (*   R b0 b1 -> *)
-  (*   R (PInd P PZero b0 c) b1 *)
-  (* | IndSuc P0 P1 a0 a1 b0 b1 c0 c1 : *)
-  (*   R P0 P1 -> *)
-  (*   R a0 a1 -> *)
-  (*   R b0 b1 -> *)
-  (*   R c0 c1 -> *)
-  (*   (* ----------------------------- *) *)
-  (*   R (PInd P0 (PSuc a0) b0 c0) (subst_PTm (scons (PInd P1 a1 b1 c1) (scons a1 VarPTm)) c1) *).
+    R (PSuc a0) (PSuc a1).
 
   Lemma refl n (a : PTm n) : R a a.
   Proof.
@@ -601,13 +591,18 @@ Qed.
 
 Module RRed.
   Inductive R {n} : PTm n -> PTm n ->  Prop :=
-  (****************** Eta ***********************)
+  (****************** Beta ***********************)
   | AppAbs a b :
     R (PApp (PAbs a) b)  (subst_PTm (scons b VarPTm) a)
 
   | ProjPair p a b :
     R (PProj p (PPair a b)) (if p is PL then a else b)
 
+  | IndZero P b c :
+    R (PInd P PZero b c) b
+
+  | IndSuc P a b c :
+    R (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
   (*************** Congruence ********************)
   | AbsCong a0 a1 :
     R a0 a1 ->
@@ -632,7 +627,22 @@ Module RRed.
     R (PBind p A0 B) (PBind p A1 B)
   | BindCong1 p A B0 B1 :
     R B0 B1 ->
-    R (PBind p A B0) (PBind p A B1).
+    R (PBind p A B0) (PBind p A B1)
+  | IndCong0 P0 P1 a b c :
+    R P0 P1 ->
+    R (PInd P0 a b c) (PInd P1 a b c)
+  | IndCong1 P a0 a1 b c :
+    R a0 a1 ->
+    R (PInd P a0 b c) (PInd P a1 b c)
+  | IndCong2 P a b0 b1 c :
+    R b0 b1 ->
+    R (PInd P a b0 c) (PInd P a b1 c)
+  | IndCong3 P a b c0 c1 :
+    R c0 c1 ->
+    R (PInd P a b c0) (PInd P a b c1)
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    R (PSuc a0) (PSuc a1).
 
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
 
@@ -642,15 +652,21 @@ Module RRed.
   Proof.
     move => ->. by apply AppAbs. Qed.
 
+  Lemma IndSuc' n P a b c u :
+    u = (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ->
+    R (@PInd n P (PSuc a) b c) u.
+  Proof. move => ->. apply IndSuc. Qed.
+
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
     move => h. move : m ξ.
     elim : n a b /h.
 
+    all : try qauto ctrs:R.
     move => n a b m ξ /=.
     apply AppAbs'. by asimpl.
-    all : qauto ctrs:R.
+    move => */=; apply IndSuc'; eauto. by asimpl.
   Qed.
 
   Ltac2 rec solve_anti_ren () :=
@@ -672,6 +688,14 @@ Module RRed.
       eexists. split. apply AppAbs. by asimpl.
     - move => n p a b m ξ []//=.
       move => p0 []//=. hauto q:on ctrs:R.
+    - move => n p b c m ξ []//= P a0 b0 c0 [*]. subst.
+      destruct a0 => //=.
+      hauto lq:on ctrs:R.
+    - move => n P a b c m ξ []//=.
+      move => p p0 p1 p2 [?].  subst.
+      case : p0 => //=.
+      move => p0 [?] *. subst. eexists. split; eauto using IndSuc.
+      by asimpl.
   Qed.
 
   Lemma nf_imp n (a b : PTm n) :
@@ -688,9 +712,11 @@ Module RRed.
     R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     move => h. move : m ρ. elim : n a b / h => n.
+
+    all : try hauto lq:on ctrs:R.
     move => a b m ρ /=.
     eapply AppAbs'; eauto; cycle 1. by asimpl.
-    all : hauto lq:on ctrs:R.
+    move => */=; apply : IndSuc'; eauto. by asimpl.
   Qed.
 
 End RRed.
@@ -707,6 +733,18 @@ Module RPar.
     R a0 a1 ->
     R b0 b1 ->
     R (PProj p (PPair a0 b0)) (if p is PL then a1 else b1)
+
+  | IndZero P b0 b1  c :
+    R b0 b1 ->
+    R (PInd P PZero b0 c) b1
+
+  | IndSuc P0 P1 a0 a1 b0 b1 c0 c1 :
+    R P0 P1 ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R c0 c1 ->
+    (* ----------------------------- *)
+    R (PInd P0 (PSuc a0) b0 c0) (subst_PTm (scons (PInd P1 a1 b1 c1) (scons a1 VarPTm)) c1)
 
   (*************** Congruence ********************)
   | AbsCong a0 a1 :
@@ -732,7 +770,22 @@ Module RPar.
     R B0 B1 ->
     R (PBind p A0 B0) (PBind p A1 B1)
   | BotCong :
-    R PBot PBot.
+    R PBot PBot
+  | NatCong :
+    R PNat PNat
+  | IndCong P0 P1 a0 a1 b0 b1 c0 c1 :
+    R P0 P1 ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R c0 c1 ->
+    (* ----------------------- *)
+    R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1)
+  | ZeroCong :
+    R PZero PZero
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    (* ------------ *)
+    R (PSuc a0) (PSuc a1).
 
   Lemma refl n (a : PTm n) : R a a.
   Proof.
@@ -755,15 +808,28 @@ Module RPar.
     R (PProj p (PPair a0 b0)) u.
   Proof. move => ->. apply ProjPair. Qed.
 
+  Lemma IndSuc' n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 u :
+    u = (subst_PTm (scons (PInd P1 a1 b1 c1) (scons a1 VarPTm)) c1) ->
+    R P0 P1 ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R c0 c1 ->
+    (* ----------------------------- *)
+    R (PInd P0 (PSuc a0) b0 c0) u.
+  Proof. move => ->. apply IndSuc. Qed.
+
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
     move => h. move : m ξ.
     elim : n a b /h.
 
+    all : try qauto ctrs:R use:ProjPair'.
+
     move => n a0 a1 b0 b1 ha iha hb ihb m ξ /=.
     eapply AppAbs'; eauto. by asimpl.
-    all : qauto ctrs:R use:ProjPair'.
+
+    move => * /=. apply : IndSuc'; eauto. by asimpl.
   Qed.
 
   Lemma morphing_ren n m p (ρ0 ρ1 : fin n -> PTm m) (ξ : fin m -> fin p) :
@@ -787,10 +853,13 @@ Module RPar.
     R a b -> R (subst_PTm ρ0 a) (subst_PTm ρ1 b).
   Proof.
     move => + h. move : m ρ0 ρ1. elim : n a b / h => n.
+    all : try hauto lq:on ctrs:R use:morphing_up, ProjPair'.
     move => a0 a1 b0 b1 ha iha hb ihb m ρ0 ρ1 hρ /=.
-    eapply AppAbs'; eauto; cycle 1. sfirstorder use:morphing_up.
+    eapply AppAbs'; eauto; cycle 1. sfirstorder use:morphing_up. by asimpl.
+    move => */=; eapply IndSuc'; eauto; cycle 1.
+    sfirstorder use:morphing_up.
+    sfirstorder use:morphing_up.
     by asimpl.
-    all : hauto lq:on ctrs:R use:morphing_up, ProjPair'.
   Qed.
 
   Lemma substing n m (a : PTm n) b (ρ : fin n -> PTm m) :
@@ -799,7 +868,6 @@ Module RPar.
   Proof.
     hauto l:on use:morphing, refl.
   Qed.
-
 
   Lemma cong n (a0 a1 : PTm (S n)) b0 b1  :
     R a0 a1 ->
@@ -828,6 +896,13 @@ Module RPar.
     | PUniv i => PUniv i
     | PBind p A B => PBind p (tstar A) (tstar B)
     | PBot => PBot
+    | PNat => PNat
+    | PZero => PZero
+    | PSuc a => PSuc (tstar a)
+    | PInd P PZero b c => tstar b
+    | PInd P (PSuc a) b c =>
+        (subst_PTm (scons (PInd (tstar P) (tstar a) (tstar b) (tstar c)) (scons (tstar a) VarPTm)) (tstar c))
+    | PInd P a b c => PInd (tstar P) (tstar a) (tstar b) (tstar c)
     end.
 
   Lemma triangle n (a b : PTm n) :
@@ -859,6 +934,18 @@ Module RPar.
     - hauto lq:on ctrs:R inv:R.
     - hauto lq:on ctrs:R inv:R.
     - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
+    - hauto lq:on ctrs:R inv:R.
+    - move => P b c ?. subst.
+      move => h0. inversion 1; subst. hauto lq:on ctrs:R. qauto l:on inv:R ctrs:R.
+    - move => P a0 b c ? hP ihP ha iha hb ihb u. subst.
+      elim /inv => //= _.
+      + move => P0 P1 a1 a2 b0 b1 c0 c1 hP' ha' hb' hc' [*]. subst.
+        apply morphing. hauto lq:on ctrs:R inv:option.
+        eauto.
+      + sauto q:on ctrs:R.
+    - sauto lq:on.
   Qed.
 
   Lemma diamond n (a b c : PTm n) :
@@ -876,11 +963,15 @@ Proof.
   - qauto l:on inv:RPar.R,SNe,SN ctrs:SNe.
   - hauto lq:on inv:RPar.R, SNe ctrs:SNe.
   - hauto lq:on inv:RPar.R, SNe ctrs:SNe.
+  - qauto l:on inv:RPar.R, SN,SNe ctrs:SNe.
   - qauto l:on ctrs:SN inv:RPar.R.
   - hauto lq:on ctrs:SN inv:RPar.R.
   - hauto lq:on ctrs:SN.
   - hauto q:on ctrs:SN inv:SN, TRedSN'.
   - hauto lq:on ctrs:SN inv:RPar.R.
+  - hauto lq:on ctrs:SN inv:RPar.R.
+  - hauto l:on inv:RPar.R.
+  - hauto l:on inv:RPar.R.
   - hauto lq:on ctrs:SN inv:RPar.R.
   - move => a b ha iha hb ihb.
     elim /RPar.inv : ihb => //=_.
@@ -901,7 +992,10 @@ Proof.
   - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
   - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
   - sauto.
-Qed.
+  - sauto.
+  - admit.
+  - sauto q:on.
+Admitted.
 
 Module RReds.
 
