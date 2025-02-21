@@ -517,12 +517,21 @@ Proof.
   hauto lq:on rew:off inv:TRedSN db:sn.
 Qed.
 
+Lemma SN_IndInv : forall n P (a : PTm n) b c, SN (PInd P a b c) -> SN P /\ SN a /\ SN b /\ SN c.
+Proof.
+  move => n P a b c. move E : (PInd P a b c) => u hu. move : P a b c E.
+  elim  : n u / hu => //=.
+  hauto lq:on rew:off inv:SNe db:sn.
+  hauto lq:on rew:off inv:TRedSN db:sn.
+Qed.
+
 Lemma epar_sn_preservation n :
   (forall (a : PTm n) (s : SNe a), forall b, EPar.R a b -> SNe b) /\
   (forall (a : PTm n) (s : SN a), forall b, EPar.R a b -> SN b) /\
   (forall (a b : PTm n) (_ : TRedSN a b), forall c, EPar.R a c -> exists d, TRedSN' c d /\ EPar.R b d).
 Proof.
   move : n. apply sn_mutual => n.
+  - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
@@ -541,6 +550,9 @@ Proof.
       move /SN_AppInv => [+ _].
       hauto l:on use:sn_antirenaming.
     + sauto lq:on.
+  - sauto lq:on.
+  - sauto lq:on.
+  - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
   - sauto lq:on.
@@ -576,6 +588,15 @@ Proof.
       sauto lq:on.
     + sauto lq:on.
   - sauto.
+  - sauto q:on.
+  - move => P a b c hP ihP ha iha hb ihb hc ihc u.
+    elim /EPar.inv => //=_.
+    move => P0 P1 a0 a1 b0 b1 c0 c1 hP0 ha0 hb0 hc0 [*]. subst.
+    elim /EPar.inv : ha0 => //=_.
+    move => a0 a2 ha0 [*]. subst.
+    eexists. split. apply T_Once. apply N_IndSuc; eauto.
+    hauto q:on ctrs:EPar.R use:EPar.morphing, EPar.refl inv:option.
+  - sauto q:on.
 Qed.
 
 Module RRed.
