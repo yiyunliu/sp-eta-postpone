@@ -32,6 +32,9 @@ Proof.
   move : m ξ b. elim : n / a => //; try solve_anti_ren.
 Qed.
 
+Inductive HF : Set :=
+| H_Pair | H_Abs | H_Univ | H_Bind (p : BTag) | H_Nat | H_Suc | H_Zero | H_Bot.
+
 Definition ishf {n} (a : PTm n) :=
   match a with
   | PPair _ _ => true
@@ -42,6 +45,18 @@ Definition ishf {n} (a : PTm n) :=
   | PSuc _ => true
   | PZero => true
   | _ => false
+  end.
+
+Definition toHF {n} (a : PTm n) :=
+  match a with
+  | PPair _ _ => H_Pair
+  | PAbs _ => H_Abs
+  | PUniv _ => H_Univ
+  | PBind p _ _ => H_Bind p
+  | PNat => H_Nat
+  | PSuc _ => H_Suc
+  | PZero => H_Zero
+  | _ => H_Bot
   end.
 
 Fixpoint ishne {n} (a : PTm n) :=
@@ -63,6 +78,12 @@ Definition ispair {n} (a : PTm n) :=
   | PPair _ _ => true
   | _ => false
   end.
+
+Definition isnat {n} (a : PTm n) := if a is PNat then true else false.
+
+Definition iszero {n} (a : PTm n) := if a is PZero then true else false.
+
+Definition issuc {n} (a : PTm n) := if a is PSuc _ then true else false.
 
 Definition isabs {n} (a : PTm n) :=
   match a with

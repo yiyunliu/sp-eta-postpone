@@ -55,7 +55,32 @@ Module EPar.
     R B0 B1 ->
     R (PBind p A0 B0) (PBind p A1 B1)
   | BotCong :
-    R PBot PBot.
+    R PBot PBot
+  | NatCong :
+    R PNat PNat
+  | IndCong P0 P1 a0 a1 b0 b1 c0 c1 :
+    R P0 P1 ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R c0 c1 ->
+    (* ----------------------- *)
+    R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1)
+  | ZeroCong :
+    R PZero PZero
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    (* ------------ *)
+    R (PSuc a0) (PSuc a1)
+  (* | IndZero P b0 b1  c : *)
+  (*   R b0 b1 -> *)
+  (*   R (PInd P PZero b0 c) b1 *)
+  (* | IndSuc P0 P1 a0 a1 b0 b1 c0 c1 : *)
+  (*   R P0 P1 -> *)
+  (*   R a0 a1 -> *)
+  (*   R b0 b1 -> *)
+  (*   R c0 c1 -> *)
+  (*   (* ----------------------------- *) *)
+  (*   R (PInd P0 (PSuc a0) b0 c0) (subst_PTm (scons (PInd P1 a1 b1 c1) (scons a1 VarPTm)) c1) *).
 
   Lemma refl n (a : PTm n) : R a a.
   Proof.
@@ -76,9 +101,10 @@ Module EPar.
     move => h. move : m ξ.
     elim : n a b /h.
 
+    all : try qauto ctrs:R.
+
     move => n a0 a1 ha iha m ξ /=.
     eapply AppEta'; eauto. by asimpl.
-    all : qauto ctrs:R.
   Qed.
 
   Lemma morphing_ren n m p (ρ0 ρ1 : fin n -> PTm m) (ξ : fin m -> fin p) :
@@ -125,6 +151,12 @@ Inductive SNe {n} : PTm n -> Prop :=
   SNe (PProj p a)
 | N_Bot :
   SNe PBot
+| N_Ind P a b c :
+  SN P ->
+  SNe a ->
+  SN b ->
+  SN c ->
+  SNe (PInd P a b c)
 with SN  {n} : PTm n -> Prop :=
 | N_Pair a b :
   SN a ->
@@ -146,6 +178,13 @@ with SN  {n} : PTm n -> Prop :=
   SN (PBind p A B)
 | N_Univ i :
   SN (PUniv i)
+| N_Nat :
+  SN PNat
+| N_Zero :
+  SN PZero
+| N_Suc a :
+  SN a ->
+  SN (PSuc a)
 with TRedSN {n} : PTm n -> PTm n -> Prop :=
 | N_β a b :
   SN b ->
@@ -162,7 +201,24 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
   TRedSN (PProj PR (PPair a b)) b
 | N_ProjCong p a b :
   TRedSN a b ->
-  TRedSN (PProj p a) (PProj p b).
+  TRedSN (PProj p a) (PProj p b)
+| N_IndZero P b c :
+  SN P ->
+  SN b ->
+  SN c ->
+  TRedSN (PInd P PZero b c) b
+| N_IndSuc P a b c :
+  SN P ->
+  SN a ->
+  SN b ->
+  SN c ->
+  TRedSN (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
+| N_IndCong P a0 a1 b c :
+  SN P ->
+  SN b ->
+  SN c ->
+  TRedSN a0 a1 ->
+  TRedSN (PInd P a0 b c) (PInd P a1 b c).
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
@@ -179,7 +235,7 @@ Proof.
   hauto lq:on inv:TRedSN.
 Qed.
 
-Lemma PAbs_imp n a b :
+Lemma PApp_imp n a b :
   @ishf n a ->
   ~~ isabs a ->
   ~ SN (PApp a b).
@@ -190,34 +246,35 @@ Proof.
   hauto lq:on inv:TRedSN.
 Qed.
 
+Lemma PInd_imp n P (a : PTm n) b c :
+  ishf a ->
+  ~~ iszero a ->
+  ~~ issuc a ->
+  ~ SN (PInd P a b c).
+Proof.
+  move => + + + h. move E : (PInd P a b c) h => u h.
+  move : P a b c E.
+  elim : n u /h => //=.
+  hauto lq:on inv:SNe,PTm.
+  hauto lq:on inv:TRedSN.
+Qed.
+
 Lemma PProjAbs_imp n p (a : PTm (S n)) :
   ~ SN (PProj p (PAbs a)).
 Proof.
-  move E : (PProj p (PAbs a)) => u hu.
-  move : p a E.
-  elim : n u / hu=>//=.
-  hauto lq:on inv:SNe.
-  hauto lq:on inv:TRedSN.
+  sfirstorder use:PProj_imp.
 Qed.
 
 Lemma PAppPair_imp n (a b0 b1 : PTm n ) :
   ~ SN (PApp (PPair b0 b1) a).
 Proof.
-  move E : (PApp (PPair b0 b1) a) => u hu.
-  move : a b0 b1 E.
-  elim : n u / hu=>//=.
-  hauto lq:on inv:SNe.
-  hauto lq:on inv:TRedSN.
+  sfirstorder use:PApp_imp.
 Qed.
 
 Lemma PAppBind_imp n p (A : PTm n) B b :
   ~ SN (PApp (PBind p A B) b).
 Proof.
-  move E :(PApp (PBind p A B) b) => u hu.
-  move : p A B b E.
-  elim : n u /hu=> //=.
-  hauto lq:on inv:SNe.
-  hauto lq:on inv:TRedSN.
+  sfirstorder use:PApp_imp.
 Qed.
 
 Lemma PProjBind_imp n p p' (A : PTm n) B :
@@ -246,6 +303,10 @@ Fixpoint ne {n} (a : PTm n) :=
   | PUniv _ => false
   | PBind _ _ _ => false
   | PBot => true
+  | PInd P a b c => nf P && ne a && nf b && nf c
+  | PNat => false
+  | PSuc a => false
+  | PZero => false
   end
 with nf {n} (a : PTm n) :=
   match a with
@@ -257,6 +318,10 @@ with nf {n} (a : PTm n) :=
   | PUniv _ => true
   | PBind _ A B => nf A && nf B
   | PBot => true
+  | PInd P a b c => nf P && ne a && nf b && nf c
+  | PNat => true
+  | PSuc a => nf a
+  | PZero => true
 end.
 
 Lemma ne_nf n a : @ne n a -> nf a.
@@ -289,6 +354,15 @@ Lemma N_β' n a (b : PTm n) u :
   TRedSN (PApp (PAbs a) b) u.
 Proof. move => ->. apply N_β. Qed.
 
+Lemma N_IndSuc' n P a b c u :
+  u = (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ->
+  SN P ->
+  @SN n a ->
+  SN b ->
+  SN c ->
+  TRedSN (PInd P (PSuc a) b c) u.
+Proof. move => ->. apply N_IndSuc. Qed.
+
 Lemma sn_renaming n :
   (forall (a : PTm n) (s : SNe a), forall m (ξ : fin n -> fin m), SNe (ren_PTm ξ a)) /\
   (forall (a : PTm n) (s : SN a), forall m (ξ : fin n -> fin m), SN (ren_PTm ξ a)) /\
@@ -297,6 +371,9 @@ Proof.
   move : n. apply sn_mutual => n; try qauto ctrs:SN, SNe, TRedSN depth:1.
   move => a b ha iha m ξ /=.
   apply N_β'. by asimpl. eauto.
+
+  move => * /=.
+  apply N_IndSuc';eauto. by asimpl.
 Qed.
 
 Lemma ne_nf_embed n (a : PTm n) :
@@ -336,7 +413,15 @@ Proof.
   move => a b ha iha m ξ[]//= u u0 [? ]. subst.
   case : u0 => //=. move => p p0 [*]. subst.
   spec_refl. by eauto with sn.
-Qed.
+
+  move => P b c ha iha hb ihb hc ihc m ξ []//= P0 a0 b0 c0 [?]. subst.
+  case : a0 => //= _ *. subst.
+  spec_refl. by eauto with sn.
+
+  move => P a b c hP ihP ha iha hb ihb hc ihc m ξ []//= P0 a0 b0 c0 [?]. subst.
+  case : a0 => //= a0 [*]. subst.
+  spec_refl. eexists; repeat split; eauto with sn.
+  by asimpl. Qed.
 
 Lemma sn_unmorphing n :
   (forall (a : PTm n) (s : SNe a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SNe b) /\
@@ -375,7 +460,9 @@ Proof.
       * move => p p0 [*]. subst.
         hauto lq:on db:sn.
   - move => a b ha iha m ρ []//=; first by hauto l:on db:sn.
-    hauto q:on inv:PTm db:sn.
+    case => //=. move => []//=.
+    + hauto lq:on db:sn.
+    + hauto lq:on db:sn.
   - move => p a b ha iha m ρ []//=; first by hauto l:on db:sn.
     move => t0 t1 [*]. subst.
     spec_refl.
@@ -384,6 +471,29 @@ Proof.
       left. eexists. split; last by eauto with sn.
       reflexivity.
     + hauto lq:on db:sn.
+  - move => P b c hP ihP hb ihb hc ihc m ρ []//=.
+    + hauto lq:on db:sn.
+    + move => p []//=.
+      * hauto lq:on db:sn.
+      * hauto q:on db:sn.
+  - move => P a b c hP ihP ha iha hb ihb hc ihc m ρ []//=.
+    + hauto lq:on db:sn.
+    + move => P0 a0 b0 c0 [?]. subst.
+      case : a0 => //=.
+      * hauto lq:on db:sn.
+      * move => a0 [*]. subst.
+        spec_refl.
+        left. eexists. split; last by eauto with sn.
+        by asimpl.
+  - move => P a0 a1 b c hP ihP hb ihb hc ihc ha iha m ρ[]//=.
+    + hauto lq:on db:sn.
+    + move => P1 a2 b2 c2 [*]. subst.
+      spec_refl.
+      case : iha.
+      * move => [a3][?]h. subst.
+        left. eexists; split; last by eauto with sn.
+        asimpl. eauto with sn.
+      * hauto lq:on db:sn.
 Qed.
 
 Lemma SN_AppInv : forall n (a b : PTm n), SN (PApp a b) -> SN a /\ SN b.
@@ -978,7 +1088,7 @@ Module Type NoForbid.
   (* Axiom P_ProjAbs : forall n p (a : PTm (S n)), ~ P (PProj p (PAbs a)). *)
   (* Axiom P_ProjBind : forall n p p' (A : PTm n) B, ~ P (PProj p (PBind p' A B)). *)
   (* Axiom P_AppBind : forall n p (A : PTm n) B b, ~ P (PApp (PBind p A B) b). *)
-  Axiom PAbs_imp : forall n a b, @ishf n a -> ~~ isabs a -> ~ P (PApp a b).
+  Axiom PApp_imp : forall n a b, @ishf n a -> ~~ isabs a -> ~ P (PApp a b).
   Axiom PProj_imp : forall  n p a, @ishf n a -> ~~ ispair a -> ~ P (PProj p a).
 
   Axiom P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
@@ -1023,8 +1133,8 @@ Module SN_NoForbid <: NoForbid.
   Lemma P_RRed : forall n (a b : PTm n), RRed.R a b -> P a -> P b.
   Proof. hauto q:on use:red_sn_preservation, RPar.FromRRed. Qed.
 
-  Lemma PAbs_imp : forall n a b, @ishf n a -> ~~ isabs a -> ~ P (PApp a b).
-    sfirstorder use:fp_red.PAbs_imp. Qed.
+  Lemma PApp_imp : forall n a b, @ishf n a -> ~~ isabs a -> ~ P (PApp a b).
+    sfirstorder use:fp_red.PApp_imp. Qed.
   Lemma PProj_imp : forall  n p a, @ishf n a -> ~~ ispair a -> ~ P (PProj p a).
     sfirstorder use:fp_red.PProj_imp. Qed.
 
@@ -1067,7 +1177,7 @@ Module NoForbid_FactSN := NoForbid_Fact SN_NoForbid.
 
 Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
   Import M MFacts.
-  #[local]Hint Resolve P_EPar P_RRed PAbs_imp PProj_imp : forbid.
+  #[local]Hint Resolve P_EPar P_RRed PApp_imp PProj_imp : forbid.
 
   Lemma η_split n (a0 a1 : PTm n) :
     EPar.R a0 a1 ->
@@ -1104,7 +1214,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         have ? : ~~ isabs (ren_PTm shift b) by scongruence use:isabs_ren.
         have ? : ishf (ren_PTm shift b) by scongruence use:ishf_ren.
         exfalso.
-        sfirstorder use:PAbs_imp.
+        sfirstorder use:PApp_imp.
     - move => n a0 a1 h ih /[dup] hP.
       move /P_PairInv => [/P_ProjInv + _].
       move : ih => /[apply].
@@ -1151,7 +1261,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         (* Impossible *)
         * move =>*. exfalso.
           have : P (PApp a2 b0) by sfirstorder use:RReds.AppCong, @rtc_refl, P_RReds.
-          sfirstorder use:PAbs_imp.
+          sfirstorder use:PApp_imp.
     - hauto lq:on ctrs:NeEPar.R_nonelim use:RReds.PairCong, P_PairInv.
     - move => n p a0 a1 ha ih /[dup] hP /P_ProjInv.
       move : ih => /[apply]. move => [a2 [iha0 iha1]].
@@ -1231,7 +1341,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           have : rtc RRed.R (PApp a0 b0) (PApp (PPair (PProj PL a1) (PProj PR a1)) b0)
             by qauto l:on ctrs:rtc use:RReds.AppCong.
           move : P_RReds hP. repeat move/[apply].
-          sfirstorder use:PAbs_imp.
+          sfirstorder use:PApp_imp.
         * exists (subst_PTm (scons b0 VarPTm) a1).
           split.
           apply : rtc_r; last by apply RRed.AppAbs.
