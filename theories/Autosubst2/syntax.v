@@ -41,7 +41,13 @@ Inductive PTm (n_PTm : nat) : Type :=
   | PProj : PTag -> PTm n_PTm -> PTm n_PTm
   | PBind : BTag -> PTm n_PTm -> PTm (S n_PTm) -> PTm n_PTm
   | PUniv : nat -> PTm n_PTm
-  | PBot : PTm n_PTm.
+  | PBot : PTm n_PTm
+  | PNat : PTm n_PTm
+  | PZero : PTm n_PTm
+  | PSuc : PTm n_PTm -> PTm n_PTm
+  | PInd :
+      PTm (S n_PTm) ->
+      PTm n_PTm -> PTm n_PTm -> PTm (S (S n_PTm)) -> PTm n_PTm.
 
 Lemma congr_PAbs {m_PTm : nat} {s0 : PTm (S m_PTm)} {t0 : PTm (S m_PTm)}
   (H0 : s0 = t0) : PAbs m_PTm s0 = PAbs m_PTm t0.
@@ -95,6 +101,37 @@ Proof.
 exact (eq_refl).
 Qed.
 
+Lemma congr_PNat {m_PTm : nat} : PNat m_PTm = PNat m_PTm.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_PZero {m_PTm : nat} : PZero m_PTm = PZero m_PTm.
+Proof.
+exact (eq_refl).
+Qed.
+
+Lemma congr_PSuc {m_PTm : nat} {s0 : PTm m_PTm} {t0 : PTm m_PTm}
+  (H0 : s0 = t0) : PSuc m_PTm s0 = PSuc m_PTm t0.
+Proof.
+exact (eq_trans eq_refl (ap (fun x => PSuc m_PTm x) H0)).
+Qed.
+
+Lemma congr_PInd {m_PTm : nat} {s0 : PTm (S m_PTm)} {s1 : PTm m_PTm}
+  {s2 : PTm m_PTm} {s3 : PTm (S (S m_PTm))} {t0 : PTm (S m_PTm)}
+  {t1 : PTm m_PTm} {t2 : PTm m_PTm} {t3 : PTm (S (S m_PTm))} (H0 : s0 = t0)
+  (H1 : s1 = t1) (H2 : s2 = t2) (H3 : s3 = t3) :
+  PInd m_PTm s0 s1 s2 s3 = PInd m_PTm t0 t1 t2 t3.
+Proof.
+exact (eq_trans
+         (eq_trans
+            (eq_trans
+               (eq_trans eq_refl (ap (fun x => PInd m_PTm x s1 s2 s3) H0))
+               (ap (fun x => PInd m_PTm t0 x s2 s3) H1))
+            (ap (fun x => PInd m_PTm t0 t1 x s3) H2))
+         (ap (fun x => PInd m_PTm t0 t1 t2 x) H3)).
+Qed.
+
 Lemma upRen_PTm_PTm {m : nat} {n : nat} (xi : fin m -> fin n) :
   fin (S m) -> fin (S n).
 Proof.
@@ -119,6 +156,13 @@ Fixpoint ren_PTm {m_PTm : nat} {n_PTm : nat}
       PBind n_PTm s0 (ren_PTm xi_PTm s1) (ren_PTm (upRen_PTm_PTm xi_PTm) s2)
   | PUniv _ s0 => PUniv n_PTm s0
   | PBot _ => PBot n_PTm
+  | PNat _ => PNat n_PTm
+  | PZero _ => PZero n_PTm
+  | PSuc _ s0 => PSuc n_PTm (ren_PTm xi_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      PInd n_PTm (ren_PTm (upRen_PTm_PTm xi_PTm) s0) (ren_PTm xi_PTm s1)
+        (ren_PTm xi_PTm s2)
+        (ren_PTm (upRen_PTm_PTm (upRen_PTm_PTm xi_PTm)) s3)
   end.
 
 Lemma up_PTm_PTm {m : nat} {n_PTm : nat} (sigma : fin m -> PTm n_PTm) :
@@ -150,6 +194,13 @@ Fixpoint subst_PTm {m_PTm : nat} {n_PTm : nat}
         (subst_PTm (up_PTm_PTm sigma_PTm) s2)
   | PUniv _ s0 => PUniv n_PTm s0
   | PBot _ => PBot n_PTm
+  | PNat _ => PNat n_PTm
+  | PZero _ => PZero n_PTm
+  | PSuc _ s0 => PSuc n_PTm (subst_PTm sigma_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      PInd n_PTm (subst_PTm (up_PTm_PTm sigma_PTm) s0)
+        (subst_PTm sigma_PTm s1) (subst_PTm sigma_PTm s2)
+        (subst_PTm (up_PTm_PTm (up_PTm_PTm sigma_PTm)) s3)
   end.
 
 Lemma upId_PTm_PTm {m_PTm : nat} (sigma : fin m_PTm -> PTm m_PTm)
@@ -193,6 +244,15 @@ Fixpoint idSubst_PTm {m_PTm : nat} (sigma_PTm : fin m_PTm -> PTm m_PTm)
         (idSubst_PTm (up_PTm_PTm sigma_PTm) (upId_PTm_PTm _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 => congr_PSuc (idSubst_PTm sigma_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (idSubst_PTm (up_PTm_PTm sigma_PTm) (upId_PTm_PTm _ Eq_PTm) s0)
+        (idSubst_PTm sigma_PTm Eq_PTm s1) (idSubst_PTm sigma_PTm Eq_PTm s2)
+        (idSubst_PTm (up_PTm_PTm (up_PTm_PTm sigma_PTm))
+           (upId_PTm_PTm _ (upId_PTm_PTm _ Eq_PTm)) s3)
   end.
 
 Lemma upExtRen_PTm_PTm {m : nat} {n : nat} (xi : fin m -> fin n)
@@ -239,6 +299,18 @@ ren_PTm xi_PTm s = ren_PTm zeta_PTm s :=
            (upExtRen_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 => congr_PSuc (extRen_PTm xi_PTm zeta_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (extRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
+           (upExtRen_PTm_PTm _ _ Eq_PTm) s0)
+        (extRen_PTm xi_PTm zeta_PTm Eq_PTm s1)
+        (extRen_PTm xi_PTm zeta_PTm Eq_PTm s2)
+        (extRen_PTm (upRen_PTm_PTm (upRen_PTm_PTm xi_PTm))
+           (upRen_PTm_PTm (upRen_PTm_PTm zeta_PTm))
+           (upExtRen_PTm_PTm _ _ (upExtRen_PTm_PTm _ _ Eq_PTm)) s3)
   end.
 
 Lemma upExt_PTm_PTm {m : nat} {n_PTm : nat} (sigma : fin m -> PTm n_PTm)
@@ -286,6 +358,18 @@ subst_PTm sigma_PTm s = subst_PTm tau_PTm s :=
            (upExt_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 => congr_PSuc (ext_PTm sigma_PTm tau_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (ext_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
+           (upExt_PTm_PTm _ _ Eq_PTm) s0)
+        (ext_PTm sigma_PTm tau_PTm Eq_PTm s1)
+        (ext_PTm sigma_PTm tau_PTm Eq_PTm s2)
+        (ext_PTm (up_PTm_PTm (up_PTm_PTm sigma_PTm))
+           (up_PTm_PTm (up_PTm_PTm tau_PTm))
+           (upExt_PTm_PTm _ _ (upExt_PTm_PTm _ _ Eq_PTm)) s3)
   end.
 
 Lemma up_ren_ren_PTm_PTm {k : nat} {l : nat} {m : nat} (xi : fin k -> fin l)
@@ -334,6 +418,20 @@ Fixpoint compRenRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
            (upRen_PTm_PTm rho_PTm) (up_ren_ren _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 =>
+      congr_PSuc (compRenRen_PTm xi_PTm zeta_PTm rho_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (compRenRen_PTm (upRen_PTm_PTm xi_PTm) (upRen_PTm_PTm zeta_PTm)
+           (upRen_PTm_PTm rho_PTm) (up_ren_ren _ _ _ Eq_PTm) s0)
+        (compRenRen_PTm xi_PTm zeta_PTm rho_PTm Eq_PTm s1)
+        (compRenRen_PTm xi_PTm zeta_PTm rho_PTm Eq_PTm s2)
+        (compRenRen_PTm (upRen_PTm_PTm (upRen_PTm_PTm xi_PTm))
+           (upRen_PTm_PTm (upRen_PTm_PTm zeta_PTm))
+           (upRen_PTm_PTm (upRen_PTm_PTm rho_PTm))
+           (up_ren_ren _ _ _ (up_ren_ren _ _ _ Eq_PTm)) s3)
   end.
 
 Lemma up_ren_subst_PTm_PTm {k : nat} {l : nat} {m_PTm : nat}
@@ -391,6 +489,21 @@ Fixpoint compRenSubst_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
            (up_PTm_PTm theta_PTm) (up_ren_subst_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 =>
+      congr_PSuc (compRenSubst_PTm xi_PTm tau_PTm theta_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (compRenSubst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm tau_PTm)
+           (up_PTm_PTm theta_PTm) (up_ren_subst_PTm_PTm _ _ _ Eq_PTm) s0)
+        (compRenSubst_PTm xi_PTm tau_PTm theta_PTm Eq_PTm s1)
+        (compRenSubst_PTm xi_PTm tau_PTm theta_PTm Eq_PTm s2)
+        (compRenSubst_PTm (upRen_PTm_PTm (upRen_PTm_PTm xi_PTm))
+           (up_PTm_PTm (up_PTm_PTm tau_PTm))
+           (up_PTm_PTm (up_PTm_PTm theta_PTm))
+           (up_ren_subst_PTm_PTm _ _ _ (up_ren_subst_PTm_PTm _ _ _ Eq_PTm))
+           s3)
   end.
 
 Lemma up_subst_ren_PTm_PTm {k : nat} {l_PTm : nat} {m_PTm : nat}
@@ -468,6 +581,21 @@ ren_PTm zeta_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
            (up_PTm_PTm theta_PTm) (up_subst_ren_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 =>
+      congr_PSuc (compSubstRen_PTm sigma_PTm zeta_PTm theta_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (compSubstRen_PTm (up_PTm_PTm sigma_PTm) (upRen_PTm_PTm zeta_PTm)
+           (up_PTm_PTm theta_PTm) (up_subst_ren_PTm_PTm _ _ _ Eq_PTm) s0)
+        (compSubstRen_PTm sigma_PTm zeta_PTm theta_PTm Eq_PTm s1)
+        (compSubstRen_PTm sigma_PTm zeta_PTm theta_PTm Eq_PTm s2)
+        (compSubstRen_PTm (up_PTm_PTm (up_PTm_PTm sigma_PTm))
+           (upRen_PTm_PTm (upRen_PTm_PTm zeta_PTm))
+           (up_PTm_PTm (up_PTm_PTm theta_PTm))
+           (up_subst_ren_PTm_PTm _ _ _ (up_subst_ren_PTm_PTm _ _ _ Eq_PTm))
+           s3)
   end.
 
 Lemma up_subst_subst_PTm_PTm {k : nat} {l_PTm : nat} {m_PTm : nat}
@@ -547,6 +675,21 @@ subst_PTm tau_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
            (up_PTm_PTm theta_PTm) (up_subst_subst_PTm_PTm _ _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 =>
+      congr_PSuc (compSubstSubst_PTm sigma_PTm tau_PTm theta_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (compSubstSubst_PTm (up_PTm_PTm sigma_PTm) (up_PTm_PTm tau_PTm)
+           (up_PTm_PTm theta_PTm) (up_subst_subst_PTm_PTm _ _ _ Eq_PTm) s0)
+        (compSubstSubst_PTm sigma_PTm tau_PTm theta_PTm Eq_PTm s1)
+        (compSubstSubst_PTm sigma_PTm tau_PTm theta_PTm Eq_PTm s2)
+        (compSubstSubst_PTm (up_PTm_PTm (up_PTm_PTm sigma_PTm))
+           (up_PTm_PTm (up_PTm_PTm tau_PTm))
+           (up_PTm_PTm (up_PTm_PTm theta_PTm))
+           (up_subst_subst_PTm_PTm _ _ _
+              (up_subst_subst_PTm_PTm _ _ _ Eq_PTm)) s3)
   end.
 
 Lemma renRen_PTm {k_PTm : nat} {l_PTm : nat} {m_PTm : nat}
@@ -665,6 +808,18 @@ Fixpoint rinst_inst_PTm {m_PTm : nat} {n_PTm : nat}
            (rinstInst_up_PTm_PTm _ _ Eq_PTm) s2)
   | PUniv _ s0 => congr_PUniv (eq_refl s0)
   | PBot _ => congr_PBot
+  | PNat _ => congr_PNat
+  | PZero _ => congr_PZero
+  | PSuc _ s0 => congr_PSuc (rinst_inst_PTm xi_PTm sigma_PTm Eq_PTm s0)
+  | PInd _ s0 s1 s2 s3 =>
+      congr_PInd
+        (rinst_inst_PTm (upRen_PTm_PTm xi_PTm) (up_PTm_PTm sigma_PTm)
+           (rinstInst_up_PTm_PTm _ _ Eq_PTm) s0)
+        (rinst_inst_PTm xi_PTm sigma_PTm Eq_PTm s1)
+        (rinst_inst_PTm xi_PTm sigma_PTm Eq_PTm s2)
+        (rinst_inst_PTm (upRen_PTm_PTm (upRen_PTm_PTm xi_PTm))
+           (up_PTm_PTm (up_PTm_PTm sigma_PTm))
+           (rinstInst_up_PTm_PTm _ _ (rinstInst_up_PTm_PTm _ _ Eq_PTm)) s3)
   end.
 
 Lemma rinstInst'_PTm {m_PTm : nat} {n_PTm : nat}
@@ -870,6 +1025,14 @@ Import
 Core.
 
 Arguments VarPTm {n_PTm}.
+
+Arguments PInd {n_PTm}.
+
+Arguments PSuc {n_PTm}.
+
+Arguments PZero {n_PTm}.
+
+Arguments PNat {n_PTm}.
 
 Arguments PBot {n_PTm}.
 

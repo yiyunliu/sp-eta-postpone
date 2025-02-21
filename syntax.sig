@@ -17,3 +17,7 @@ PProj : PTag -> PTm -> PTm
 PBind : BTag -> PTm -> (bind PTm in PTm) -> PTm
 PUniv : nat -> PTm
 PBot : PTm
+PNat : PTm
+PZero : PTm
+PSuc : PTm -> PTm
+PInd : (bind PTm in PTm) -> PTm -> PTm -> (bind PTm,PTm in PTm) -> PTm
