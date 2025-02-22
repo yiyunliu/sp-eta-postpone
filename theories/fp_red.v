@@ -1616,7 +1616,44 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto lq:on inv:RRed.R ctrs:rtc.
     - hauto q:on ctrs:rtc inv:RRed.R.
     - move => n P0 P1 a0 a1 b0 b1 c0 c1 hP ihP ha iha hb ihb hc ihc u.
-      admit.
+      move => /[dup] hInd.
+      move /P_IndInv.
+      move => [pP0][pa0][pb0]pc0.
+      elim /RRed.inv => //= _.
+      + move => P2 b2 c2 [*]. subst.
+        move /η_split : pa0 ha; repeat move/[apply].
+        move => [a1][h0]h1 {iha}.
+        inversion h1; subst.
+        * exfalso.
+          have :P (PInd P0 (PAbs (PApp (ren_PTm shift a2) (VarPTm var_zero))) b0 c0) by eauto using RReds.IndCong, rtc_refl, P_RReds.
+          clear. hauto lq:on use:PInd_imp.
+        * have :P (PInd P0 (PPair (PProj PL a2) (PProj PR a2)) b0 c0) by eauto using RReds.IndCong, rtc_refl, P_RReds.
+          clear. hauto lq:on use:PInd_imp.
+        * eexists. split; eauto.
+          apply : rtc_r.
+          apply : RReds.IndCong; eauto; eauto using rtc_refl.
+          apply RRed.IndZero.
+      + admit.
+      + move => P2 P3 a2 b2 c hP0 [*]. subst.
+        move : ihP hP0 pP0. repeat move/[apply].
+        move => [P2][h0]h1.
+        exists (PInd P2 a0 b0 c0).
+        sfirstorder use:RReds.IndCong, @rtc_refl, EPar.IndCong.
+      + move => P2 a2 a3 b2 c + [*]. subst.
+        move : iha pa0; repeat move/[apply].
+        move => [a2][*].
+        exists (PInd P0 a2 b0 c0).
+        sfirstorder use:RReds.IndCong, @rtc_refl, EPar.IndCong.
+      + move => P2 a2 b2 b3 c + [*]. subst.
+        move : ihb pb0; repeat move/[apply].
+        move => [b2][*].
+        exists (PInd P0 a0 b2 c0).
+        sfirstorder use:RReds.IndCong, @rtc_refl, EPar.IndCong.
+      + move => P2 a2 b2 b3 c + [*]. subst.
+        move : ihc pc0; repeat move/[apply].
+        move => [c2][*].
+        exists (PInd P0 a0 b0 c2).
+        sfirstorder use:RReds.IndCong, @rtc_refl, EPar.IndCong.
     - hauto lq:on inv:RRed.R ctrs:rtc, EPar.R.
     - move => n a0 a1 ha iha u /P_SucInv ha0.
       elim /RRed.inv => //= _ a2 a3 h [*]. subst.
