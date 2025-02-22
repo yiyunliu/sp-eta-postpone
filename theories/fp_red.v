@@ -1038,6 +1038,19 @@ Module RReds.
     rtc RRed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma SucCong n (a0 a1 : PTm n) :
+    rtc RRed.R a0 a1 ->
+    rtc RRed.R (PSuc a0) (PSuc a1).
+  Proof. solve_s. Qed.
+
+  Lemma IndCong n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    rtc RRed.R P0 P1 ->
+    rtc RRed.R a0 a1 ->
+    rtc RRed.R b0 b1 ->
+    rtc RRed.R c0 c1 ->
+    rtc RRed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
+  Proof. solve_s. Qed.
+
   Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
     rtc RRed.R A0 A1 ->
     rtc RRed.R B0 B1 ->
@@ -1053,7 +1066,7 @@ Module RReds.
   Lemma FromRPar n (a b : PTm n) (h : RPar.R a b) :
     rtc RRed.R a b.
   Proof.
-    elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong.
+    elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong, IndCong, SucCong.
     move => n a0 a1 b0 b1 ha iha hb ihb.
     apply : rtc_r; last by apply RRed.AppAbs.
     by eauto using AppCong, AbsCong.
@@ -1061,6 +1074,12 @@ Module RReds.
     move => n p a0 a1 b0 b1 ha iha hb ihb.
     apply : rtc_r; last by apply RRed.ProjPair.
     by eauto using PairCong, ProjCong.
+
+    hauto lq:on ctrs:RRed.R, rtc.
+
+    move => *.
+    apply : rtc_r; last by apply RRed.IndSuc.
+    by eauto using SucCong, IndCong.
   Qed.
 
   Lemma RParIff n (a b : PTm n) :
@@ -1119,6 +1138,21 @@ Module NeEPar.
     R_nonelim (PBind p A0 B0) (PBind p A1 B1)
   | BotCong :
     R_nonelim PBot PBot
+  | NatCong :
+    R_nonelim PNat PNat
+  | IndCong P0 P1 a0 a1 b0 b1 c0 c1 :
+    R_nonelim P0 P1 ->
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim c0 c1 ->
+    (* ----------------------- *)
+    R_nonelim (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1)
+  | ZeroCong :
+    R_nonelim PZero PZero
+  | SucCong a0 a1 :
+    R_nonelim a0 a1 ->
+    (* ------------ *)
+    R_nonelim (PSuc a0) (PSuc a1)
   with R_elim {n} : PTm n -> PTm n -> Prop :=
   | NAbsCong a0 a1 :
     R_nonelim a0 a1 ->
@@ -1143,7 +1177,22 @@ Module NeEPar.
     R_nonelim B0 B1 ->
     R_elim (PBind p A0 B0) (PBind p A1 B1)
   | NBotCong :
-    R_elim PBot PBot.
+    R_elim PBot PBot
+  | NNatCong :
+    R_elim PNat PNat
+  | NIndCong P0 P1 a0 a1 b0 b1 c0 c1 :
+    R_nonelim P0 P1 ->
+    R_elim a0 a1 ->
+    R_nonelim b0 b1 ->
+    R_nonelim c0 c1 ->
+    (* ----------------------- *)
+    R_elim (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1)
+  | NZeroCong :
+    R_elim PZero PZero
+  | NSucCong a0 a1 :
+    R_nonelim a0 a1 ->
+    (* ------------ *)
+    R_elim (PSuc a0) (PSuc a1).
 
   Scheme epar_elim_ind := Induction for R_elim Sort Prop
       with epar_nonelim_ind := Induction for R_nonelim Sort Prop.
@@ -1162,6 +1211,7 @@ Module NeEPar.
     - hauto lb:on.
     - hauto lq:on inv:R_elim.
     - hauto b:on.
+    - hauto lqb:on inv:R_elim.
     - move => a0 a1 /negP ha' ha ih ha1.
       have {ih} := ih ha1.
       move => ha0.
@@ -1179,6 +1229,7 @@ Module NeEPar.
     - hauto lb: on drew: off.
     - hauto lq:on rew:off inv:R_elim.
     - sfirstorder b:on.
+    - hauto lqb:on inv:R_elim.
   Qed.
 
   Lemma R_nonelim_nothf n (a b : PTm n) :
@@ -1215,10 +1266,15 @@ Module Type NoForbid.
   (* Axiom P_AppBind : forall n p (A : PTm n) B b, ~ P (PApp (PBind p A B) b). *)
   Axiom PApp_imp : forall n a b, @ishf n a -> ~~ isabs a -> ~ P (PApp a b).
   Axiom PProj_imp : forall  n p a, @ishf n a -> ~~ ispair a -> ~ P (PProj p a).
+  Axiom PInd_imp : forall n Q (a : PTm n) b c,
+  ishf a ->
+  ~~ iszero a ->
+  ~~ issuc a  -> ~ P (PInd Q a b c).
 
   Axiom P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
   Axiom P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
   Axiom P_BindInv : forall n p (A : PTm n) B, P (PBind p A B) -> P A /\ P B.
+  Axiom P_IndInv : forall n Q (a : PTm n) b c, P (PInd Q a b c) -> P Q /\ P a /\ P b /\ P c.
 
   Axiom P_PairInv : forall n (a b : PTm n), P (PPair a b) -> P a /\ P b.
   Axiom P_ProjInv : forall n p (a : PTm n), P (PProj p a) -> P a.
@@ -1263,6 +1319,12 @@ Module SN_NoForbid <: NoForbid.
   Lemma PProj_imp : forall  n p a, @ishf n a -> ~~ ispair a -> ~ P (PProj p a).
     sfirstorder use:fp_red.PProj_imp. Qed.
 
+  Lemma PInd_imp : forall n Q (a : PTm n) b c,
+      ishf a ->
+      ~~ iszero a ->
+      ~~ issuc a  -> ~ P (PInd Q a b c).
+  Proof. sfirstorder use: fp_red.PInd_imp. Qed.
+
   Lemma P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
   Proof. sfirstorder use:SN_AppInv. Qed.
 
@@ -1295,6 +1357,9 @@ Module SN_NoForbid <: NoForbid.
 
   Lemma P_AppBind : forall n p (A : PTm n) B b, ~ P (PApp (PBind p A B) b).
   Proof. sfirstorder use:PAppBind_imp. Qed.
+
+  Lemma P_IndInv : forall n Q (a : PTm n) b c, P (PInd Q a b c) -> P Q /\ P a /\ P b /\ P c.
+  Proof. sfirstorder use:SN_IndInv. Qed.
 
 End SN_NoForbid.
 
@@ -1413,6 +1478,32 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto l:on.
     - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
     - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
+    - hauto l:on ctrs:NeEPar.R_nonelim.
+    - move => n P0 P1 a0 a1 b0 b1 c0 c1 hP ihP ha iha hb ihb hc ihc /[dup] hInd /P_IndInv.
+      move => []. move : ihP => /[apply].
+      move => [P01][ihP0]ihP1.
+      move => []. move : iha => /[apply].
+      move => [a01][iha0]iha1.
+      move => []. move : ihb => /[apply].
+      move => [b01][ihb0]ihb1.
+      move : ihc => /[apply].
+      move => [c01][ihc0]ihc1.
+      exists
+      case /orP : (orNb (ishf a01)) => [h|].
+      + eexists. split. by eauto using RReds.IndCong.
+        hauto q:on ctrs:NeEPar.R_nonelim use:NeEPar.R_nonelim_nothf.
+      + move => h.
+        case /orP : (orNb (issuc a01 || iszero a01)).
+        * move /norP.
+          have : P (PInd P01 a01 b01 c01) by eauto using P_RReds, RReds.IndCong.
+          hauto lq:on use:PInd_imp.
+        * case /orP.
+          admit.
+          move {h}.
+          case : a01 iha0 iha1 => //=.
+
+best b:on use:PInd_imp.
+
   Qed.
 
 
