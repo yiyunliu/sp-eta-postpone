@@ -1633,7 +1633,19 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           apply : rtc_r.
           apply : RReds.IndCong; eauto; eauto using rtc_refl.
           apply RRed.IndZero.
-      + admit.
+      + move => P2 a2 b2 c [*]. subst.
+        move /η_split /(_ pa0) : ha.
+        move => [a1][h0]h1.
+        inversion h1; subst.
+        * have :P (PInd P0 (PAbs (PApp (ren_PTm shift a3) (VarPTm var_zero))) b0 c0) by eauto using RReds.IndCong, rtc_refl, P_RReds.
+          clear. hauto q:on use:PInd_imp.
+        * have :P (PInd P0 (PPair (PProj PL a3) (PProj PR a3)) b0 c0) by eauto using RReds.IndCong, rtc_refl, P_RReds.
+          clear. hauto q:on use:PInd_imp.
+        * eexists. split.
+          apply : rtc_r.
+          apply RReds.IndCong; eauto; eauto using rtc_refl.
+          apply RRed.IndSuc.
+          apply EPar.morphing;eauto. hauto lq:on ctrs:EPar.R inv:option use:NeEPar.ToEPar.
       + move => P2 P3 a2 b2 c hP0 [*]. subst.
         move : ihP hP0 pP0. repeat move/[apply].
         move => [P2][h0]h1.
