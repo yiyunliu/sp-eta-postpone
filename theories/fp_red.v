@@ -993,9 +993,19 @@ Proof.
   - hauto lq:on inv:RPar.R ctrs:RPar.R, TRedSN', TRedSN.
   - sauto.
   - sauto.
-  - admit.
+  - move => P a b c hP ihP ha iha hb ihb hc ihc u.
+    elim /RPar.inv => //=_.
+    + move => P0 P1 a0 a1 b0 b1 c0 c1 hP' ha' hb' hc' [*]. subst.
+      eexists. split; first by apply T_Refl.
+      apply RPar.morphing=>//. hauto lq:on ctrs:RPar.R inv:option.
+    + move => P0 P1 a0 a1 b0 b1 c0 c1 hP' ha' hb' hc' [*]. subst.
+      elim /RPar.inv : ha' => //=_.
+      move => a0 a2 ha' [*]. subst.
+      eexists. split. apply T_Once.
+      apply N_IndSuc; eauto.
+      hauto q:on use:RPar.morphing ctrs:RPar.R inv:option.
   - sauto q:on.
-Admitted.
+Qed.
 
 Module RReds.
 
