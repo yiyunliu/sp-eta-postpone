@@ -1743,7 +1743,22 @@ Module ERed.
     R (PBind p A0 B) (PBind p A1 B)
   | BindCong1 p A B0 B1 :
     R B0 B1 ->
-    R (PBind p A B0) (PBind p A B1).
+    R (PBind p A B0) (PBind p A B1)
+  | IndCong0 P0 P1 a b c :
+    R P0 P1 ->
+    R (PInd P0 a b c) (PInd P1 a b c)
+  | IndCong1 P a0 a1 b c :
+    R a0 a1 ->
+    R (PInd P a0 b c) (PInd P a1 b c)
+  | IndCong2 P a b0 b1 c :
+    R b0 b1 ->
+    R (PInd P a b0 c) (PInd P a b1 c)
+  | IndCong3 P a b c0 c1 :
+    R c0 c1 ->
+    R (PInd P a b c0) (PInd P a b c1)
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    R (PSuc a0) (PSuc a1).
 
   Derive Dependent Inversion inv with (forall n (a b : PTm n), R a b) Sort Prop.
 
@@ -1825,7 +1840,11 @@ Module ERed.
       apply. hauto l:on.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
-  Qed.
+    - hauto lq:on rew:off.
+    - hauto lq:on rew:off.
+    - hauto lq:on rew:off.
+    - admit.
+  Admitted.
 
   Lemma antirenaming n m (a : PTm n) (b : PTm m) (ξ : fin n -> fin m) :
     (forall i j, ξ i = ξ j -> i = j) ->
@@ -1925,6 +1944,19 @@ Module EReds.
   Proof. solve_s. Qed.
 
 
+  Lemma SucCong n (a0 a1 : PTm n) :
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R (PSuc a0) (PSuc a1).
+  Proof. solve_s. Qed.
+
+  Lemma IndCong n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    rtc ERed.R P0 P1 ->
+    rtc ERed.R a0 a1 ->
+    rtc ERed.R b0 b1 ->
+    rtc ERed.R c0 c1 ->
+    rtc ERed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
+  Proof. solve_s. Qed.
+
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof. induction 1; hauto l:on use:ERed.renaming ctrs:rtc. Qed.
@@ -1933,7 +1965,7 @@ Module EReds.
     EPar.R a b ->
     rtc ERed.R a b.
   Proof.
-    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong.
+    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong, IndCong, SucCong.
     - move => n a0 a1 _ h.
       have {}h : rtc ERed.R (ren_PTm shift a0) (ren_PTm shift a1) by apply renaming.
       apply : rtc_r. apply AbsCong. apply AppCong; eauto. apply rtc_refl.
@@ -1976,7 +2008,7 @@ Module EReds.
     move E : (PProj p a) => u hu.
     move : p a E.
     elim : u C /hu;
-      hauto q:on ctrs:rtc,ERed.R inv:ERed.R.
+      scrush ctrs:rtc,ERed.R inv:ERed.R.
   Qed.
 
   Lemma bind_inv n p (A : PTm n) B C :
