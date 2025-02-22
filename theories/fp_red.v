@@ -1273,6 +1273,7 @@ Module Type NoForbid.
 
   Axiom P_AppInv : forall n (a b : PTm n), P (PApp a b) -> P a /\ P b.
   Axiom P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
+  Axiom P_SucInv : forall n (a : PTm n), P (PSuc a) -> P a.
   Axiom P_BindInv : forall n p (A : PTm n) B, P (PBind p A B) -> P A /\ P B.
   Axiom P_IndInv : forall n Q (a : PTm n) b c, P (PInd Q a b c) -> P Q /\ P a /\ P b /\ P c.
 
@@ -1341,6 +1342,9 @@ Module SN_NoForbid <: NoForbid.
     move E : (PBind p A B) => u hu.
     move : p A B E. elim : n u /hu=>//=;sauto lq:on rew:off.
   Qed.
+
+  Lemma P_SucInv : forall n (a : PTm n), P (PSuc a) -> P a.
+  Proof. sauto lq:on. Qed.
 
   Lemma P_AbsInv : forall n (a : PTm (S n)), P (PAbs a) -> P a.
   Proof.
@@ -1488,7 +1492,6 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
       move => [b01][ihb0]ihb1.
       move : ihc => /[apply].
       move => [c01][ihc0]ihc1.
-      exists
       case /orP : (orNb (ishf a01)) => [h|].
       + eexists. split. by eauto using RReds.IndCong.
         hauto q:on ctrs:NeEPar.R_nonelim use:NeEPar.R_nonelim_nothf.
@@ -1497,15 +1500,14 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         * move /norP.
           have : P (PInd P01 a01 b01 c01) by eauto using P_RReds, RReds.IndCong.
           hauto lq:on use:PInd_imp.
-        * case /orP.
-          admit.
-          move {h}.
-          case : a01 iha0 iha1 => //=.
-
-best b:on use:PInd_imp.
-
+        * move => ha01.
+          eexists. split. eauto using RReds.IndCong.
+          apply NeEPar.IndCong; eauto.
+          move : iha1 ha01. clear.
+          inversion 1; subst => //=; hauto lq:on ctrs:NeEPar.R_elim.
+    - hauto l:on.
+    - hauto lq:on ctrs:NeEPar.R_nonelim use:RReds.SucCong, P_SucInv.
   Qed.
-
 
   Lemma eta_postponement n a b c :
     @P n a ->
@@ -1612,6 +1614,17 @@ best b:on use:PInd_imp.
     - hauto lq:on inv:RRed.R ctrs:rtc.
     - sauto lq:on ctrs:EPar.R, rtc use:RReds.BindCong, P_BindInv, @relations.rtc_transitive.
     - hauto lq:on inv:RRed.R ctrs:rtc.
+    - hauto q:on ctrs:rtc inv:RRed.R.
+    - move => n P0 P1 a0 a1 b0 b1 c0 c1 hP ihP ha iha hb ihb hc ihc u.
+      admit.
+    - hauto lq:on inv:RRed.R ctrs:rtc, EPar.R.
+    - move => n a0 a1 ha iha u /P_SucInv ha0.
+      elim /RRed.inv => //= _ a2 a3 h [*]. subst.
+      move : iha (ha0) (h); repeat move/[apply].
+      move => [a2 [ih0 ih1]].
+      exists (PSuc a2).
+      split. by apply RReds.SucCong.
+      by apply EPar.SucCong.
   Qed.
 
   Lemma η_postponement_star n a b c :
