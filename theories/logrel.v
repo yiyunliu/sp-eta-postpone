@@ -280,7 +280,7 @@ Lemma redsns_preservation : forall n a b, @SN n a -> rtc TRedSN a b -> SN b.
 Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 
 #[export]Hint Resolve Sub.sne_bind_noconf Sub.sne_univ_noconf Sub.bind_univ_noconf
-  Sub.bind_sne_noconf Sub.univ_sne_noconf Sub.univ_bind_noconf: noconf.
+  Sub.bind_sne_noconf Sub.univ_sne_noconf Sub.univ_bind_noconf Sub.nat_bind_noconf Sub.bind_nat_noconf Sub.sne_nat_noconf Sub.nat_sne_noconf Sub.univ_nat_noconf Sub.nat_univ_noconf: noconf.
 
 Lemma InterpUniv_SNe_inv n i (A : PTm n) PA :
   SNe A ->
@@ -367,7 +367,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R H A by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : SNe H.
-      suff : ~ isbind H /\ ~ isuniv H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by itauto.
       move : hAB hA h0. clear. hauto lq:on db:noconf.
       move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
       tauto.
@@ -377,7 +377,7 @@ Proof.
       have {hU} {}h : Sub.R (PBind p A B) H
         by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have{h0} : isbind H.
-      suff : ~ SNe H /\ ~ isuniv H by itauto.
+      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by itauto.
       have : isbind (PBind p A B) by scongruence.
       move : h. clear. hauto l:on db:noconf.
       case : H h1 h => //=.
@@ -396,7 +396,7 @@ Proof.
       have {hU} {}h : Sub.R H (PBind p A B)
         by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have{h0} : isbind H.
-      suff : ~ SNe H /\ ~ isuniv H by itauto.
+      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by itauto.
       have : isbind (PBind p A B) by scongruence.
       move : h. clear. move : (PBind p A B). hauto lq:on db:noconf.
       case : H h1 h => //=.
@@ -408,13 +408,36 @@ Proof.
       move => a PB PB' ha hPB hPB'.
       eapply ihPF; eauto.
       apply Sub.cong => //=; eauto using DJoin.refl.
+  - move =>  i B PB h. split.
+    + move => hAB a ha.
+      have ? : SN B by hauto l:on use:adequacy.
+      move /InterpUniv_case : h.
+      move => [H [/DJoin.FromRedSNs h [h1 h0]]].
+      have {h}{}hAB : Sub.R PNat H by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
+      have {}h0 : isnat H.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by itauto.
+      have : @isnat n PNat by simpl.
+      move : h0 hAB. clear. qauto l:on db:noconf.
+      case : H h1 hAB h0 => //=.
+      move /InterpUniv_Nat_inv. scongruence.
+    + move => hAB a ha.
+      have ? : SN B by hauto l:on use:adequacy.
+      move /InterpUniv_case : h.
+      move => [H [/DJoin.FromRedSNs h [h1 h0]]].
+      have {h}{}hAB : Sub.R H PNat by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
+      have {}h0 : isnat H.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by itauto.
+      have : @isnat n PNat by simpl.
+      move : h0 hAB. clear. qauto l:on db:noconf.
+      case : H h1 hAB h0 => //=.
+      move /InterpUniv_Nat_inv. scongruence.
   - move => i j jlti ih B PB hPB. split.
     + have ? : SN B by hauto l:on use:adequacy.
       move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
       move => hj.
       have {hj}{}h : Sub.R (PUniv j) H by eauto using Sub.transitive, Sub.FromJoin.
       have {h0} : isuniv H.
-      suff : ~ SNe H /\ ~ isbind H by tauto. move : h. clear. hauto lq:on db:noconf.
+      suff : ~ SNe H /\ ~ isbind H /\ ~ isnat H by tauto. move : h. clear. hauto lq:on db:noconf.
       case : H h1 h => //=.
       move => j' hPB h _.
       have {}h : j <= j' by hauto lq:on use: Sub.univ_inj. subst.
@@ -426,7 +449,7 @@ Proof.
       move => hj.
       have {hj}{}h : Sub.R H (PUniv j) by eauto using Sub.transitive, Sub.FromJoin, DJoin.symmetric.
       have {h0} : isuniv H.
-      suff : ~ SNe H /\ ~ isbind H by tauto. move : h. clear. hauto lq:on db:noconf.
+      suff : ~ SNe H /\ ~ isbind H /\ ~ isnat H by tauto. move : h. clear. hauto lq:on db:noconf.
       case : H h1 h => //=.
       move => j' hPB h _.
       have {}h : j' <= j by hauto lq:on use: Sub.univ_inj.
