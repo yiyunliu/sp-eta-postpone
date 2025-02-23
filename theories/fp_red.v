@@ -2061,6 +2061,12 @@ Module RERed.
   | ProjPair p a b :
     R (PProj p (PPair a b)) (if p is PL then a else b)
 
+  | IndZero P b c :
+      R (PInd P PZero b c) b
+
+  | IndSuc P a b c :
+    R (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
+
   (****************** Eta ***********************)
   | AppEta a :
     R (PAbs (PApp (ren_PTm shift a) (VarPTm var_zero))) a
@@ -2091,7 +2097,22 @@ Module RERed.
     R (PBind p A0 B) (PBind p A1 B)
   | BindCong1 p A B0 B1 :
     R B0 B1 ->
-    R (PBind p A B0) (PBind p A B1).
+    R (PBind p A B0) (PBind p A B1)
+  | IndCong0 P0 P1 a b c :
+    R P0 P1 ->
+    R (PInd P0 a b c) (PInd P1 a b c)
+  | IndCong1 P a0 a1 b c :
+    R a0 a1 ->
+    R (PInd P a0 b c) (PInd P a1 b c)
+  | IndCong2 P a b0 b1 c :
+    R b0 b1 ->
+    R (PInd P a b0 c) (PInd P a b1 c)
+  | IndCong3 P a b c0 c1 :
+    R c0 c1 ->
+    R (PInd P a b c0) (PInd P a b c1)
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    R (PSuc a0) (PSuc a1).
 
   Lemma ToBetaEta n (a b : PTm n) :
     R a b ->
@@ -2195,6 +2216,19 @@ Module REReds.
     rtc RERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
+  Lemma SucCong n (a0 a1 : PTm n) :
+    rtc RERed.R a0 a1 ->
+    rtc RERed.R (PSuc a0) (PSuc a1).
+  Proof. solve_s. Qed.
+
+  Lemma IndCong n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    rtc RERed.R P0 P1 ->
+    rtc RERed.R a0 a1 ->
+    rtc RERed.R b0 b1 ->
+    rtc RERed.R c0 c1 ->
+    rtc RERed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
+  Proof. solve_s. Qed.
+
   Lemma BindCong n p (A0 A1 : PTm n) B0 B1 :
     rtc RERed.R A0 A1 ->
     rtc RERed.R B0 B1 ->
@@ -2261,8 +2295,22 @@ Module REReds.
   Proof.
     move E : (PProj p a) => u hu.
     move : p a E.
-    elim : u C /hu;
-      hauto q:on ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
+    elim : u C /hu => //=;
+      scrush ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
+  Qed.
+
+  Lemma hne_ind_inv n P a b c (C : PTm n) :
+    rtc RERed.R (PInd P a b c) C -> ishne a ->
+    exists P0 a0 b0 c0, C = PInd P0 a0 b0 c0 /\
+                     rtc RERed.R P P0 /\
+                     rtc RERed.R a a0 /\
+                     rtc RERed.R b b0 /\
+                     rtc RERed.R c c0.
+  Proof.
+    move E : (PInd P a b c) => u hu.
+    move : P a b c E.
+    elim  : u C / hu => //=;
+      scrush ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
   Lemma substing n m (a b : PTm n) (ρ : fin n -> PTm m) :
@@ -2281,12 +2329,17 @@ Module REReds.
          apply rtc_refl.
   Qed.
 
+  Lemma cong_up2 n m (ρ0 ρ1 : fin n -> PTm m) :
+    (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
+    (forall i, rtc RERed.R (up_PTm_PTm (up_PTm_PTm ρ0) i) (up_PTm_PTm (up_PTm_PTm ρ1) i)).
+  Proof. hauto l:on use:cong_up. Qed.
+
   Lemma cong n m (a : PTm n) (ρ0 ρ1 : fin n -> PTm m) :
     (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
     rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a).
   Proof.
-    move : m ρ0 ρ1. elim : n / a;
-      eauto using AppCong, AbsCong, BindCong, ProjCong, PairCong, cong_up, rtc_refl.
+    move : m ρ0 ρ1. elim : n / a => /=;
+      eauto 20 using AppCong, AbsCong, BindCong, ProjCong, PairCong, cong_up, rtc_refl, IndCong, SucCong, cong_up2.
   Qed.
 
   Lemma cong' n m (a b : PTm n) (ρ0 ρ1 : fin n -> PTm m) :
@@ -2319,6 +2372,13 @@ Module LoRed.
   | ProjPair p a b :
     R (PProj p (PPair a b)) (if p is PL then a else b)
 
+  | IndZero P b c :
+      R (PInd P PZero b c) b
+
+  | IndSuc P a b c :
+    R (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
+
+
   (*************** Congruence ********************)
   | AbsCong a0 a1 :
     R a0 a1 ->
@@ -2348,7 +2408,29 @@ Module LoRed.
   | BindCong1 p A B0 B1 :
     nf A ->
     R B0 B1 ->
-    R (PBind p A B0) (PBind p A B1).
+    R (PBind p A B0) (PBind p A B1)
+  | IndCong0 P0 P1 a b c :
+    ne a ->
+    R P0 P1 ->
+    R (PInd P0 a b c) (PInd P1 a b c)
+  | IndCong1 P a0 a1 b c :
+    ~~ ishf a0 ->
+    R a0 a1 ->
+    R (PInd P a0 b c) (PInd P a1 b c)
+  | IndCong2 P a b0 b1 c :
+    nf P ->
+    ne a ->
+    R b0 b1 ->
+    R (PInd P a b0 c) (PInd P a b1 c)
+  | IndCong3 P a b c0 c1 :
+    nf P ->
+    ne a ->
+    nf b ->
+    R c0 c1 ->
+    R (PInd P a b c0) (PInd P a b c1)
+  | SucCong a0 a1 :
+    R a0 a1 ->
+    R (PSuc a0) (PSuc a1).
 
   Lemma hf_preservation n (a b : PTm n) :
     LoRed.R a b ->
@@ -2368,6 +2450,11 @@ Module LoRed.
     R (PApp (PAbs a) b)  u.
   Proof. move => ->. apply AppAbs. Qed.
 
+  Lemma IndSuc' n P a b c u :
+    u = (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ->
+    R (@PInd n P (PSuc a) b c) u.
+  Proof. move => ->. apply IndSuc. Qed.
+
   Lemma renaming n m (a b : PTm n) (ξ : fin n -> fin m) :
     R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
@@ -2377,6 +2464,7 @@ Module LoRed.
     move => n a b m ξ /=.
     apply AppAbs'. by asimpl.
     all : try qauto ctrs:R use:ne_nf_ren, ishf_ren.
+    move => * /=; apply IndSuc'. by asimpl.
   Qed.
 
 End LoRed.
@@ -2438,6 +2526,22 @@ Module LoReds.
     rtc LoRed.R (PBind p A0 B0) (PBind p A1 B1).
   Proof. solve_s. Qed.
 
+  Lemma IndCong n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    rtc LoRed.R a0 a1 ->
+    rtc LoRed.R P0 P1 ->
+    rtc LoRed.R b0 b1 ->
+    rtc LoRed.R c0 c1 ->
+    ne a1 ->
+    nf P1 ->
+    nf b1 ->
+    rtc LoRed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
+  Proof. solve_s. Qed.
+
+  Lemma SucCong n (a0 a1 : PTm n) :
+    rtc LoRed.R a0 a1 ->
+    rtc LoRed.R (PSuc a0) (PSuc a1).
+  Proof. solve_s. Qed.
+
   Local Ltac triv := simpl in *; itauto.
 
   Lemma FromSN_mutual : forall n,
@@ -2450,12 +2554,16 @@ Module LoReds.
     - hauto lq:on rew:off use:LoReds.AppCong solve+:triv.
     - hauto l:on use:LoReds.ProjCong solve+:triv.
     - hauto lq:on ctrs:rtc.
+    - hauto lq:on use:LoReds.IndCong solve+:triv.
     - hauto q:on use:LoReds.PairCong solve+:triv.
     - hauto q:on use:LoReds.AbsCong solve+:triv.
     - sfirstorder use:ne_nf.
     - hauto lq:on ctrs:rtc.
     - hauto lq:on use:LoReds.BindCong solve+:triv.
     - hauto lq:on ctrs:rtc.
+    - hauto lq:on ctrs:rtc.
+    - hauto lq:on ctrs:rtc.
+    - hauto l:on use:SucCong.
     - qauto ctrs:LoRed.R.
     - move => n a0 a1 b hb ihb h.
       have : ~~ ishf a0 by inversion h.
@@ -2465,6 +2573,11 @@ Module LoReds.
     - move => n p a b h.
       have : ~~ ishf a by inversion h.
       hauto lq:on ctrs:LoRed.R.
+    - sfirstorder.
+    - sfirstorder.
+    - move => n P a0 a1 b c hP ihP hb ihb hc ihc hr.
+      have : ~~ ishf a0 by inversion hr.
+      hauto q:on ctrs:LoRed.R.
   Qed.
 
   Lemma FromSN : forall n a, @SN n a -> exists v, rtc LoRed.R a v /\ nf v.
@@ -2485,6 +2598,10 @@ Fixpoint size_PTm {n} (a : PTm n) :=
   | PPair a b => 3 + Nat.add (size_PTm a) (size_PTm b)
   | PUniv _ => 3
   | PBind p A B => 3 + Nat.add (size_PTm A) (size_PTm B)
+  | PInd P a b c => 3 + size_PTm P + size_PTm a + size_PTm b + size_PTm c
+  | PNat => 3
+  | PSuc a => 3 + size_PTm a
+  | PZero => 3
   | PBot => 1
   end.
 
@@ -2575,8 +2692,19 @@ Proof.
       hauto lq:on ctrs:rtc use:EReds.BindCong.
   - move => p A B0 B1 hB ihB u.
     elim /ERed.inv => //=_;
-      hauto lq:on ctrs:rtc use:EReds.BindCong.
-Qed.
+                     hauto lq:on ctrs:rtc use:EReds.BindCong.
+  - move => P0 P1 a b c hP ihP u.
+    elim /ERed.inv => //=_.
+    + move => P2 P3 a0 b0 c0 hP' [*]. subst.
+      move : ihP hP' => /[apply]. move => [P4][hP0]hP1.
+      eauto using EReds.IndCong, rtc_refl.
+    + move => P2 a0 a1 b0 c0  + [*]. subst.
+      move {ihP}.
+      move => h. exists (PInd P1 a1 b c).
+      eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+    + move => P2 a0 b0 b1 c0 hb [*] {ihP}. subst.
+
+Admitted.
 
 Lemma ered_confluence n (a b c : PTm n) :
   rtc ERed.R a b ->
