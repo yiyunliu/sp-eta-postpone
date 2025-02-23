@@ -2189,6 +2189,10 @@ Module RERed.
     R a b -> isuniv a -> isuniv b.
   Proof. hauto q:on inv:R. Qed.
 
+  Lemma nat_preservation n (a b : PTm n) :
+    R a b -> isnat a -> isnat b.
+  Proof. hauto q:on inv:R. Qed.
+
   Lemma sne_preservation n (a b : PTm n) :
     R a b -> SNe a -> SNe b.
   Proof.
@@ -2283,6 +2287,10 @@ Module REReds.
   Lemma univ_preservation n (a b : PTm n) :
     rtc RERed.R a b -> isuniv a -> isuniv b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.univ_preservation. Qed.
+
+  Lemma nat_preservation n (a b : PTm n) :
+    rtc RERed.R a b -> isnat a -> isnat b.
+  Proof. induction 1; qauto l:on ctrs:rtc use:RERed.nat_preservation. Qed.
 
   Lemma sne_preservation n (a b : PTm n) :
     rtc RERed.R a b -> SNe a -> SNe b.
@@ -2969,6 +2977,14 @@ Module DJoin.
     sfirstorder use:@rtc_refl unfold:R.
   Qed.
 
+  Lemma sne_nat_noconf n (a b : PTm n) :
+    R a b -> SNe a -> isnat b -> False.
+  Proof.
+    move => [c [? ?]] *.
+    have : SNe c /\ isnat c by sfirstorder use:REReds.sne_preservation, REReds.nat_preservation.
+    qauto l:on inv:SNe.
+  Qed.
+
   Lemma sne_bind_noconf n (a b : PTm n) :
     R a b -> SNe a -> isbind b -> False.
   Proof.
@@ -3014,6 +3030,14 @@ Module DJoin.
           REReds.bind_preservation.
     move => [].
     case : c => //=.
+  Qed.
+
+  Lemma hne_nat_noconf n (a b : PTm n) :
+    R a b -> ishne a -> isnat b -> False.
+  Proof.
+    move => [c [h0 h1]] h2 h3.
+    have : ishne c /\ isnat c by sfirstorder use:REReds.hne_preservation, REReds.nat_preservation.
+    clear. case : c => //=; itauto.
   Qed.
 
   Lemma bind_inj n p0 p1 (A0 A1 : PTm n) B0 B1 :
@@ -3404,6 +3428,22 @@ Module Sub.
     @R n (PUniv i) (PUniv j).
   Proof. hauto lq:on ctrs:Sub1.R, rtc. Qed.
 
+  Lemma sne_nat_noconf n (a b : PTm n) :
+    R a b -> SNe a -> isnat b -> False.
+  Proof.
+    move => [c [d [h0 [h1 h2]]]] *.
+    have : SNe c /\ isnat d by sfirstorder use:REReds.sne_preservation, REReds.nat_preservation, Sub1.sne_preservation.
+    move : h2. clear. hauto q:on inv:Sub1.R, SNe.
+  Qed.
+
+  Lemma nat_sne_noconf n (a b : PTm n) :
+    R a b -> isnat a -> SNe b -> False.
+  Proof.
+    move => [c [d [h0 [h1 h2]]]] *.
+    have : SNe d /\ isnat c by sfirstorder use:REReds.sne_preservation, REReds.nat_preservation.
+    move : h2. clear. hauto q:on inv:Sub1.R, SNe.
+  Qed.
+
   Lemma sne_bind_noconf n (a b : PTm n) :
     R a b -> SNe a -> isbind b -> False.
   Proof.
@@ -3450,6 +3490,48 @@ Module Sub.
     have : SNe c by sfirstorder use:Sub1.sne_preservation.
     have : isuniv c by sfirstorder use:REReds.univ_preservation.
     clear. case : c => //=. inversion 2.
+  Qed.
+
+  Lemma univ_nat_noconf n (a b : PTm n)  :
+    R a b -> isuniv b -> isnat a -> False.
+  Proof.
+    move => [c[d] [? []]] h0 h1 h2 h3.
+    have : isuniv d by eauto using REReds.univ_preservation.
+    have : isnat c by sfirstorder use:REReds.nat_preservation.
+    inversion h1; subst => //=.
+    clear. case : d => //=.
+  Qed.
+
+  Lemma nat_univ_noconf n (a b : PTm n)  :
+    R a b -> isnat b -> isuniv a -> False.
+  Proof.
+    move => [c[d] [? []]] h0 h1 h2 h3.
+    have : isuniv c by eauto using REReds.univ_preservation.
+    have : isnat d by sfirstorder use:REReds.nat_preservation.
+    inversion h1; subst => //=.
+    clear. case : d => //=.
+  Qed.
+
+  Lemma bind_nat_noconf n (a b : PTm n)  :
+    R a b -> isbind b -> isnat a -> False.
+  Proof.
+    move => [c[d] [? []]] h0 h1 h2 h3.
+    have : isbind d by eauto using REReds.bind_preservation.
+    have : isnat c by sfirstorder use:REReds.nat_preservation.
+    move : h1. clear.
+    inversion 1; subst => //=.
+    case : d h1 => //=.
+  Qed.
+
+  Lemma nat_bind_noconf n (a b : PTm n)  :
+    R a b -> isnat b -> isbind a -> False.
+  Proof.
+    move => [c[d] [? []]] h0 h1 h2 h3.
+    have : isbind c by eauto using REReds.bind_preservation.
+    have : isnat d by sfirstorder use:REReds.nat_preservation.
+    move : h1. clear.
+    inversion 1; subst => //=.
+    case : d h1 => //=.
   Qed.
 
   Lemma bind_univ_noconf n (a b : PTm n) :
