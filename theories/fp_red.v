@@ -212,6 +212,11 @@ with TRedSN {n} : PTm n -> PTm n -> Prop :=
 
 Derive Dependent Inversion tred_inv with (forall n (a b : PTm n), TRedSN a b) Sort Prop.
 
+Inductive SNat {n} : PTm n -> Prop :=
+| S_Zero : SNat PZero
+| S_Neu a : SNe a -> SNat a
+| S_Suc a : SNat a -> SNat (PSuc a)
+| S_Red a b : TRedSN a b -> SNat b -> SNat a.
 
 Lemma PProj_imp n p a :
   @ishf n a ->
