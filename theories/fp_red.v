@@ -2022,6 +2022,30 @@ Module EReds.
     hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
+  Lemma suc_inv n (a : PTm n) C :
+    rtc ERed.R (PSuc a) C ->
+    exists b, rtc ERed.R a b /\ C = PSuc b.
+  Proof.
+    move E : (PSuc a) => u hu.
+    move : a E.
+    elim : u C / hu=>//=.
+    - hauto l:on.
+    - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
+  Qed.
+
+  Lemma ind_inv n P (a : PTm n) b c C :
+    rtc ERed.R (PInd P a b c) C ->
+    exists P0 a0 b0 c0,  rtc ERed.R P P0 /\ rtc ERed.R a a0 /\
+                      rtc ERed.R b b0 /\ rtc ERed.R c c0 /\
+                      C = PInd P0 a0 b0 c0.
+  Proof.
+    move E : (PInd P a b c) => u hu.
+    move : P a b c E.
+    elim : u C / hu.
+    - hauto lq:on ctrs:rtc.
+    - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
+  Qed.
+
 End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
@@ -2049,6 +2073,18 @@ Module EJoin.
   Proof.
     hauto lq:on rew:off use:EReds.bind_inv.
   Qed.
+
+  Lemma suc_inj n  (A0 A1 : PTm n)  :
+    R (PSuc A0) (PSuc A1) ->
+    R A0 A1.
+  Proof.
+    hauto lq:on rew:off use:EReds.suc_inv.
+  Qed.
+
+  Lemma ind_inj n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1) ->
+    R P0 P1 /\ R a0 a1 /\ R b0 b1 /\ R c0 c1.
+  Proof. hauto q:on use:EReds.ind_inv. Qed.
 
 End EJoin.
 
@@ -2359,6 +2395,17 @@ Module REReds.
   Proof.
     move => + h.
     induction h; hauto lq:on rew:off ctrs:rtc use:RERed.ToBetaEta, RReds.nf_refl, @rtc_once, ERed.nf_preservation.
+  Qed.
+
+  Lemma suc_inv n (a : PTm n) C :
+    rtc RERed.R (PSuc a) C ->
+    exists b, rtc RERed.R a b /\ C = PSuc b.
+  Proof.
+    move E : (PSuc a) => u hu.
+    move : a E.
+    elim : u C / hu=>//=.
+    - hauto l:on.
+    - hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R, rtc.
   Qed.
 
 End REReds.
@@ -2699,12 +2746,37 @@ Proof.
       move : ihP hP' => /[apply]. move => [P4][hP0]hP1.
       eauto using EReds.IndCong, rtc_refl.
     + move => P2 a0 a1 b0 c0  + [*]. subst.
-      move {ihP}.
-      move => h. exists (PInd P1 a1 b c).
       eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
     + move => P2 a0 b0 b1 c0 hb [*] {ihP}. subst.
-
-Admitted.
+      eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+    + move => P2 a0 b0 c0 c1 h [*] {ihP}. subst.
+      eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+  - move => P a0 a1 b c ha iha u.
+    elim /ERed.inv => //=_;
+                     try solve [move => P0 P1 a2 b0 c0 hP[*]; subst;
+      eauto 20 using rtc_refl, EReds.IndCong, rtc_l].
+    move => P0 P1 a2 b0 c0 hP[*]. subst.
+    move : iha hP => /[apply].
+    move => [? [*]].
+    eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+  - move => P a b0 b1 c hb ihb u.
+    elim /ERed.inv => //=_;
+      try solve [
+          move => P0 P1 a0 b2 c0 hP [*]; subst;
+          eauto 20 using rtc_refl, EReds.IndCong, rtc_l].
+    move => P0 a0 b2 b3 c0 h [*]. subst.
+    move : ihb h => /[apply]. move => [b2 [*]].
+    eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+  - move => P a b c0 c1 hc ihc u.
+    elim /ERed.inv => //=_;
+      try solve [
+          move => P0 P1 a0 b0 c hP [*]; subst;
+          eauto 20 using rtc_refl, EReds.IndCong, rtc_l].
+    move => P0 a0 b0 c2 c3 h [*]. subst.
+    move : ihc h => /[apply]. move => [c2][*].
+    eauto 20 using rtc_refl, EReds.IndCong, rtc_l.
+  - qauto l:on inv:ERed.R ctrs:rtc use:EReds.SucCong.
+Qed.
 
 Lemma ered_confluence n (a b c : PTm n) :
   rtc ERed.R a b ->
@@ -2820,16 +2892,16 @@ Module BJoin.
     exists v. sfirstorder use:@relations.rtc_transitive.
   Qed.
 
-  Lemma AbsCong n (a b : PTm (S n)) :
-    R a b ->
-    R (PAbs a) (PAbs b).
-  Proof. hauto lq:on use:RReds.AbsCong unfold:R. Qed.
+  (* Lemma AbsCong n (a b : PTm (S n)) : *)
+  (*   R a b -> *)
+  (*   R (PAbs a) (PAbs b). *)
+  (* Proof. hauto lq:on use:RReds.AbsCong unfold:R. Qed. *)
 
-  Lemma AppCong n (a0 a1 b0 b1 : PTm n) :
-    R a0 a1 ->
-    R b0 b1 ->
-    R (PApp a0 b0) (PApp a1 b1).
-  Proof. hauto lq:on use:RReds.AppCong unfold:R. Qed.
+  (* Lemma AppCong n (a0 a1 b0 b1 : PTm n) : *)
+  (*   R a0 a1 -> *)
+  (*   R b0 b1 -> *)
+  (*   R (PApp a0 b0) (PApp a1 b1). *)
+  (* Proof. hauto lq:on use:RReds.AppCong unfold:R. Qed. *)
 End BJoin.
 
 Module DJoin.
@@ -2955,6 +3027,13 @@ Module DJoin.
     @R n (PUniv i) (PUniv j)  -> i = j.
   Proof.
     sauto lq:on rew:off use:REReds.univ_inv.
+  Qed.
+
+  Lemma suc_inj n  (A0 A1 : PTm n)  :
+    R (PSuc A0) (PSuc A1) ->
+    R A0 A1.
+  Proof.
+    hauto lq:on rew:off use:REReds.suc_inv.
   Qed.
 
   Lemma hne_app_inj n (a0 b0 a1 b1 : PTm n) :
@@ -3251,6 +3330,13 @@ Module ESub.
     sauto lq:on rew:off inv:Sub1.R.
   Qed.
 
+  Lemma suc_inj n (a b : PTm n) :
+    R (PSuc a) (PSuc b) ->
+    R a b.
+  Proof.
+    sauto lq:on use:EReds.suc_inv inv:Sub1.R.
+  Qed.
+
 End ESub.
 
 Module Sub.
@@ -3399,6 +3485,14 @@ Module Sub.
   Proof.
     sauto lq:on rew:off use:REReds.univ_inv.
   Qed.
+
+  Lemma suc_inj n  (A0 A1 : PTm n)  :
+    R (PSuc A0) (PSuc A1) ->
+    R A0 A1.
+  Proof.
+    sauto q:on use:REReds.suc_inv.
+  Qed.
+
 
   Lemma cong n m (a b : PTm (S n)) c d (ρ : fin n -> PTm m) :
     R a b -> DJoin.R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) b).
