@@ -1282,6 +1282,43 @@ Proof.
   apply ST_Univ'. lia.
 Qed.
 
+Lemma ST_Nat n Γ i :
+  Γ ⊨ PNat : PTm n ∈ PUniv i.
+Proof.
+  move => ?. apply SemWt_Univ. move => ρ hρ.
+  eexists. by apply InterpUniv_Nat.
+Qed.
+
+Lemma ST_Zero n Γ :
+  Γ ⊨ PZero : PTm n ∈ PNat.
+Proof.
+  move => ρ hρ. exists 0, SNat. simpl. split.
+  apply InterpUniv_Nat.
+  apply S_Zero.
+Qed.
+
+Lemma ST_Suc n Γ (a : PTm n) :
+  Γ ⊨ a ∈ PNat ->
+  Γ ⊨ PSuc a ∈ PNat.
+Proof.
+  move => ha ρ.
+  move : ha => /[apply] /=.
+  move => [k][PA][h0 h1].
+  move /InterpUniv_Nat_inv : h0 => ?. subst.
+  exists 0, SNat. split. apply InterpUniv_Nat.
+  eauto using S_Suc.
+Qed.
+
+Lemma ST_Ind n Γ P (a : PTm n) b c i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P ∈ PUniv i ->
+  Γ ⊨ a ∈ PNat ->
+  Γ ⊨ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊨ PInd P a b c ∈ subst_PTm (scons a VarPTm) P.
+Proof.
+
+Admitted.
+
 Lemma SSu_Univ n Γ i j :
   i <= j ->
   Γ ⊨ PUniv i : PTm n ≲ PUniv j.
