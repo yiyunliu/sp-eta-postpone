@@ -31,6 +31,9 @@ Inductive InterpExt {n} i (I : nat -> PTm n -> Prop) : PTm n -> (PTm n -> Prop) 
   (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ;; I ↘ PB) ->
   ⟦ PBind p A B ⟧ i ;; I ↘ BindSpace p PA PF
 
+| InterpExt_Nat :
+  ⟦ PNat ⟧ i ;; I ↘ SNat
+
 | InterpExt_Univ j :
   j < i ->
   ⟦ PUniv j ⟧ i ;; I ↘ (I j)
@@ -68,6 +71,7 @@ Proof.
   - hauto q:on ctrs:InterpExt.
   - hauto lq:on rew:off ctrs:InterpExt.
   - hauto q:on ctrs:InterpExt.
+  - hauto q:on ctrs:InterpExt.
   - hauto lq:on ctrs:InterpExt.
 Qed.
 
@@ -88,13 +92,13 @@ Lemma InterpUnivN_nolt n i :
 Proof.
   simp InterpUnivN.
   extensionality A. extensionality PA.
-  set I0 := (fun _ => _).
-  set I1 := (fun _ => _).
   apply InterpExt_lt_eq.
   hauto q:on.
 Qed.
 
 #[export]Hint Rewrite @InterpUnivN_nolt : InterpUniv.
+
+Check InterpExt_ind.
 
 Lemma InterpUniv_ind
   : forall n (P : nat -> PTm n -> (PTm n -> Prop) -> Prop),
@@ -107,11 +111,12 @@ Lemma InterpUniv_ind
         (forall (a : PTm n) (PB : PTm n -> Prop), PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
         (forall (a : PTm n) (PB : PTm n -> Prop), PF a PB -> P i (subst_PTm (scons a VarPTm) B) PB) ->
         P i (PBind p A B) (BindSpace p PA PF)) ->
+       (forall i, P i PNat SNat) ->
        (forall i j : nat, j < i ->  (forall A PA, ⟦ A ⟧ j ↘ PA -> P j A PA) -> P i (PUniv j) (fun A => exists PA, ⟦ A ⟧ j ↘ PA)) ->
        (forall i (A A0 : PTm n) (PA : PTm n -> Prop), TRedSN A A0 -> ⟦ A0 ⟧ i ↘ PA -> P i A0 PA -> P i A PA) ->
        forall i (p : PTm n) (P0 : PTm n -> Prop), ⟦ p ⟧ i ↘ P0 -> P i p P0.
 Proof.
-  move => n P  hSN hBind hUniv hRed.
+  move => n P  hSN hBind hNat hUniv hRed.
   elim /Wf_nat.lt_wf_ind => i ih . simp InterpUniv.
   move => A PA. move => h. set I := fun _ => _ in h.
   elim : A PA / h; rewrite -?InterpUnivN_nolt; eauto.
@@ -144,6 +149,9 @@ Lemma InterpUniv_Step i n A A0 PA :
   ⟦ A ⟧ i ↘ PA.
 Proof. simp InterpUniv. apply InterpExt_Step. Qed.
 
+Lemma InterpUniv_Nat i n :
+  ⟦ PNat : PTm n ⟧ i ↘ SNat.
+Proof. simp InterpUniv. apply InterpExt_Nat. Qed.
 
 #[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ : InterpUniv.
 
@@ -176,6 +184,14 @@ Proof.
   induction 1; eauto using N_Exp.
 Qed.
 
+Lemma CR_SNat : forall n,  @CR n SNat.
+Proof.
+  move => n. rewrite /CR.
+  split.
+  induction 1; hauto q:on ctrs:SN,SNe.
+  hauto lq:on ctrs:SNat.
+Qed.
+
 Lemma adequacy : forall i n A PA,
    ⟦ A : PTm n ⟧ i ↘ PA ->
   CR PA /\ SN A.
@@ -202,6 +218,7 @@ Proof.
       apply : N_Exp; eauto using N_β.
       hauto lq:on.
       qauto l:on use:SN_AppInv, SN_NoForbid.P_AbsInv.
+  - qauto use:CR_SNat.
   - hauto l:on ctrs:InterpExt rew:db:InterpUniv.
   - hauto l:on ctrs:SN unfold:CR.
 Qed.
@@ -227,6 +244,7 @@ Proof.
     apply N_AppL => //=.
     hauto q:on use:adequacy.
     + hauto lq:on ctrs:rtc unfold:SumSpace.
+  - hauto lq:on ctrs:SNat.
   - hauto l:on use:InterpUniv_Step.
 Qed.
 
@@ -238,14 +256,14 @@ Proof.
   induction 2; hauto lq:on ctrs:rtc use:InterpUniv_back_clos.
 Qed.
 
-
 Lemma InterpUniv_case n i (A : PTm n) PA :
   ⟦ A ⟧ i ↘ PA ->
-  exists H, rtc TRedSN A H /\  ⟦ H ⟧ i ↘ PA /\ (SNe H \/ isbind H \/ isuniv H).
+  exists H, rtc TRedSN A H /\  ⟦ H ⟧ i ↘ PA /\ (SNe H \/ isbind H \/ isuniv H \/ isnat H).
 Proof.
   move : i A PA. apply InterpUniv_ind => //=.
   hauto lq:on ctrs:rtc use:InterpUniv_Ne.
   hauto l:on use:InterpUniv_Bind.
+  hauto l:on use:InterpUniv_Nat.
   hauto l:on use:InterpUniv_Univ.
   hauto lq:on ctrs:rtc.
 Qed.
@@ -282,6 +300,14 @@ Lemma InterpUniv_Bind_inv n i p A B S :
 Proof. simp InterpUniv.
        inversion 1; try hauto inv:SNe q:on use:redsn_preservation_mutual.
        rewrite -!InterpUnivN_nolt.
+       sauto lq:on.
+Qed.
+
+Lemma InterpUniv_Nat_inv n i S :
+  ⟦ PNat : PTm n ⟧ i ↘ S -> S = SNat.
+Proof.
+  simp InterpUniv.
+       inversion 1; try hauto inv:SNe q:on use:redsn_preservation_mutual.
        sauto lq:on.
 Qed.
 
@@ -331,7 +357,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R A H by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : SNe H.
-      suff : ~ isbind H /\ ~ isuniv H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by itauto.
       move : hA hAB. clear. hauto lq:on db:noconf.
       move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
       tauto.
