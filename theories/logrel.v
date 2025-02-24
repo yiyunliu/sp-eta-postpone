@@ -1415,7 +1415,6 @@ Proof.
   have snc : SN (subst_PTm (up_PTm_PTm (up_PTm_PTm ρ)) c)
     by apply sn_bot_up2; move : hb hρbb => /[apply]; hauto lq:on use:adequacy.
 
-
   elim : u /hu.
   + exists m, PA. split.
     * move : ha0. by asimpl.
@@ -1432,7 +1431,7 @@ Proof.
   + move => a ha [j][S][h0]h1.
     have hρ' : ρ_ok (funcomp (ren_PTm shift) (scons PNat Γ)) (scons (PSuc a) ρ)by
       apply : ρ_ok_cons; eauto using (InterpUniv_Nat 0); hauto ctrs:SNat.
-    move /SemWt_Univ : (hA) hρ' => /[apply].
+    move /SemWt_Univ : (hA) (hρ') => /[apply].
     move => [S0 hS0].
     exists i, S0. split => //.
     apply : InterpUniv_back_clos; eauto.
@@ -1440,68 +1439,15 @@ Proof.
     move : (PInd (subst_PTm (up_PTm_PTm ρ) P) a b
               (subst_PTm (up_PTm_PTm (up_PTm_PTm ρ)) c))  h1.
     move => r hr.
-    have :
-
-
-
-        move /[swap] => ->.
-    + move => ? a0 ? ih c hc ha. subst.
-      move /(_ a0 ltac:(apply rtc_refl) ha) : ih => [m0][PA1][hPA1]hr.
-      have hρ' : ρ_ok (tNat :: Γ) (a0 .: ρ).
-      {
-        apply : ρ_ok_cons; auto.
-        apply InterpUnivN_Nat.
-        hauto lq:on ctrs:rtc.
-      }
-      have : ρ_ok (A :: tNat :: Γ) ((tInd a[ρ] bs a0) .: (a0 .: ρ))
-        by eauto using ρ_ok_cons.
-      move /hb => {hb} [m1][PA2][hPA2]h.
-      exists m1, PA2.
-      split.
-      * move : hPA2. asimpl.
-        move /InterpUnivN_back_preservation_star. apply.
-        qauto l:on use:Pars_morphing_star,good_Pars_morphing_ext ctrs:rtc.
-      * move : h.
-        move /InterpUnivN_back_clos_star. apply; eauto.
-        subst bs.
-        apply : P_IndSuc_star'; eauto.
-        by asimpl.
-    + move => a0 ? <- _ a1 *.
-      have ? : wne a1 by hauto lq:on.
-      suff  /hA : ρ_ok (tNat :: Γ) (a1 .: ρ).
-      move => [S hS].
-      exists l, S. split=>//.
-      suff ? : wn bs.
-      have ? : wn a[ρ] by sfirstorder use:adequacy.
-      have : wne (tInd a[ρ] bs a1) by auto using wne_ind.
-      eapply adequacy; eauto.
-
-      subst bs.
-      rewrite /SemWt in hb.
-      have /hA : ρ_ok (tNat :: Γ) (var_tm 0 .: ρ).
-      {
-        apply : ρ_ok_cons; auto.
-        apply InterpUnivN_Nat.
-        hauto lq:on ctrs:rtc.
-      }
-      move => [S1 hS1].
-      have /hb : ρ_ok (A :: tNat :: Γ) (var_tm 0 .: (var_tm 0 .: ρ)).
-      {
-        apply : ρ_ok_cons; cycle 2; eauto.
-        apply : ρ_ok_cons; cycle 2; eauto.
-        apply InterpUnivN_Nat.
-        hauto lq:on ctrs:rtc.
-        hauto q:on ctrs:rtc use:adequacy.
-      }
-      move =>[m0][PA1][h1]h2.
-      have : wn b[var_tm 0 .: (var_tm 0 .: ρ)] by hauto q:on use:adequacy.
-      clear => h.
-      apply wn_antirenaming with (ξ :=  var_zero .: (var_zero .: id)).
-      by asimpl.
-
-      apply : ρ_ok_cons; auto.
-      apply InterpUnivN_Nat.
-      hauto lq:on use:adequacy db:nfne.
+    have hρ'' :  ρ_ok
+                   (funcomp (ren_PTm shift) (scons P (funcomp (ren_PTm shift) (scons PNat Γ)))) (scons r (scons a ρ)) by
+      eauto using ρ_ok_cons, (InterpUniv_Nat 0).
+    move : hb hρ'' => /[apply].
+    move => [k][PA1][h2]h3.
+    move : h2. asimpl => ?.
+    have ? : PA1 = S0 by  eauto using InterpUniv_Functional'.
+    by subst.
+  +
 Admitted.
 
 Lemma SSu_Univ n Γ i j :
