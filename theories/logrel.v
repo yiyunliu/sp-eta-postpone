@@ -683,32 +683,56 @@ Proof.
   hauto q:on solve+:(by asimpl).
 Qed.
 
-(* Definition smorphing_ok {n m} Δ Γ (ρ : fin n -> PTm m) := *)
-(*   forall i ξ k PA, ρ_ok Δ ξ -> Δ *)
+Definition smorphing_ok {n m} (Δ : fin m -> PTm m) Γ (ρ : fin n -> PTm m) :=
+  forall ξ, ρ_ok Δ ξ -> ρ_ok Γ (funcomp (subst_PTm ξ) ρ).
 
-(*  Δ ⊨ ρ i ∈ subst_PTm ρ (Γ i). *)
+Lemma smorphing_ren n m p Ξ Δ Γ
+  (ρ : fin n -> PTm m) (ξ : fin m -> fin p) :
+  renaming_ok Ξ Δ ξ -> smorphing_ok Δ Γ ρ ->
+  smorphing_ok Ξ Γ (funcomp (ren_PTm ξ) ρ).
+Proof.
+  move => hξ hρ τ.
+  move /ρ_ok_renaming : hξ => /[apply].
+  move => h.
+  rewrite /smorphing_ok in hρ.
+  asimpl.
+  Check (funcomp τ ξ).
+  set u := funcomp _ _.
+  have : u = funcomp (subst_PTm (funcomp τ ξ)) ρ.
+  subst u. extensionality i. by asimpl.
+  move => ->. by apply hρ.
+Qed.
 
-(* Lemma morphing_SemWt : forall n Γ (a A : PTm n), *)
-(*     Γ ⊨ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), *)
-(*       smorphing_ok Δ Γ ρ -> Δ ⊨ subst_PTm ρ a ∈ subst_PTm ρ A. *)
-(* Proof. *)
-(*   move => n Γ a A ha m Δ ρ. *)
-(*   rewrite /smorphing_ok => hρ. *)
-(*   move => ξ hξ. *)
-(*   asimpl. *)
-(*   suff : ρ_ok Γ (funcomp (subst_PTm ξ) ρ) by hauto l:on. *)
-(*   move : hξ hρ. clear. *)
-(*   move => hξ hρ i k PA. *)
-(*   specialize (hρ i). *)
-(*   move => h. *)
-(*   replace (funcomp (subst_PTm ξ) ρ i ) with *)
-(*     (subst_PTm ξ (ρ i)); last by asimpl. *)
-(*   move : hρ  hξ => /[apply]. *)
-(*   move => [k0][PA0][h0]h1. *)
-(*   move : h0. asimpl => ?. *)
-(*   have ? : PA0 = PA by eauto using InterpUniv_Functional'.  subst. *)
-(*   done. *)
-(* Qed. *)
+Lemma smorphing_ext n m Δ Γ (ρ : fin n -> PTm m) (a : PTm m) (A : PTm n)  :
+  smorphing_ok Δ Γ ρ ->
+  Δ ⊨ a ∈ subst_PTm ρ A ->
+  smorphing_ok
+  Δ (funcomp (ren_PTm shift) (scons A Γ)) (scons a ρ).
+Proof.
+  move => h ha τ. move => /[dup] hτ.
+  move : ha => /[apply].
+  move => [k][PA][h0]h1.
+  apply h in hτ.
+  move => i.
+  destruct i as [i|].
+  - move => k0 PA0. asimpl. rewrite {2}/funcomp. asimpl.
+    move : hτ => /[apply].
+    by asimpl.
+  - move => k0 PA0. asimpl. rewrite {2}/funcomp. asimpl.
+    move => *. suff : PA0 = PA by congruence.
+    move : h0. asimpl.
+    eauto using InterpUniv_Functional'.
+Qed.
+
+
+Lemma morphing_SemWt : forall n Γ (a A : PTm n),
+    Γ ⊨ a ∈ A -> forall m Δ (ρ : fin n -> PTm m),
+      smorphing_ok Δ Γ ρ -> Δ ⊨ subst_PTm ρ a ∈ subst_PTm ρ A.
+Proof.
+  move => n Γ a A ha m Δ ρ hρ τ hτ.
+  have {}/hρ {}/ha := hτ.
+  asimpl. eauto.
+Qed.
 
 Lemma weakening_Sem n Γ (a : PTm n) A B i
   (h0 : Γ ⊨ B ∈ PUniv i)
@@ -1229,85 +1253,6 @@ Proof.
   hauto lq:on use: DJoin.cong,  DJoin.ProjCong.
 Qed.
 
-Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
-  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
-  Γ ⊨ a ∈ A ->
-  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
-  Γ ⊨ PProj PL (PPair a b) ≡ a ∈ A.
-Proof.
-  move => h0 h1 h2.
-  apply SemWt_SemEq; eauto using ST_Proj1, ST_Pair.
-  apply DJoin.FromRRed0. apply RRed.ProjPair.
-Qed.
-
-Lemma SE_ProjPair2 n Γ (a b : PTm n) A B i :
-  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
-  Γ ⊨ a ∈ A ->
-  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
-  Γ ⊨ PProj PR (PPair a b) ≡ b ∈ subst_PTm (scons a VarPTm) B.
-Proof.
-  move => h0 h1 h2.
-  apply SemWt_SemEq; eauto using ST_Proj2, ST_Pair.
-  apply : ST_Conv_E. apply : ST_Proj2; eauto. apply : ST_Pair; eauto.
-  hauto l:on use:SBind_inst.
-  apply DJoin.cong. apply DJoin.FromRRed0. apply RRed.ProjPair.
-  apply DJoin.FromRRed0. apply RRed.ProjPair.
-Qed.
-
-Lemma SE_PairEta n Γ (a : PTm n) A B i :
-  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
-  Γ ⊨ a ∈ PBind PSig A B ->
-  Γ ⊨ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B.
-Proof.
-  move => h0 h. apply SemWt_SemEq; eauto.
-  apply : ST_Pair; eauto using ST_Proj1, ST_Proj2.
-  rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
-Qed.
-
-Lemma SE_App n Γ i (b0 b1 a0 a1 : PTm n) A B :
-  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
-  Γ ⊨ b0 ≡ b1 ∈ PBind PPi A B ->
-  Γ ⊨ a0 ≡ a1 ∈ A ->
-  Γ ⊨ PApp b0 a0 ≡ PApp b1 a1 ∈ subst_PTm (scons a0 VarPTm) B.
-Proof.
-  move => hPi.
-  move => /SemEq_SemWt [hb0][hb1]hb /SemEq_SemWt [ha0][ha1]ha.
-  apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
-  apply : ST_Conv_E; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
-Qed.
-
-Lemma SSu_Eq n Γ (A B : PTm n) i :
-  Γ ⊨ A ≡ B ∈ PUniv i ->
-  Γ ⊨ A ≲ B.
-Proof. move /SemEq_SemWt => h.
-       qauto l:on use:SemWt_SemLEq, Sub.FromJoin.
-Qed.
-
-Lemma SSu_Transitive n Γ (A B C : PTm n) :
-  Γ ⊨ A ≲ B ->
-  Γ ⊨ B ≲ C ->
-  Γ ⊨ A ≲ C.
-Proof.
-  move => ha hb.
-  apply SemLEq_SemWt in ha, hb.
-  have ? : SN B by hauto l:on use:SemWt_SN.
-  move : ha => [ha0 [i [ha1 ha2]]]. move : hb => [hb0 [j [hb1 hb2]]].
-  qauto l:on use:SemWt_SemLEq, Sub.transitive.
-Qed.
-
-Lemma ST_Univ' n Γ i j :
-  i < j ->
-  Γ ⊨ PUniv i : PTm n ∈ PUniv j.
-Proof.
-  move => ?.
-  apply SemWt_Univ. move => ρ hρ. eexists. by apply InterpUniv_Univ.
-Qed.
-
-Lemma ST_Univ n Γ i :
-  Γ ⊨ PUniv i : PTm n ∈ PUniv (S i).
-Proof.
-  apply ST_Univ'. lia.
-Qed.
 
 Lemma ST_Nat n Γ i :
   Γ ⊨ PNat : PTm n ∈ PUniv i.
@@ -1335,6 +1280,7 @@ Proof.
   exists 0, SNat. split. apply InterpUniv_Nat.
   eauto using S_Suc.
 Qed.
+
 
 Lemma sn_unmorphing' n : (forall (a : PTm n) (s : SN a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SN b).
 Proof. hauto l:on use:sn_unmorphing. Qed.
@@ -1431,6 +1377,114 @@ Proof.
     eapply LoReds.FromSN_mutual in hr.
     move /LoRed.ToRRed /RPar.FromRRed in hr.
     hauto lq:on inv:option use:RPar.refl.
+Qed.
+
+Lemma SE_SucCong n Γ (a b : PTm n) :
+  Γ ⊨ a ≡ b ∈ PNat ->
+  Γ ⊨ PSuc a ≡ PSuc b ∈ PNat.
+Proof.
+  move /SemEq_SemWt => [ha][hb]he.
+  apply SemWt_SemEq; eauto using ST_Suc.
+  hauto q:on use:REReds.suc_inv, REReds.SucCong.
+Qed.
+
+
+
+Lemma SE_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P0 ≡ P1 ∈ PUniv i ->
+  Γ ⊨ a0 ≡ a1 ∈ PNat ->
+  Γ ⊨ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->
+  funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
+  Γ ⊨ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P0.
+Proof.
+  move /SemEq_SemWt=>[hP0][hP1]hPe.
+  move /SemEq_SemWt=>[ha0][ha1]hae.
+  move /SemEq_SemWt=>[hb0][hb1]hbe.
+  move /SemEq_SemWt=>[hc0][hc1]hce.
+  apply SemWt_SemEq; eauto using ST_Ind, DJoin.IndCong.
+  apply ST_Conv_E with (A := subst_PTm (scons a1 VarPTm) P1) (i := i);
+    last by eauto using DJoin.cong', DJoin.symmetric.
+  apply : ST_Ind; eauto. eapply ST_Conv_E with (i := i); eauto.
+
+
+Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ PProj PL (PPair a b) ≡ a ∈ A.
+Proof.
+  move => h0 h1 h2.
+  apply SemWt_SemEq; eauto using ST_Proj1, ST_Pair.
+  apply DJoin.FromRRed0. apply RRed.ProjPair.
+Qed.
+
+Lemma SE_ProjPair2 n Γ (a b : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ A ->
+  Γ ⊨ b ∈ subst_PTm (scons a VarPTm) B ->
+  Γ ⊨ PProj PR (PPair a b) ≡ b ∈ subst_PTm (scons a VarPTm) B.
+Proof.
+  move => h0 h1 h2.
+  apply SemWt_SemEq; eauto using ST_Proj2, ST_Pair.
+  apply : ST_Conv_E. apply : ST_Proj2; eauto. apply : ST_Pair; eauto.
+  hauto l:on use:SBind_inst.
+  apply DJoin.cong. apply DJoin.FromRRed0. apply RRed.ProjPair.
+  apply DJoin.FromRRed0. apply RRed.ProjPair.
+Qed.
+
+Lemma SE_PairEta n Γ (a : PTm n) A B i :
+  Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
+  Γ ⊨ a ∈ PBind PSig A B ->
+  Γ ⊨ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B.
+Proof.
+  move => h0 h. apply SemWt_SemEq; eauto.
+  apply : ST_Pair; eauto using ST_Proj1, ST_Proj2.
+  rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
+Qed.
+
+Lemma SE_App n Γ i (b0 b1 a0 a1 : PTm n) A B :
+  Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
+  Γ ⊨ b0 ≡ b1 ∈ PBind PPi A B ->
+  Γ ⊨ a0 ≡ a1 ∈ A ->
+  Γ ⊨ PApp b0 a0 ≡ PApp b1 a1 ∈ subst_PTm (scons a0 VarPTm) B.
+Proof.
+  move => hPi.
+  move => /SemEq_SemWt [hb0][hb1]hb /SemEq_SemWt [ha0][ha1]ha.
+  apply SemWt_SemEq; eauto using DJoin.AppCong, ST_App.
+  apply : ST_Conv_E; eauto using ST_App, DJoin.cong, DJoin.symmetric, SBind_inst.
+Qed.
+
+Lemma SSu_Eq n Γ (A B : PTm n) i :
+  Γ ⊨ A ≡ B ∈ PUniv i ->
+  Γ ⊨ A ≲ B.
+Proof. move /SemEq_SemWt => h.
+       qauto l:on use:SemWt_SemLEq, Sub.FromJoin.
+Qed.
+
+Lemma SSu_Transitive n Γ (A B C : PTm n) :
+  Γ ⊨ A ≲ B ->
+  Γ ⊨ B ≲ C ->
+  Γ ⊨ A ≲ C.
+Proof.
+  move => ha hb.
+  apply SemLEq_SemWt in ha, hb.
+  have ? : SN B by hauto l:on use:SemWt_SN.
+  move : ha => [ha0 [i [ha1 ha2]]]. move : hb => [hb0 [j [hb1 hb2]]].
+  qauto l:on use:SemWt_SemLEq, Sub.transitive.
+Qed.
+
+Lemma ST_Univ' n Γ i j :
+  i < j ->
+  Γ ⊨ PUniv i : PTm n ∈ PUniv j.
+Proof.
+  move => ?.
+  apply SemWt_Univ. move => ρ hρ. eexists. by apply InterpUniv_Univ.
+Qed.
+
+Lemma ST_Univ n Γ i :
+  Γ ⊨ PUniv i : PTm n ∈ PUniv (S i).
+Proof.
+  apply ST_Univ'. lia.
 Qed.
 
 Lemma SSu_Univ n Γ i j :

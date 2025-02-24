@@ -2969,6 +2969,14 @@ Module DJoin.
     R (PBind p A0 B0) (PBind p A1 B1).
   Proof. hauto q:on use:REReds.BindCong. Qed.
 
+  Lemma IndCong n P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 :
+    R P0 P1 ->
+    R a0 a1 ->
+    R b0 b1 ->
+    R c0 c1 ->
+    R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
+  Proof. hauto q:on use:REReds.IndCong. Qed.
+
   Lemma FromRedSNs n (a b : PTm n) :
     rtc TRedSN a b ->
     R a b.
@@ -3127,6 +3135,15 @@ Module DJoin.
     rewrite /R. move => [cd [h0 h1]].
     exists (subst_PTm (scons cd ρ) a).
     hauto q:on ctrs:rtc inv:option use:REReds.cong.
+  Qed.
+
+  Lemma cong' n m (a b : PTm (S n)) c d (ρ : fin n -> PTm m) :
+    R a b ->
+    R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) b).
+  Proof.
+    rewrite /R. move => [ab [h2 h3]] [cd [h0 h1]].
+    exists (subst_PTm (scons cd ρ) ab).
+    hauto q:on ctrs:rtc inv:option use:REReds.cong'.
   Qed.
 
   Lemma pair_inj n (a0 a1 b0 b1 : PTm n) :
