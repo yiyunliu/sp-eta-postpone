@@ -1336,37 +1336,6 @@ Proof.
   eauto using S_Suc.
 Qed.
 
-(* Lemma smorphing_ren n m p Ξ Δ Γ *)
-(*   (ρ : fin n -> PTm m) (ξ : fin m -> fin p) : *)
-(*   renaming_ok Ξ Δ ξ -> smorphing_ok Δ Γ ρ -> *)
-(*   smorphing_ok Ξ Γ (funcomp (ren_PTm ξ) ρ). *)
-(* Proof. *)
-(*   move => hξ hρ. *)
-(*   move => i. *)
-(*   rewrite {1}/funcomp. *)
-(*   have -> : *)
-(*     subst_PTm (funcomp (ren_PTm ξ) ρ) (Γ i) = *)
-(*     ren_PTm ξ (subst_PTm ρ (Γ i)) by asimpl. *)
-(*   eapply renaming_SemWt; eauto. *)
-(* Qed. *)
-
-(* Lemma smorphing_ext n m Δ Γ (ρ : fin n -> PTm m) (a : PTm m) (A : PTm n)  : *)
-(*   smorphing_ok Δ Γ ρ -> *)
-(*   Δ ⊨ a ∈ subst_PTm ρ A -> *)
-(*   smorphing_ok *)
-(*   Δ (funcomp (ren_PTm shift) (scons A Γ)) (scons a ρ). *)
-(* Proof. *)
-(*   move => h ha i. destruct i as [i|]; by asimpl. *)
-(* Qed. *)
-
-(* Lemma ρ_ok_smorphing_ok n Γ (ρ : fin n -> PTm 0) : *)
-(*   ρ_ok Γ ρ -> *)
-(*   smorphing_ok null Γ ρ. *)
-(* Proof. *)
-(*   rewrite /ρ_ok /smorphing_ok. *)
-(*   move => h i ξ _. *)
-(*   suff ? : ξ = VarPTm. subst. asimpl. *)
-
 Lemma sn_unmorphing' n : (forall (a : PTm n) (s : SN a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SN b).
 Proof. hauto l:on use:sn_unmorphing. Qed.
 
@@ -1447,8 +1416,22 @@ Proof.
     move : h2. asimpl => ?.
     have ? : PA1 = S0 by  eauto using InterpUniv_Functional'.
     by subst.
-  +
-Admitted.
+  + move => a a' hr ha' [k][PA1][h0]h1.
+    have : ρ_ok (funcomp (ren_PTm shift) (scons PNat Γ)) (scons a ρ)
+      by apply : ρ_ok_cons; hauto l:on use:S_Red,(InterpUniv_Nat 0).
+    move /SemWt_Univ : hA => /[apply]. move => [PA2]h2.
+    exists i, PA2. split => //.
+    apply : InterpUniv_back_clos; eauto.
+    apply N_IndCong; eauto.
+    suff : PA1 = PA2 by congruence.
+    move : h0 h2. move : InterpUniv_Join'; repeat move/[apply]. apply.
+    apply DJoin.FromRReds.
+    apply RReds.FromRPar.
+    apply RPar.morphing; last by apply RPar.refl.
+    eapply LoReds.FromSN_mutual in hr.
+    move /LoRed.ToRRed /RPar.FromRRed in hr.
+    hauto lq:on inv:option use:RPar.refl.
+Qed.
 
 Lemma SSu_Univ n Γ i j :
   i <= j ->
