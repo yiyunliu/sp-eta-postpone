@@ -683,6 +683,33 @@ Proof.
   hauto q:on solve+:(by asimpl).
 Qed.
 
+(* Definition smorphing_ok {n m} Δ Γ (ρ : fin n -> PTm m) := *)
+(*   forall i ξ k PA, ρ_ok Δ ξ -> Δ *)
+
+(*  Δ ⊨ ρ i ∈ subst_PTm ρ (Γ i). *)
+
+(* Lemma morphing_SemWt : forall n Γ (a A : PTm n), *)
+(*     Γ ⊨ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), *)
+(*       smorphing_ok Δ Γ ρ -> Δ ⊨ subst_PTm ρ a ∈ subst_PTm ρ A. *)
+(* Proof. *)
+(*   move => n Γ a A ha m Δ ρ. *)
+(*   rewrite /smorphing_ok => hρ. *)
+(*   move => ξ hξ. *)
+(*   asimpl. *)
+(*   suff : ρ_ok Γ (funcomp (subst_PTm ξ) ρ) by hauto l:on. *)
+(*   move : hξ hρ. clear. *)
+(*   move => hξ hρ i k PA. *)
+(*   specialize (hρ i). *)
+(*   move => h. *)
+(*   replace (funcomp (subst_PTm ξ) ρ i ) with *)
+(*     (subst_PTm ξ (ρ i)); last by asimpl. *)
+(*   move : hρ  hξ => /[apply]. *)
+(*   move => [k0][PA0][h0]h1. *)
+(*   move : h0. asimpl => ?. *)
+(*   have ? : PA0 = PA by eauto using InterpUniv_Functional'.  subst. *)
+(*   done. *)
+(* Qed. *)
+
 Lemma weakening_Sem n Γ (a : PTm n) A B i
   (h0 : Γ ⊨ B ∈ PUniv i)
   (h1 : Γ ⊨ a ∈ A) :
@@ -1309,14 +1336,172 @@ Proof.
   eauto using S_Suc.
 Qed.
 
-Lemma ST_Ind n Γ P (a : PTm n) b c i :
+(* Lemma smorphing_ren n m p Ξ Δ Γ *)
+(*   (ρ : fin n -> PTm m) (ξ : fin m -> fin p) : *)
+(*   renaming_ok Ξ Δ ξ -> smorphing_ok Δ Γ ρ -> *)
+(*   smorphing_ok Ξ Γ (funcomp (ren_PTm ξ) ρ). *)
+(* Proof. *)
+(*   move => hξ hρ. *)
+(*   move => i. *)
+(*   rewrite {1}/funcomp. *)
+(*   have -> : *)
+(*     subst_PTm (funcomp (ren_PTm ξ) ρ) (Γ i) = *)
+(*     ren_PTm ξ (subst_PTm ρ (Γ i)) by asimpl. *)
+(*   eapply renaming_SemWt; eauto. *)
+(* Qed. *)
+
+(* Lemma smorphing_ext n m Δ Γ (ρ : fin n -> PTm m) (a : PTm m) (A : PTm n)  : *)
+(*   smorphing_ok Δ Γ ρ -> *)
+(*   Δ ⊨ a ∈ subst_PTm ρ A -> *)
+(*   smorphing_ok *)
+(*   Δ (funcomp (ren_PTm shift) (scons A Γ)) (scons a ρ). *)
+(* Proof. *)
+(*   move => h ha i. destruct i as [i|]; by asimpl. *)
+(* Qed. *)
+
+(* Lemma ρ_ok_smorphing_ok n Γ (ρ : fin n -> PTm 0) : *)
+(*   ρ_ok Γ ρ -> *)
+(*   smorphing_ok null Γ ρ. *)
+(* Proof. *)
+(*   rewrite /ρ_ok /smorphing_ok. *)
+(*   move => h i ξ _. *)
+(*   suff ? : ξ = VarPTm. subst. asimpl. *)
+
+Lemma sn_unmorphing' n : (forall (a : PTm n) (s : SN a), forall m (ρ : fin m -> PTm n) b, a = subst_PTm ρ b -> SN b).
+Proof. hauto l:on use:sn_unmorphing. Qed.
+
+Lemma sn_bot_up n m (a : PTm (S n)) (ρ : fin n -> PTm m) :
+  SN (subst_PTm (scons PBot ρ) a) -> SN (subst_PTm (up_PTm_PTm ρ) a).
+  rewrite /up_PTm_PTm.
+  move => h. eapply sn_unmorphing' with (ρ := (scons PBot VarPTm)); eauto.
+  by asimpl.
+Qed.
+
+Lemma sn_bot_up2 n m (a : PTm (S (S n))) (ρ : fin n -> PTm m) :
+  SN ((subst_PTm (scons PBot (scons PBot ρ)) a)) -> SN (subst_PTm (up_PTm_PTm (up_PTm_PTm ρ)) a).
+  rewrite /up_PTm_PTm.
+  move => h. eapply sn_unmorphing' with (ρ := (scons PBot (scons PBot VarPTm))); eauto.
+  by asimpl.
+Qed.
+
+Lemma SNat_SN n (a : PTm n) : SNat a -> SN a.
+  induction 1; hauto lq:on ctrs:SN. Qed.
+
+Lemma ST_Ind s Γ P (a : PTm s) b c i :
   funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P ∈ PUniv i ->
   Γ ⊨ a ∈ PNat ->
   Γ ⊨ b ∈ subst_PTm (scons PZero VarPTm) P ->
   funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
   Γ ⊨ PInd P a b c ∈ subst_PTm (scons a VarPTm) P.
 Proof.
+  move => hA hc ha hb ρ hρ.
+  move /(_ ρ hρ) : ha => [m][PA][ha0]ha1.
+  move /(_ ρ hρ) : hc => [n][PA0][/InterpUniv_Nat_inv ->].
+  simpl.
+  (* Use localiaztion to block asimpl from simplifying pind *)
+  set x := PInd _ _ _ _. asimpl. subst x. move : {a} (subst_PTm ρ a) .
+  move : (subst_PTm ρ b) ha1 => {}b ha1.
+  move => u hu.
+  have hρb : ρ_ok (funcomp (ren_PTm shift) (scons PNat Γ)) (scons PBot ρ) by apply : ρ_ok_cons; hauto lq:on ctrs:SNat, SNe use:(@InterpUniv_Nat 0).
 
+  have hρbb : ρ_ok (funcomp (ren_PTm shift) (scons P (funcomp (ren_PTm shift) (scons PNat Γ)))) (scons PBot (scons PBot ρ)).
+  move /SemWt_Univ /(_ _ hρb) : hA => [S ?].
+  apply : ρ_ok_cons; eauto. sauto lq:on use:adequacy.
+
+  (* have snP : SN P by hauto l:on use:SemWt_SN. *)
+  have snb : SN b by hauto q:on use:adequacy.
+  have snP : SN (subst_PTm (up_PTm_PTm ρ) P)
+    by apply sn_bot_up; move : hA hρb => /[apply]; hauto lq:on use:adequacy.
+  have snc : SN (subst_PTm (up_PTm_PTm (up_PTm_PTm ρ)) c)
+    by apply sn_bot_up2; move : hb hρbb => /[apply]; hauto lq:on use:adequacy.
+
+
+  elim : u /hu.
+  + exists m, PA. split.
+    * move : ha0. by asimpl.
+    * apply : InterpUniv_back_clos; eauto.
+      apply N_IndZero; eauto.
+  + move => a snea.
+    have hρ' : ρ_ok (funcomp (ren_PTm shift) (scons PNat Γ)) (scons a ρ)by
+      apply : ρ_ok_cons; eauto using (InterpUniv_Nat 0); hauto ctrs:SNat.
+    move /SemWt_Univ : (hA) hρ' => /[apply].
+    move => [S0 hS0].
+    exists i, S0. split=>//.
+    eapply adequacy; eauto.
+    apply N_Ind; eauto.
+  + move => a ha [j][S][h0]h1.
+    have hρ' : ρ_ok (funcomp (ren_PTm shift) (scons PNat Γ)) (scons (PSuc a) ρ)by
+      apply : ρ_ok_cons; eauto using (InterpUniv_Nat 0); hauto ctrs:SNat.
+    move /SemWt_Univ : (hA) hρ' => /[apply].
+    move => [S0 hS0].
+    exists i, S0. split => //.
+    apply : InterpUniv_back_clos; eauto.
+    apply N_IndSuc; eauto using SNat_SN.
+    move : (PInd (subst_PTm (up_PTm_PTm ρ) P) a b
+              (subst_PTm (up_PTm_PTm (up_PTm_PTm ρ)) c))  h1.
+    move => r hr.
+    have :
+
+
+
+        move /[swap] => ->.
+    + move => ? a0 ? ih c hc ha. subst.
+      move /(_ a0 ltac:(apply rtc_refl) ha) : ih => [m0][PA1][hPA1]hr.
+      have hρ' : ρ_ok (tNat :: Γ) (a0 .: ρ).
+      {
+        apply : ρ_ok_cons; auto.
+        apply InterpUnivN_Nat.
+        hauto lq:on ctrs:rtc.
+      }
+      have : ρ_ok (A :: tNat :: Γ) ((tInd a[ρ] bs a0) .: (a0 .: ρ))
+        by eauto using ρ_ok_cons.
+      move /hb => {hb} [m1][PA2][hPA2]h.
+      exists m1, PA2.
+      split.
+      * move : hPA2. asimpl.
+        move /InterpUnivN_back_preservation_star. apply.
+        qauto l:on use:Pars_morphing_star,good_Pars_morphing_ext ctrs:rtc.
+      * move : h.
+        move /InterpUnivN_back_clos_star. apply; eauto.
+        subst bs.
+        apply : P_IndSuc_star'; eauto.
+        by asimpl.
+    + move => a0 ? <- _ a1 *.
+      have ? : wne a1 by hauto lq:on.
+      suff  /hA : ρ_ok (tNat :: Γ) (a1 .: ρ).
+      move => [S hS].
+      exists l, S. split=>//.
+      suff ? : wn bs.
+      have ? : wn a[ρ] by sfirstorder use:adequacy.
+      have : wne (tInd a[ρ] bs a1) by auto using wne_ind.
+      eapply adequacy; eauto.
+
+      subst bs.
+      rewrite /SemWt in hb.
+      have /hA : ρ_ok (tNat :: Γ) (var_tm 0 .: ρ).
+      {
+        apply : ρ_ok_cons; auto.
+        apply InterpUnivN_Nat.
+        hauto lq:on ctrs:rtc.
+      }
+      move => [S1 hS1].
+      have /hb : ρ_ok (A :: tNat :: Γ) (var_tm 0 .: (var_tm 0 .: ρ)).
+      {
+        apply : ρ_ok_cons; cycle 2; eauto.
+        apply : ρ_ok_cons; cycle 2; eauto.
+        apply InterpUnivN_Nat.
+        hauto lq:on ctrs:rtc.
+        hauto q:on ctrs:rtc use:adequacy.
+      }
+      move =>[m0][PA1][h1]h2.
+      have : wn b[var_tm 0 .: (var_tm 0 .: ρ)] by hauto q:on use:adequacy.
+      clear => h.
+      apply wn_antirenaming with (ξ :=  var_zero .: (var_zero .: id)).
+      by asimpl.
+
+      apply : ρ_ok_cons; auto.
+      apply InterpUnivN_Nat.
+      hauto lq:on use:adequacy db:nfne.
 Admitted.
 
 Lemma SSu_Univ n Γ i j :
