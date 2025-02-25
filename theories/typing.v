@@ -115,6 +115,13 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ a ≡ b ∈ PBind PSig A B ->
   Γ ⊢ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B
 
+| E_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ≡ P1 ∈ PUniv i ->
+  Γ ⊢ a0 ≡ a1 ∈ PNat ->
+  Γ ⊢ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->
+  funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
+  Γ ⊢ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P0
+
 | E_Conv n Γ (a b : PTm n) A B :
   Γ ⊢ a ≡ b ∈ A ->
   Γ ⊢ A ≲ B ->
@@ -138,6 +145,19 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ a ∈ A ->
   Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B ->
   Γ ⊢ PProj PR (PPair a b) ≡ b ∈ subst_PTm (scons a VarPTm) B
+
+| E_IndZero n Γ P i (b : PTm n) c :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P PZero b c ≡ b ∈ subst_PTm (scons PZero VarPTm) P
+
+| E_IndSuc s Γ P (a : PTm s) b c i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ a ∈ PNat ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P (PSuc a) b c ≡ (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ∈ subst_PTm (scons (PSuc a) VarPTm) P
 
 (* Eta *)
 | E_AppEta n Γ (b : PTm n) A B i :

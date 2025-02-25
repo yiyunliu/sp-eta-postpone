@@ -1722,4 +1722,4 @@ Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong SE_IndZero SE_IndSuc : sem.
