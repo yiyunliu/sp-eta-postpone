@@ -686,6 +686,10 @@ Qed.
 Definition smorphing_ok {n m} (Δ : fin m -> PTm m) Γ (ρ : fin n -> PTm m) :=
   forall ξ, ρ_ok Δ ξ -> ρ_ok Γ (funcomp (subst_PTm ξ) ρ).
 
+Lemma smorphing_ok_refl n (Δ : fin n -> PTm n) : smorphing_ok Δ Δ VarPTm.
+  rewrite /smorphing_ok => ξ. apply.
+Qed.
+
 Lemma smorphing_ren n m p Ξ Δ Γ
   (ρ : fin n -> PTm m) (ξ : fin m -> fin p) :
   renaming_ok Ξ Δ ξ -> smorphing_ok Δ Γ ρ ->
@@ -724,7 +728,6 @@ Proof.
     eauto using InterpUniv_Functional'.
 Qed.
 
-
 Lemma morphing_SemWt : forall n Γ (a A : PTm n),
     Γ ⊨ a ∈ A -> forall m Δ (ρ : fin n -> PTm m),
       smorphing_ok Δ Γ ρ -> Δ ⊨ subst_PTm ρ a ∈ subst_PTm ρ A.
@@ -732,6 +735,16 @@ Proof.
   move => n Γ a A ha m Δ ρ hρ τ hτ.
   have {}/hρ {}/ha := hτ.
   asimpl. eauto.
+Qed.
+
+Lemma morphing_SemWt_Univ : forall n Γ (a : PTm n) i,
+    Γ ⊨ a ∈ PUniv i -> forall m Δ (ρ : fin n -> PTm m),
+      smorphing_ok Δ Γ ρ -> Δ ⊨ subst_PTm ρ a ∈ PUniv i.
+Proof.
+  move => n Γ a i ha.
+  move => m Δ ρ.
+  have -> : PUniv i = subst_PTm ρ (PUniv i) by reflexivity.
+  by apply morphing_SemWt.
 Qed.
 
 Lemma weakening_Sem n Γ (a : PTm n) A B i
@@ -783,15 +796,20 @@ Proof.
 Qed.
 
 (* Semantic typing rules *)
+Lemma ST_Var' n Γ (i : fin n) j :
+  Γ ⊨ Γ i ∈ PUniv j ->
+  Γ ⊨ VarPTm i ∈ Γ i.
+Proof.
+  move => /SemWt_Univ h.
+  rewrite /SemWt => ρ /[dup] hρ {}/h [S hS].
+  exists j,S.
+  asimpl. firstorder.
+Qed.
+
 Lemma ST_Var n Γ (i : fin n) :
   ⊨ Γ ->
   Γ ⊨ VarPTm i ∈ Γ i.
-Proof.
-  move /(_ i) => [j /SemWt_Univ h].
-  rewrite /SemWt => ρ /[dup] hρ {}/h [S hS].
-  exists j, S.
-  asimpl. firstorder.
-Qed.
+Proof. hauto l:on use:ST_Var' unfold:SemWff. Qed.
 
 Lemma InterpUniv_Bind_nopf n p i (A : PTm n) B PA :
   ⟦ A ⟧ i ↘ PA ->
@@ -1461,14 +1479,12 @@ Proof.
 Qed.
 
 Lemma SE_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
-  ⊨ Γ ->
   funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P0 ≡ P1 ∈ PUniv i ->
   Γ ⊨ a0 ≡ a1 ∈ PNat ->
   Γ ⊨ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->
   funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
   Γ ⊨ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P0.
 Proof.
-  move => hΓ.
   move /SemEq_SemWt=>[hP0][hP1]hPe.
   move /SemEq_SemWt=>[ha0][ha1]hae.
   move /SemEq_SemWt=>[hb0][hb1]hbe.
@@ -1477,21 +1493,25 @@ Proof.
   apply ST_Conv_E with (A := subst_PTm (scons a1 VarPTm) P1) (i := i);
     last by eauto using DJoin.cong', DJoin.symmetric.
   apply : ST_Ind; eauto. eapply ST_Conv_E with (i := i); eauto.
-  change (PUniv i) with (subst_PTm (scons PZero VarPTm) (@PUniv (S n) i)).
-  apply : morphing_SemWt; eauto.
+  apply : morphing_SemWt_Univ; eauto.
   apply smorphing_ext. rewrite /smorphing_ok.
   move => ξ. rewrite /funcomp. by asimpl.
   by apply ST_Zero.
-  by apply DJoin.substing. move {hc0}.
-  move => ρ hρ.
-  have : ρ_ok (funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ)))) ρ.
-  move   : Γ_eq_ρ_ok hρ => /[apply].
-  apply. by eauto using Γ_eq_cons, DJoin.symmetric, DJoin.refl, Γ_eq_refl.
-  apply : SemWff_cons; eauto.
-  apply : SemWff_cons; eauto using (@ST_Nat _ _ 0).
-  move : hc1 => /[apply].
-
-
+  by apply DJoin.substing.
+  eapply ST_Conv_E with (i := i); eauto.
+  apply : Γ_sub'_SemWt; eauto.
+  apply : Γ_sub'_cons; eauto using DJoin.symmetric, Sub.FromJoin.
+  apply : Γ_sub'_cons; eauto using Sub.refl, Γ_sub'_refl, (@ST_Nat _ _ 0).
+  change (PUniv i) with (ren_PTm shift (@PUniv (S n) i)).
+  apply : weakening_Sem; eauto. move : hP1.
+  move /morphing_SemWt. apply. apply smorphing_ext.
+  have -> : (funcomp VarPTm shift) = funcomp (ren_PTm shift) (@VarPTm n) by asimpl.
+  apply : smorphing_ren; eauto using smorphing_ok_refl. hauto l:on inv:option.
+  apply ST_Suc. apply ST_Var' with (j := 0). apply ST_Nat.
+  apply DJoin.renaming. by apply DJoin.substing.
+  apply : morphing_SemWt_Univ; eauto.
+  apply smorphing_ext; eauto using smorphing_ok_refl.
+Qed.
 
 Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
   Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
