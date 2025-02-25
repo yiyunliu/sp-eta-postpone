@@ -1513,6 +1513,36 @@ Proof.
   apply smorphing_ext; eauto using smorphing_ok_refl.
 Qed.
 
+Lemma SE_IndZero n Γ P i (b : PTm n) c :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P ∈ PUniv i ->
+  Γ ⊨ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊨ PInd P PZero b c ≡ b ∈ subst_PTm (scons PZero VarPTm) P.
+Proof.
+  move => hP hb hc.
+  apply SemWt_SemEq; eauto using ST_Zero, ST_Ind.
+  apply DJoin.FromRRed0. apply RRed.IndZero.
+Qed.
+
+Lemma SE_IndSuc s Γ P (a : PTm s) b c i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P ∈ PUniv i ->
+  Γ ⊨ a ∈ PNat ->
+  Γ ⊨ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊨ PInd P (PSuc a) b c ≡ (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ∈ subst_PTm (scons (PSuc a) VarPTm) P.
+Proof.
+  move => hP ha hb hc.
+  apply SemWt_SemEq; eauto using ST_Suc, ST_Ind.
+  set Δ := (X in X ⊨ _ ∈ _) in hc.
+  have : smorphing_ok Γ Δ (scons (PInd P a b c) (scons a VarPTm)).
+  apply smorphing_ext. apply smorphing_ext. apply smorphing_ok_refl.
+  done. eauto using ST_Ind.
+  move : morphing_SemWt hc; repeat move/[apply].
+  by asimpl.
+  apply DJoin.FromRRed0.
+  apply RRed.IndSuc.
+Qed.
+
 Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
   Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
   Γ ⊨ a ∈ A ->
@@ -1692,4 +1722,4 @@ Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong : sem.

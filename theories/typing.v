@@ -42,6 +42,25 @@ Inductive Wt : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> Prop :=
   ⊢ Γ ->
   Γ ⊢ PUniv i : PTm n ∈ PUniv (S i)
 
+| T_Nat n Γ i :
+  ⊢ Γ ->
+  Γ ⊢ PNat : PTm n ∈ PUniv i
+
+| T_Zero n Γ :
+  ⊢ Γ ->
+  Γ ⊢ PZero : PTm n ∈ PNat
+
+| T_Suc n Γ (a : PTm n) :
+  Γ ⊢ a ∈ PNat ->
+  Γ ⊢ PSuc a ∈ PNat
+
+| T_Ind s Γ P (a : PTm s) b c i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ a ∈ PNat ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P a b c ∈ subst_PTm (scons a VarPTm) P
+
 | T_Conv n Γ (a : PTm n) A B :
   Γ ⊢ a ∈ A ->
   Γ ⊢ A ≲ B ->
