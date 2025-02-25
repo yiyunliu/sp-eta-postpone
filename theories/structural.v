@@ -12,6 +12,11 @@ Proof. apply wt_mutual; eauto. Qed.
 
 #[export]Hint Constructors Wt Wff Eq : wt.
 
+Lemma T_Nat' n Γ :
+  ⊢ Γ ->
+  Γ ⊢ PNat : PTm n ∈ PUniv 0.
+Proof. apply T_Nat. Qed.
+
 Lemma renaming_up n m (ξ : fin n -> fin m) Δ Γ A :
   renaming_ok Δ Γ ξ ->
   renaming_ok (funcomp (ren_PTm shift) (scons (ren_PTm ξ A) Δ)) (funcomp (ren_PTm shift) (scons A Γ)) (upRen_PTm_PTm ξ) .
@@ -169,6 +174,20 @@ Lemma Su_Sig_Proj2' n Γ (a0 a1 A0 A1 : PTm n) B0 B1 U T :
   Γ ⊢ U ≲ T.
 Proof. move => -> ->. apply Su_Sig_Proj2. Qed.
 
+Lemma E_IndZero' n Γ P i (b : PTm n) c U :
+  U = subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P PZero b c ≡ b ∈ U.
+Proof. move => ->. apply E_IndZero. Qed.
+
+Lemma Wff_Cons' n Γ (A : PTm n) i :
+  Γ ⊢ A ∈ PUniv i ->
+  (* -------------------------------- *)
+  ⊢ funcomp (ren_PTm shift) (scons A Γ).
+Proof. hauto lq:on rew:off use:Wff_Cons, wff_mutual. Qed.
+
 Lemma renaming :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ ->
@@ -191,7 +210,27 @@ Proof.
   - move => n Γ a A b B i hA ihA hB ihB hS ihS m Δ ξ hξ hΔ.
     eapply T_Pair' with (U := ren_PTm ξ (subst_PTm (scons a VarPTm) B));eauto. by asimpl.
   - move => n Γ a A B ha iha m Δ ξ hΔ hξ. apply : T_Proj2'; eauto. by asimpl.
-  - admit.
+  - move => s Γ P a b c i hP ihP ha iha hb ihb hc ihc m Δ ξ hΔ hξ.
+    move => [:hP].
+    apply : T_Ind'; eauto. by asimpl.
+    abstract :hP. apply ihP. by eauto using Wff_Cons', T_Nat'.
+    hauto l:on use:renaming_up.
+    set x := subst_PTm _ _. have -> : x = ren_PTm ξ (subst_PTm (scons PZero VarPTm) P) by subst x; asimpl.
+    by subst x; eauto.
+    set Ξ := funcomp _ _.
+    have  hΞ : ⊢ Ξ. subst Ξ.
+    apply : Wff_Cons'; eauto. apply hP.
+    move /(_ _ Ξ (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
+    set Ξ' := (funcomp _ _ : fin (S (S _)) -> _) .
+    have : renaming_ok Ξ Ξ' (upRen_PTm_PTm (upRen_PTm_PTm ξ)).
+    by do 2 apply renaming_up.
+    move /[swap] /[apply].
+    set T0 := (X in Ξ ⊢ _ ∈ X).
+    set T1 := (Y in _ -> Ξ ⊢ _ ∈ Y).
+    (* Report an autosubst bug *)
+    suff : T0 = T1 by congruence.
+    subst T0 T1. clear.
+    asimpl. substify. asimpl. rewrite /funcomp. asimpl. rewrite /funcomp. done.
   - hauto lq:on ctrs:Wt,LEq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, renaming_up.
@@ -225,7 +264,16 @@ Proof.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ξ hΔ hξ.
     apply : E_ProjPair2'; eauto. by asimpl.
     move : ihb hξ hΔ; repeat move/[apply]. by asimpl.
-  - admit.
+  - move => n Γ P i b c hP ihP hb ihb hc ihc m Δ ξ hΔ hξ.
+    apply E_IndZero' with (i := i); eauto. by asimpl.
+    qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move  /(_ m Δ ξ hΔ) : ihb.
+    asimpl. by apply.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ by  qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move /(_ _ Ξ  (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(qauto l:on use:renaming_up)).
+    asimpl. rewrite /funcomp. asimpl. apply.
   - admit.
   - move => *.
     apply : E_AppEta'; eauto. by asimpl.
@@ -301,12 +349,6 @@ Proof.
   eauto using renaming_shift.
   apply : T_Var';eauto. rewrite /funcomp. by asimpl.
 Qed.
-
-Lemma Wff_Cons' n Γ (A : PTm n) i :
-  Γ ⊢ A ∈ PUniv i ->
-  (* -------------------------------- *)
-  ⊢ funcomp (ren_PTm shift) (scons A Γ).
-Proof. hauto lq:on rew:off use:Wff_Cons, wff_mutual. Qed.
 
 Lemma weakening_wt : forall n Γ (a A B : PTm n) i,
     Γ ⊢ B ∈ PUniv i ->
