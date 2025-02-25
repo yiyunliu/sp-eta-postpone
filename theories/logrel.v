@@ -1025,6 +1025,59 @@ Proof.
   hauto l:on use:DJoin.transitive.
 Qed.
 
+Definition Γ_sub' {n} (Γ Δ : fin n -> PTm n) := forall ρ, ρ_ok Δ ρ -> ρ_ok Γ ρ.
+
+Definition Γ_eq' {n} (Γ Δ : fin n -> PTm n) := forall ρ, ρ_ok Δ ρ <-> ρ_ok Γ ρ.
+
+Lemma Γ_sub'_refl n (Γ : fin n -> PTm n) : Γ_sub' Γ Γ.
+  rewrite /Γ_sub'. itauto. Qed.
+
+Lemma Γ_sub'_cons n (Γ Δ : fin n -> PTm n) A B i j :
+  Sub.R B A ->
+  Γ_sub' Γ Δ ->
+  Γ ⊨ A ∈ PUniv i ->
+  Δ ⊨ B ∈ PUniv j ->
+  Γ_sub' (funcomp (ren_PTm shift) (scons A Γ)) (funcomp (ren_PTm shift) (scons B Δ)).
+Proof.
+  move => hsub hsub' hA hB ρ hρ.
+
+  move => k.
+  move => k0 PA.
+  have : ρ_ok Δ (funcomp ρ shift).
+  move : hρ. clear.
+  move => hρ i.
+  specialize (hρ (shift i)).
+  move => k PA. move /(_ k PA) in hρ.
+  move : hρ. asimpl. by eauto.
+  move => hρ_inv.
+  destruct k as [k|].
+  - rewrite /Γ_sub' in hsub'.
+    asimpl.
+    move /(_ (funcomp ρ shift) hρ_inv) in hsub'.
+    sfirstorder simp+:asimpl.
+  - asimpl.
+    move => h.
+    have {}/hsub' hρ' := hρ_inv.
+    move /SemWt_Univ : (hA) (hρ')=> /[apply].
+    move => [S]hS.
+    move /SemWt_Univ : (hB) (hρ_inv)=>/[apply].
+    move => [S1]hS1.
+    move /(_ None) : hρ (hS1). asimpl => /[apply].
+    suff : forall x, S1 x -> PA x by firstorder.
+    apply : InterpUniv_Sub; eauto.
+    by apply Sub.substing.
+Qed.
+
+Lemma Γ_sub'_SemWt n (Γ Δ : fin n -> PTm n) a A  :
+  Γ_sub' Γ Δ ->
+  Γ ⊨ a ∈ A ->
+  Δ ⊨ a ∈ A.
+Proof.
+  move => hs  ha ρ hρ.
+  have {}/hs hρ' := hρ.
+  hauto l:on.
+Qed.
+
 Definition Γ_eq {n} (Γ Δ : fin n -> PTm n)  := forall i, DJoin.R (Γ i) (Δ i).
 
 Lemma Γ_eq_ρ_ok n Γ Δ (ρ : fin n -> PTm 0) : Γ_eq Γ Δ -> ⊨ Γ -> ρ_ok Γ ρ -> ρ_ok Δ ρ.
@@ -1041,6 +1094,25 @@ Proof.
   apply. move /(_ i) /DJoin.symmetric in hΓΔ.
   hauto l:on use: DJoin.substing.
 Qed.
+
+Lemma Γ_eq_sub n (Γ Δ : fin n -> PTm n) : Γ_eq' Γ Δ <-> Γ_sub' Γ Δ /\ Γ_sub' Δ Γ.
+Proof. rewrite /Γ_eq' /Γ_sub'. hauto l:on. Qed.
+
+Lemma Γ_eq'_cons n (Γ Δ : fin n -> PTm n) A B i j :
+  DJoin.R B A ->
+  Γ_eq' Γ Δ ->
+  Γ ⊨ A ∈ PUniv i ->
+  Δ ⊨ B ∈ PUniv j ->
+  Γ_eq' (funcomp (ren_PTm shift) (scons A Γ)) (funcomp (ren_PTm shift) (scons B Δ)).
+Proof.
+  move => h.
+  have {h} [h0 h1] : Sub.R A B /\ Sub.R B A by hauto lq:on use:Sub.FromJoin, DJoin.symmetric.
+  repeat rewrite ->Γ_eq_sub.
+  hauto l:on use:Γ_sub'_cons.
+Qed.
+
+Lemma Γ_eq'_refl n (Γ : fin n -> PTm n) : Γ_eq' Γ Γ.
+Proof. rewrite /Γ_eq'. firstorder. Qed.
 
 Definition Γ_sub {n} (Γ Δ : fin n -> PTm n)  := forall i, Sub.R (Γ i) (Δ i).
 
@@ -1389,12 +1461,14 @@ Proof.
 Qed.
 
 Lemma SE_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
+  ⊨ Γ ->
   funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P0 ≡ P1 ∈ PUniv i ->
   Γ ⊨ a0 ≡ a1 ∈ PNat ->
   Γ ⊨ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->
   funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊨ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
   Γ ⊨ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P0.
 Proof.
+  move => hΓ.
   move /SemEq_SemWt=>[hP0][hP1]hPe.
   move /SemEq_SemWt=>[ha0][ha1]hae.
   move /SemEq_SemWt=>[hb0][hb1]hbe.
@@ -1412,9 +1486,12 @@ Proof.
   move => ρ hρ.
   have : ρ_ok (funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ)))) ρ.
   move   : Γ_eq_ρ_ok hρ => /[apply].
-  apply.
+  apply. by eauto using Γ_eq_cons, DJoin.symmetric, DJoin.refl, Γ_eq_refl.
+  apply : SemWff_cons; eauto.
+  apply : SemWff_cons; eauto using (@ST_Nat _ _ 0).
+  move : hc1 => /[apply].
 
-  apply Γ_eq_cons.
+
 
 Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
   Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
