@@ -130,6 +130,8 @@ Proof.
       move : hA0 => /[swap]. move : Su_Transitive. repeat move/[apply].
       move {hS}.
       move => ?. apply : E_Conv; eauto. apply : E_ProjPair2; eauto.
+  - admit.
+  - admit.
   - qauto l:on use:Abs_Inv, E_Conv, regularity_sub0, E_Abs.
   - move => a0 a1 b ha iha Γ A /App_Inv [A0][B0][ih0][ih1]hU.
     have {}/iha iha := ih0.
@@ -170,7 +172,7 @@ Proof.
     have {}/ihA ihA := h1.
     apply : E_Conv; eauto.
     apply E_Bind'; eauto using E_Refl.
-Qed.
+Admitted.
 
 Theorem subject_reduction n Γ (a b A : PTm n) :
   Γ ⊢ a ∈ A ->

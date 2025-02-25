@@ -92,6 +92,15 @@ Proof.
   move => ->. eauto using T_Pair.
 Qed.
 
+Lemma T_Ind' s Γ P (a : PTm s) b c i U :
+  U = subst_PTm (scons a VarPTm) P ->
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ a ∈ PNat ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P a b c ∈ U.
+Proof. move =>->. apply T_Ind. Qed.
+
 Lemma T_Proj2' n Γ (a : PTm n) A B U :
   U = subst_PTm (scons (PProj PL a) VarPTm) B ->
   Γ ⊢ a ∈ PBind PSig A B ->
@@ -103,9 +112,7 @@ Lemma E_Proj2' n Γ i (a b : PTm n) A B U :
   Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
   Γ ⊢ a ≡ b ∈ PBind PSig A B ->
   Γ ⊢ PProj PR a ≡ PProj PR b ∈ U.
-Proof.
-  move => ->. apply E_Proj2.
-Qed.
+Proof. move => ->. apply E_Proj2. Qed.
 
 Lemma E_Bind' n Γ i p (A0 A1 : PTm n) B0 B1 :
   Γ ⊢ A0 ∈ PUniv i ->
@@ -184,6 +191,7 @@ Proof.
   - move => n Γ a A b B i hA ihA hB ihB hS ihS m Δ ξ hξ hΔ.
     eapply T_Pair' with (U := ren_PTm ξ (subst_PTm (scons a VarPTm) B));eauto. by asimpl.
   - move => n Γ a A B ha iha m Δ ξ hΔ hξ. apply : T_Proj2'; eauto. by asimpl.
+  - admit.
   - hauto lq:on ctrs:Wt,LEq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, renaming_up.
@@ -199,6 +207,7 @@ Proof.
     move : ihb hΔ hξ. repeat move/[apply].
     by asimpl.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
+  - admit.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ξ hΔ hξ.
     move : ihP (hξ) (hΔ). repeat move/[apply].
@@ -216,6 +225,8 @@ Proof.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ξ hΔ hξ.
     apply : E_ProjPair2'; eauto. by asimpl.
     move : ihb hξ hΔ; repeat move/[apply]. by asimpl.
+  - admit.
+  - admit.
   - move => *.
     apply : E_AppEta'; eauto. by asimpl.
   - qauto l:on use:E_PairEta.
@@ -228,7 +239,7 @@ Proof.
   - qauto l:on ctrs:LEq.
   - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
-Qed.
+Admitted.
 
 Definition morphing_ok {n m} Δ Γ (ρ : fin n -> PTm m) :=
   forall i, Δ ⊢ ρ i ∈ subst_PTm ρ (Γ i).
@@ -342,6 +353,10 @@ Proof.
   - move => *. apply : T_Proj2'; eauto. by asimpl.
   - hauto lq:on ctrs:Wt,LEq.
   - qauto l:on ctrs:Wt.
+  - qauto l:on ctrs:Wt.
+  - qauto l:on ctrs:Wt.
+  - admit.
+  - qauto l:on ctrs:Wt.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on ctrs:Eq.
@@ -359,6 +374,7 @@ Proof.
     by asimpl.
   - hauto q:on ctrs:Eq.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
+  - admit.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ρ hΔ hρ.
     move : ihP (hρ) (hΔ). repeat move/[apply].
@@ -376,6 +392,8 @@ Proof.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ρ hΔ hρ.
     apply : E_ProjPair2'; eauto. by asimpl.
     move : ihb hρ hΔ; repeat move/[apply]. by asimpl.
+  - admit.
+  - admit.
   - move => *.
     apply : E_AppEta'; eauto. by asimpl.
   - qauto l:on use:E_PairEta.
@@ -388,7 +406,7 @@ Proof.
   - qauto l:on ctrs:LEq.
   - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
-Qed.
+Admitted.
 
 Lemma morphing_wt : forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ -> Δ ⊢ subst_PTm ρ a ∈ subst_PTm ρ A.
 Proof. sfirstorder use:morphing. Qed.
@@ -505,6 +523,7 @@ Proof.
     exists j. have : Γ ⊢ PProj PL a ∈ A by qauto use:T_Proj1.
     move : substing_wt h1; repeat move/[apply].
     by asimpl.
+  - admit.
   - sfirstorder.
   - sfirstorder.
   - sfirstorder.
@@ -535,9 +554,12 @@ Proof.
     eauto using bind_inst.
     move /T_Proj1 in iha.
     hauto lq:on ctrs:Wt,Eq,LEq use:Bind_Inv, substing_wt.
+  - admit.
   - hauto lq:on ctrs:Wt.
   - hauto q:on use:substing_wt db:wt.
   - hauto l:on use:bind_inst db:wt.
+  - admit.
+  - admit.
   - move => n Γ b A B i hΓ ihΓ hP _ hb [i0 ihb].
     repeat split => //=; eauto with wt.
     have {}hb : funcomp (ren_PTm shift) (scons A Γ) ⊢ ren_PTm shift b ∈ ren_PTm shift (PBind PPi A B)
@@ -603,7 +625,7 @@ Proof.
     + apply Cumulativity with (i := i1); eauto.
       have : Γ ⊢ a1 ∈ A1 by eauto using T_Conv.
       move : substing_wt ih1';repeat move/[apply]. by asimpl.
-Qed.
+Admitted.
 
 Lemma Var_Inv n Γ (i : fin n) A :
   Γ ⊢ VarPTm i ∈ A ->
