@@ -1388,8 +1388,6 @@ Proof.
   hauto q:on use:REReds.suc_inv, REReds.SucCong.
 Qed.
 
-
-
 Lemma SE_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
   funcomp (ren_PTm shift) (scons PNat Γ) ⊨ P0 ≡ P1 ∈ PUniv i ->
   Γ ⊨ a0 ≡ a1 ∈ PNat ->
@@ -1405,7 +1403,18 @@ Proof.
   apply ST_Conv_E with (A := subst_PTm (scons a1 VarPTm) P1) (i := i);
     last by eauto using DJoin.cong', DJoin.symmetric.
   apply : ST_Ind; eauto. eapply ST_Conv_E with (i := i); eauto.
+  change (PUniv i) with (subst_PTm (scons PZero VarPTm) (@PUniv (S n) i)).
+  apply : morphing_SemWt; eauto.
+  apply smorphing_ext. rewrite /smorphing_ok.
+  move => ξ. rewrite /funcomp. by asimpl.
+  by apply ST_Zero.
+  by apply DJoin.substing. move {hc0}.
+  move => ρ hρ.
+  have : ρ_ok (funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ)))) ρ.
+  move   : Γ_eq_ρ_ok hρ => /[apply].
+  apply.
 
+  apply Γ_eq_cons.
 
 Lemma SE_ProjPair1 n Γ (a b : PTm n) A B i :
   Γ ⊨ PBind PSig A B ∈ (PUniv i) ->
