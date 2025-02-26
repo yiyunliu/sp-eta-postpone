@@ -287,6 +287,60 @@ Proof.
     apply : ctx_eq_subst_one; eauto.
 Qed.
 
+Lemma T_Univ_Raise n Γ (a : PTm n) i j :
+  Γ ⊢ a ∈ PUniv i ->
+  i <= j ->
+  Γ ⊢ a ∈ PUniv j.
+Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
+
+Lemma Bind_Univ_Inv n Γ p (A : PTm n) B i :
+  Γ ⊢ PBind p A B ∈ PUniv i ->
+  Γ ⊢ A ∈ PUniv i /\ funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i.
+Proof.
+  move /Bind_Inv.
+  move => [i0][hA][hB]h.
+  move /synsub_to_usub : h => [_ [_ /Sub.univ_inj ? ]].
+  sfirstorder use:T_Univ_Raise.
+Qed.
+
+Lemma Abs_Pi_Inv n Γ (a : PTm (S n)) A B :
+  Γ ⊢ PAbs a ∈ PBind PPi A B ->
+  funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B.
+Proof.
+  move => h.
+  have [i hi] : exists i, Γ ⊢ PBind PPi A B ∈ PUniv i by hauto use:regularity.
+  have  [{}i {}hi] : exists i, Γ ⊢ A ∈ PUniv i by hauto use:Bind_Inv.
+  apply : subject_reduction; last apply RRed.AppAbs'.
+  apply : T_App'; cycle 1.
+  apply : weakening_wt'; cycle 2. apply hi.
+  apply h. reflexivity. reflexivity. rewrite -/ren_PTm.
+  apply T_Var' with (i := var_zero).  by asimpl.
+  by eauto using Wff_Cons'.
+  rewrite -/ren_PTm.
+  by asimpl.
+  rewrite -/ren_PTm.
+  by asimpl.
+Qed.
+
+Lemma Pair_Sig_Inv n Γ (a b : PTm n) A B :
+  Γ ⊢ PPair a b ∈ PBind PSig A B ->
+  Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B.
+Proof.
+  move => /[dup] h0 h1.
+  have [i hr] : exists i, Γ ⊢ PBind PSig A B ∈ PUniv i by sfirstorder use:regularity.
+  move /T_Proj1 in h0.
+  move /T_Proj2 in h1.
+  split.
+  hauto lq:on use:subject_reduction ctrs:RRed.R.
+  have hE : Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A by
+    hauto lq:on use:RRed_Eq ctrs:RRed.R.
+  apply : T_Conv.
+  move /subject_reduction : h1. apply.
+  apply RRed.ProjPair.
+  apply : bind_inst; eauto.
+Qed.
+
+
 (* Coquand's algorithm with subtyping *)
 Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
@@ -485,6 +539,37 @@ Proof.
       first by sfirstorder use:bind_inst.
     apply : Su_Pi_Proj2';  eauto using E_Refl.
     apply E_App with (A := A2); eauto using E_Conv_E.
+  - move {hAppL hPairL} => n P0 P1 u0 u1 b0 b1 c0 c1 neu0 neu1 hP ihP hu ihu hb ihb hc ihc Γ A B.
+    move /Ind_Inv => [i0][hP0][hu0][hb0][hc0]hSu0.
+    move /Ind_Inv => [i1][hP1][hu1][hb1][hc1]hSu1.
+    move : ihu hu0 hu1; do!move/[apply]. move => ihu.
+    have {}ihu : Γ ⊢ u0 ≡ u1 ∈ PNat by hauto l:on use:E_Conv.
+    have wfΓ : ⊢ Γ by hauto use:wff_mutual.
+    have wfΓ' : ⊢ funcomp (ren_PTm shift) (scons PNat Γ) by hauto lq:on use:Wff_Cons', T_Nat'.
+    move => [:sigeq].
+    have sigeq' : Γ ⊢ PBind PSig PNat P0 ≡ PBind PSig PNat P1 ∈ PUniv (max i0 i1).
+    apply E_Bind. by eauto using T_Nat, E_Refl.
+    abstract : sigeq. hauto lq:on use:T_Univ_Raise solve+:lia.
+    have sigleq : Γ ⊢ PBind PSig PNat P0 ≲ PBind PSig PNat P1.
+    apply Su_Sig with (i := 0)=>//. by apply T_Nat'. by eauto using Su_Eq, T_Nat', E_Refl.
+    apply Su_Eq with (i := max i0 i1).  apply sigeq.
+    exists (subst_PTm (scons u0 VarPTm) P0). repeat split => //.
+    suff : Γ ⊢ subst_PTm (scons u0 VarPTm) P0 ≲ subst_PTm (scons u1 VarPTm) P1 by eauto using Su_Transitive.
+    by eauto using Su_Sig_Proj2.
+    apply E_IndCong with (i := max i0 i1); eauto. move :sigeq; clear; hauto q:on use:regularity.
+    apply ihb; eauto. apply : T_Conv; eauto. eapply morphing. apply : Su_Eq. apply E_Symmetric. apply sigeq.
+    done. apply morphing_ext. apply morphing_id. done. by apply T_Zero.
+    apply ihc; eauto.
+    eapply T_Conv; eauto.
+    eapply ctx_eq_subst_one; eauto. apply : Su_Eq; apply sigeq.
+    eapply weakening_su; eauto.
+    eapply morphing; eauto. apply : Su_Eq. apply E_Symmetric. apply sigeq.
+    apply morphing_ext. set x := {1}(funcomp _ shift).
+    have -> : x = funcomp (ren_PTm shift) VarPTm by asimpl.
+    apply : morphing_ren; eauto. apply : renaming_shift; eauto. by apply morphing_id.
+    apply T_Suc. by apply T_Var.
+  - hauto lq:on use:Zero_Inv db:wt.
+  - hauto lq:on use:Suc_Inv db:wt.
   - move => n a b ha iha Γ A h0 h1.
     move /Abs_Inv : h0 => [A0][B0][h0]h0'.
     move /Abs_Inv : h1 => [A1][B1][h1]h1'.
@@ -616,6 +701,7 @@ Proof.
     apply T_Conv with (A := PUniv j); eauto.
     apply : ctx_eq_subst_one; eauto. apply : Su_Eq; apply eqA.
     move : weakening_su hjk hA0. by repeat move/[apply].
+  - hauto lq:on ctrs:Eq,LEq,Wt.
   - hauto lq:on ctrs:Eq,LEq,Wt.
   - move => n a a' b b' ha hb hab ihab Γ A ha0 hb0.
     have [*] : Γ ⊢ a' ∈ A /\ Γ ⊢ b' ∈ A by eauto using HReds.preservation.
@@ -1050,58 +1136,6 @@ Proof.
   - exists i1,j1,b2,b3. sfirstorder b:on solve+:lia.
 Qed.
 
-Lemma T_Univ_Raise n Γ (a : PTm n) i j :
-  Γ ⊢ a ∈ PUniv i ->
-  i <= j ->
-  Γ ⊢ a ∈ PUniv j.
-Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
-
-Lemma Bind_Univ_Inv n Γ p (A : PTm n) B i :
-  Γ ⊢ PBind p A B ∈ PUniv i ->
-  Γ ⊢ A ∈ PUniv i /\ funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i.
-Proof.
-  move /Bind_Inv.
-  move => [i0][hA][hB]h.
-  move /synsub_to_usub : h => [_ [_ /Sub.univ_inj ? ]].
-  sfirstorder use:T_Univ_Raise.
-Qed.
-
-Lemma Abs_Pi_Inv n Γ (a : PTm (S n)) A B :
-  Γ ⊢ PAbs a ∈ PBind PPi A B ->
-  funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B.
-Proof.
-  move => h.
-  have [i hi] : exists i, Γ ⊢ PBind PPi A B ∈ PUniv i by hauto use:regularity.
-  have  [{}i {}hi] : exists i, Γ ⊢ A ∈ PUniv i by hauto use:Bind_Inv.
-  apply : subject_reduction; last apply RRed.AppAbs'.
-  apply : T_App'; cycle 1.
-  apply : weakening_wt'; cycle 2. apply hi.
-  apply h. reflexivity. reflexivity. rewrite -/ren_PTm.
-  apply T_Var' with (i := var_zero).  by asimpl.
-  by eauto using Wff_Cons'.
-  rewrite -/ren_PTm.
-  by asimpl.
-  rewrite -/ren_PTm.
-  by asimpl.
-Qed.
-
-Lemma Pair_Sig_Inv n Γ (a b : PTm n) A B :
-  Γ ⊢ PPair a b ∈ PBind PSig A B ->
-  Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B.
-Proof.
-  move => /[dup] h0 h1.
-  have [i hr] : exists i, Γ ⊢ PBind PSig A B ∈ PUniv i by sfirstorder use:regularity.
-  move /T_Proj1 in h0.
-  move /T_Proj2 in h1.
-  split.
-  hauto lq:on use:subject_reduction ctrs:RRed.R.
-  have hE : Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A by
-    hauto lq:on use:RRed_Eq ctrs:RRed.R.
-  apply : T_Conv.
-  move /subject_reduction : h1. apply.
-  apply RRed.ProjPair.
-  apply : bind_inst; eauto.
-Qed.
 
 Lemma coqeq_complete' n k (a b : PTm n) :
   algo_metric k a b ->
