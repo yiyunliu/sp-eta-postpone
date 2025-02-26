@@ -723,8 +723,14 @@ Proof.
   - hauto l:on use:HRed.AppAbs.
   - hauto l:on use:HRed.ProjPair.
   - hauto lq:on ctrs:HRed.R.
+  - hauto lq:on ctrs:HRed.R.
+  - hauto lq:on ctrs:HRed.R.
   - sfirstorder use:ne_hne.
   - hauto lq:on ctrs:HRed.R.
+  - sfirstorder use:ne_hne.
+  - hauto q:on ctrs:HRed.R.
+  - hauto lq:on use:ne_hne.
+  - hauto lq:on use:ne_hne.
 Qed.
 
 Lemma algo_metric_case n k (a b : PTm n) :
@@ -744,6 +750,15 @@ Proof.
     inversion E; subst => /=.
     + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.IndZero unfold:algo_metric solve+:lia.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + sfirstorder use:ne_hne.
 Qed.
 
 Lemma algo_metric_sym n k (a b : PTm n) :
@@ -779,6 +794,53 @@ Proof.
   clear. move /synsub_to_usub. hauto l:on use:Sub.bind_inj.
 Qed.
 
+Lemma T_AbsZero_Imp n Γ a (A : PTm n) :
+  Γ ⊢ PAbs a ∈ A ->
+  Γ ⊢ PZero ∈ A ->
+  False.
+Proof.
+  move /Abs_Inv => [A0][B0][_]haU.
+  move /Zero_Inv => hbU.
+  move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
+  have : Γ ⊢ PNat ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+  clear. hauto lq:on use:synsub_to_usub, Sub.bind_nat_noconf.
+Qed.
+
+Lemma T_AbsSuc_Imp n Γ a b (A : PTm n) :
+  Γ ⊢ PAbs a ∈ A ->
+  Γ ⊢ PSuc b ∈ A ->
+  False.
+Proof.
+  move /Abs_Inv => [A0][B0][_]haU.
+  move /Suc_Inv => [_ hbU].
+  move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
+  have {hbU h2} : Γ ⊢ PNat ≲ PBind PPi A2 B2 by eauto using Su_Transitive, Su_Eq.
+  hauto lq:on use:Sub.bind_nat_noconf, synsub_to_usub.
+Qed.
+
+Lemma Nat_Inv n Γ A:
+  Γ ⊢ @PNat n ∈ A ->
+  exists i, Γ ⊢ PUniv i ≲ A.
+Proof.
+  move E : PNat => u hu.
+  move : E.
+  elim : n Γ u A / hu=>//=.
+  - hauto lq:on use:E_Refl, T_Univ, Su_Eq.
+  - hauto lq:on ctrs:LEq.
+Qed.
+
+Lemma T_AbsNat_Imp n Γ a (A : PTm n) :
+  Γ ⊢ PAbs a ∈ A ->
+  Γ ⊢ PNat ∈ A ->
+  False.
+Proof.
+  move /Abs_Inv => [A0][B0][_]haU.
+  move /Nat_Inv => [i hA].
+  move /Sub_Univ_InvR : hA => [j][k]hA.
+  have : Γ ⊢ PBind PPi A0 B0 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  hauto lq:on use:Sub.bind_univ_noconf, synsub_to_usub.
+Qed.
+
 Lemma T_PairBind_Imp n Γ (a0 a1 : PTm n) p A0 B0 U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PBind p A0 B0  ∈ U ->
@@ -789,6 +851,39 @@ Proof.
   move /Sub_Univ_InvR : haU => [j][k]hU.
   have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
   clear. move /synsub_to_usub. hauto l:on use:Sub.bind_univ_noconf.
+Qed.
+
+Lemma T_PairNat_Imp n Γ (a0 a1 : PTm n) U :
+  Γ ⊢ PPair a0 a1 ∈ U ->
+  Γ ⊢ PNat ∈ U ->
+  False.
+Proof.
+  move/Pair_Inv => [A1][B1][_][_]hbU.
+  move /Nat_Inv => [i]/Sub_Univ_InvR[j][k]hU.
+  have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub. hauto l:on use:Sub.bind_univ_noconf.
+Qed.
+
+Lemma T_PairZero_Imp n Γ (a0 a1 : PTm n) U :
+  Γ ⊢ PPair a0 a1 ∈ U ->
+  Γ ⊢ PZero ∈ U ->
+  False.
+Proof.
+  move/Pair_Inv=>[A1][B1][_][_]hbU.
+  move/Zero_Inv. move/Sub_Bind_InvR : hbU=>[i][A0][B0]*.
+  have : Γ ⊢ PNat ≲ PBind PSig A0 B0 by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub. hauto l:on use:Sub.bind_nat_noconf.
+Qed.
+
+Lemma T_PairSuc_Imp n Γ (a0 a1 : PTm n) b U :
+  Γ ⊢ PPair a0 a1 ∈ U ->
+  Γ ⊢ PSuc b ∈ U ->
+  False.
+Proof.
+  move/Pair_Inv=>[A1][B1][_][_]hbU.
+  move/Suc_Inv=>[_ hU]. move/Sub_Bind_InvR : hbU=>[i][A0][B0]*.
+  have : Γ ⊢ PNat ≲ PBind PSig A0 B0 by eauto using Su_Transitive, Su_Eq.
+  clear. move /synsub_to_usub. hauto l:on use:Sub.bind_nat_noconf.
 Qed.
 
 Lemma Univ_Inv n Γ i U :
@@ -859,7 +954,7 @@ Proof.
   move : a E.
   elim : u b /hu.
   - hauto l:on.
-  - hauto lq:on ctrs:nsteps inv:LoRed.R.
+  - scrush ctrs:nsteps inv:LoRed.R.
 Qed.
 
 Lemma lored_hne_preservation n (a b : PTm n) :
@@ -1116,7 +1211,6 @@ Proof.
     repeat split => //=; sfirstorder b:on use:ne_nf.
 Qed.
 
-
 Lemma algo_metric_bind n k p0 (A0 : PTm n) B0 p1 A1 B1  :
   algo_metric k (PBind p0 A0 B0) (PBind p1 A1 B1) ->
   p0 = p1 /\ exists j, j < k /\ algo_metric j A0 A1 /\ algo_metric j B0 B1.
@@ -1164,7 +1258,7 @@ Proof.
   - split; last by sfirstorder use:hf_not_hne.
     move {hnfneu}.
     case : a h fb fa => //=.
-    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_AbsBind_Imp, T_AbsUniv_Imp.
+    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_AbsBind_Imp, T_AbsUniv_Imp, T_AbsZero_Imp, T_AbsSuc_Imp, T_AbsNat_Imp.
       move => a0 a1 ha0 _ _ Γ A wt0 wt1.
       move : T_Abs_Inv wt0 wt1; repeat move/[apply]. move  => [Δ [V [wt1 wt0]]].
       apply : CE_HRed; eauto using rtc_refl.
@@ -1195,7 +1289,7 @@ Proof.
       simpl in *.
       have [*] : va' = va /\ vb' = vb by eauto using red_uniquenf. subst.
       sfirstorder.
-    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp.
+    + case : b => //=; try qauto depth:1 use:T_AbsPair_Imp, T_PairBind_Imp, T_PairUniv_Imp, T_PairNat_Imp, T_PairSuc_Imp, T_PairZero_Imp.
       move => a1 b1 a0 b0 h _ _ Γ A hu0 hu1.
       have [sn0 sn1] : SN (PPair a0 b0) /\ SN (PPair a1 b1)
         by qauto l:on use:fundamental_theorem, logrel.SemWt_SN.
@@ -1263,6 +1357,11 @@ Proof.
         eauto using Su_Eq.
       * move => > /algo_metric_join.
         hauto lq:on use:DJoin.bind_univ_noconf.
+      * move => > /algo_metric_join.
+        hauto lq:on use:Sub.nat_bind_noconf, Sub.FromJoin.
+      * move => > /algo_metric_join.
+        admit.
+      * admit.
     + case : b => //=.
       * hauto lq:on use:T_AbsUniv_Imp.
       * hauto lq:on use:T_PairUniv_Imp.
@@ -1270,6 +1369,22 @@ Proof.
       * move => i j /algo_metric_join /DJoin.univ_inj ? _ _ Γ A hi hj.
         subst.
         hauto l:on.
+      * move => > /algo_metric_join.
+        hauto lq:on use:Sub.nat_univ_noconf, Sub.FromJoin.
+      * admit.
+      * admit.
+    + case : b => //=.
+      * qauto l:on use:T_AbsNat_Imp.
+      * qauto l:on use:T_PairNat_Imp.
+      * move => > /algo_metric_join /Sub.FromJoin. hauto l:on use:Sub.bind_nat_noconf.
+      * move => > /algo_metric_join /Sub.FromJoin. hauto lq:on use:Sub.univ_nat_noconf.
+      * hauto l:on.
+      * admit.
+      * admit.
+    (* Zero *)
+    + admit.
+    (* Suc *)
+    + admit.
   - move : k a b h fb fa. abstract : hnfneu.
     move => k.
     move => + b.
@@ -1326,6 +1441,11 @@ Proof.
       hauto l:on use:Sub.hne_bind_noconf.
     (* NeuUniv: Impossible *)
     + hauto lq:on rew:off use:DJoin.hne_univ_noconf, algo_metric_join.
+    + hauto lq:on rew:off use:DJoin.hne_nat_noconf, algo_metric_join.
+    (* Zero *)
+    + admit.
+    (* Suc *)
+    + admit.
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.
@@ -1349,6 +1469,7 @@ Proof.
       * move => a0 a1 i /algo_metric_join. clear => ? ? _. exfalso.
         hauto l:on use:REReds.var_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
+      * admit.
     + case : b => //=.
       * clear. move => i a a0 /algo_metric_join h _ ?. exfalso.
         hauto l:on use:REReds.hne_app_inv, REReds.var_inv.
@@ -1377,7 +1498,7 @@ Proof.
         move => [ih _].
         move : ih (ha0') (ha1'); repeat move/[apply].
         move => iha.
-        split. sauto lq:on.
+        split. qblast.
         exists (subst_PTm (scons a0 VarPTm) B2).
         split.
         apply : Su_Transitive; eauto.
@@ -1400,6 +1521,7 @@ Proof.
       * move => p p0 p1 p2 /algo_metric_join. clear => ? ? ?. exfalso.
         hauto q:on use:REReds.hne_app_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
+      * admit.
     + case : b => //=.
       * move => i p h /algo_metric_join. clear => ? _ ?. exfalso.
         hauto l:on use:REReds.hne_proj_inv, REReds.var_inv.
@@ -1460,8 +1582,11 @@ Proof.
                move /regularity_sub0 in hSu21.
                sfirstorder use:bind_inst.
       * sfirstorder use:T_Bot_Imp.
+      * admit.
     + sfirstorder use:T_Bot_Imp.
-Qed.
+    (* ind ind case *)
+    + admit.
+Admitted.
 
 Lemma coqeq_sound : forall n Γ (a b : PTm n) A,
     Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b -> Γ ⊢ a ≡ b ∈ A.
@@ -1593,7 +1718,8 @@ Proof.
     inversion E; subst => /=.
     + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
-Qed.
+      (* Copy paste from algo_metric_case *)
+Admitted.
 
 Lemma CLE_HRedL n (a a' b : PTm n)  :
   HRed.R a a' ->
@@ -1629,7 +1755,7 @@ Proof.
     inversion E; subst => /=.
     + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
-Qed.
+Admitted.
 
 Lemma salgo_metric_sub n k (a b : PTm n) :
   salgo_metric k a b ->
@@ -1713,6 +1839,9 @@ Proof.
              by hauto l:on.
            eauto using ctx_eq_subst_one.
       * hauto lq:on use:salgo_metric_sub, Sub.bind_univ_noconf.
+      * hauto lq:on use:salgo_metric_sub, Sub.nat_bind_noconf.
+      * admit.
+      * admit.
     + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
       * hauto lq:on use:salgo_metric_sub, Sub.univ_bind_noconf.
       * move => *. econstructor; eauto using rtc_refl.
