@@ -542,7 +542,7 @@ Proof.
     have  hξ' : morphing_ok (funcomp (ren_PTm shift) (scons PNat Δ))
                   (funcomp (ren_PTm shift) (scons PNat Γ)) (up_PTm_PTm ξ).
     move /morphing_up : hξ.  move /(_ PNat 0).
-    apply. by apply T_Nat.
+    apply. by apply T_Nat'.
     apply E_IndSuc' with (i := i). by asimpl. by asimpl.
     qauto l:on use:Wff_Cons', T_Nat', renaming_up.
     by eauto with wt.
@@ -681,7 +681,8 @@ Proof.
     exists j. have : Γ ⊢ PProj PL a ∈ A by qauto use:T_Proj1.
     move : substing_wt h1; repeat move/[apply].
     by asimpl.
-  - admit.
+  - move => s Γ P a b c i + ? + *. clear. move => h ha. exists i.
+    hauto lq:on use:substing_wt.
   - sfirstorder.
   - sfirstorder.
   - sfirstorder.
@@ -712,12 +713,45 @@ Proof.
     eauto using bind_inst.
     move /T_Proj1 in iha.
     hauto lq:on ctrs:Wt,Eq,LEq use:Bind_Inv, substing_wt.
-  - admit.
+  - move => n Γ P0 P1 a0 a1 b0 b1 c0 c1 i _ _ hPE [hP0 [hP1 _]] hae [ha0 [ha1 _]] _ [hb0 [hb1 hb2]] _ [hc0 [hc1 hc2]].
+    have wfΓ : ⊢ Γ by hauto use:wff_mutual.
+    repeat split. by eauto using T_Ind.
+    apply : T_Conv. apply : T_Ind; eauto.
+    apply : T_Conv; eauto.
+    eapply morphing; by eauto using Su_Eq, morphing_ext, morphing_id with wt.
+    apply : T_Conv.  apply : ctx_eq_subst_one; eauto.
+    by eauto using Su_Eq, E_Symmetric.
+    eapply renaming; eauto.
+    eapply morphing; eauto 20 using Su_Eq, morphing_ext, morphing_id with wt.
+    apply morphing_ext; eauto.
+    replace (funcomp VarPTm shift) with (funcomp (@ren_PTm n _ shift) VarPTm); last by asimpl.
+    apply : morphing_ren; eauto using Wff_Cons' with wt.
+    apply : renaming_shift; eauto. by apply morphing_id.
+    apply T_Suc. apply T_Var'. by asimpl. apply : Wff_Cons'; eauto using T_Nat'.
+    apply : Wff_Cons'; eauto. apply : renaming_shift; eauto.
+    have /E_Symmetric /Su_Eq : Γ ⊢ PBind PSig PNat P0 ≡ PBind PSig PNat P1 ∈ PUniv i by eauto with wt.
+    move /E_Symmetric in hae.
+    by eauto using Su_Sig_Proj2.
+    sauto lq:on use:substing_wt.
   - hauto lq:on ctrs:Wt.
   - hauto q:on use:substing_wt db:wt.
   - hauto l:on use:bind_inst db:wt.
-  - admit.
-  - admit.
+  - move => n Γ P i b c hP _ hb _ hc _.
+    have ? : ⊢ Γ by hauto use:wff_mutual.
+    repeat split=>//.
+    by eauto with wt.
+    sauto lq:on use:substing_wt.
+  - move => s Γ P a b c i hP _ ha _ hb _ hc _.
+    have ? : ⊢ Γ by hauto use:wff_mutual.
+    repeat split=>//.
+    apply : T_Ind; eauto with wt.
+    set Ξ : fin (S (S _)) -> _ := (X in X ⊢ _ ∈ _) in hc.
+    have : morphing_ok Γ Ξ (scons (PInd P a b c) (scons a VarPTm)).
+    apply morphing_ext. apply morphing_ext. by apply morphing_id.
+    by eauto. by eauto with wt.
+    subst Ξ.
+    move : morphing_wt hc; repeat move/[apply]. asimpl. by apply.
+    sauto lq:on use:substing_wt.
   - move => n Γ b A B i hΓ ihΓ hP _ hb [i0 ihb].
     repeat split => //=; eauto with wt.
     have {}hb : funcomp (ren_PTm shift) (scons A Γ) ⊢ ren_PTm shift b ∈ ren_PTm shift (PBind PPi A B)
@@ -783,7 +817,8 @@ Proof.
     + apply Cumulativity with (i := i1); eauto.
       have : Γ ⊢ a1 ∈ A1 by eauto using T_Conv.
       move : substing_wt ih1';repeat move/[apply]. by asimpl.
-Admitted.
+      Unshelve. all: exact 0.
+Qed.
 
 Lemma Var_Inv n Γ (i : fin n) A :
   Γ ⊢ VarPTm i ∈ A ->
