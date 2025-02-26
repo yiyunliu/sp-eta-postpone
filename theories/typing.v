@@ -123,6 +123,10 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
   Γ ⊢ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P0
 
+| E_SucCong n Γ (a b : PTm n) :
+  Γ ⊢ a ≡ b ∈ PNat ->
+  Γ ⊢ PSuc a ≡ PSuc b ∈ PNat
+
 | E_Conv n Γ (a b : PTm n) A B :
   Γ ⊢ a ≡ b ∈ A ->
   Γ ⊢ A ≲ B ->

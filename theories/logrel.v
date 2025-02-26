@@ -1578,6 +1578,15 @@ Proof.
   rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
 Qed.
 
+Lemma SE_Nat n Γ (a b : PTm n) :
+  Γ ⊨ a ≡ b ∈ PNat ->
+  Γ ⊨ PSuc a ≡ PSuc b ∈ PNat.
+Proof.
+  move /SemEq_SemWt => [ha][hb]hE.
+  apply SemWt_SemEq; eauto using ST_Suc.
+  eauto using DJoin.SucCong.
+Qed.
+
 Lemma SE_App n Γ i (b0 b1 a0 a1 : PTm n) A B :
   Γ ⊨ PBind PPi A B ∈ (PUniv i) ->
   Γ ⊨ b0 ≡ b1 ∈ PBind PPi A B ->
@@ -1722,4 +1731,4 @@ Qed.
 
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
-  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong SE_IndZero SE_IndSuc : sem.
+  SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong SE_IndZero SE_IndSuc SE_SucCong : sem.

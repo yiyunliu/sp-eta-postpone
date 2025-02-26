@@ -76,6 +76,23 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
+Lemma Ind_Inv n Γ P (a : PTm n) b c U :
+  Γ ⊢ PInd P a b c ∈ U ->
+  exists i, funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i /\
+       Γ ⊢ a ∈ PNat /\
+       Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P /\
+      funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) /\
+       Γ ⊢ subst_PTm (scons a VarPTm) P ≲ U.
+Proof.
+  move E : (PInd P a b c)=> u hu.
+  move : P a b c E. elim : n Γ u U / hu => n //=.
+  - move => Γ P a b c i hP _ ha _ hb _ hc _ P0 a0 b0 c0 [*]. subst.
+    exists i. repeat split => //=.
+    have : Γ ⊢ subst_PTm (scons a VarPTm) P ∈ subst_PTm (scons a VarPTm) (PUniv i) by hauto l:on use:substing_wt.
+    eauto using E_Refl, Su_Eq.
+  - hauto lq:on rew:off ctrs:LEq.
+Qed.
+
 Lemma E_AppAbs : forall n (a : PTm (S n)) (b : PTm n) (Γ : fin n -> PTm n) (A : PTm n),
   Γ ⊢ PApp (PAbs a) b ∈ A -> Γ ⊢ PApp (PAbs a) b ≡ subst_PTm (scons b VarPTm) a ∈ A.
 Proof.
@@ -108,6 +125,19 @@ Proof.
   apply : E_ProjPair1; eauto.
 Qed.
 
+Lemma Suc_Inv n Γ (a : PTm n) A :
+  Γ ⊢ PSuc a ∈ A -> Γ ⊢ a ∈ PNat /\ Γ ⊢ PNat ≲ A.
+Proof.
+  move E : (PSuc a) => u hu.
+  move : a E.
+  elim : n Γ u A /hu => //=.
+  - move => n Γ a ha iha a0 [*]. subst.
+    split => //=. eapply wff_mutual in ha.
+    apply : Su_Eq.
+    apply E_Refl. by apply T_Nat'.
+  - hauto lq:on rew:off ctrs:LEq.
+Qed.
+
 Lemma RRed_Eq n Γ (a b : PTm n) A :
   Γ ⊢ a ∈ A ->
   RRed.R a b ->
@@ -130,8 +160,13 @@ Proof.
       move : hA0 => /[swap]. move : Su_Transitive. repeat move/[apply].
       move {hS}.
       move => ?. apply : E_Conv; eauto. apply : E_ProjPair2; eauto.
-  - admit.
-  - admit.
+  - hauto lq:on use:Ind_Inv, E_Conv, E_IndZero.
+  - move => P a b c Γ A.
+    move /Ind_Inv.
+    move => [i][hP][ha][hb][hc]hSu.
+    apply : E_Conv; eauto.
+    apply : E_IndSuc'; eauto.
+    hauto l:on use:Suc_Inv.
   - qauto l:on use:Abs_Inv, E_Conv, regularity_sub0, E_Abs.
   - move => a0 a1 b ha iha Γ A /App_Inv [A0][B0][ih0][ih1]hU.
     have {}/iha iha := ih0.
@@ -172,7 +207,12 @@ Proof.
     have {}/ihA ihA := h1.
     apply : E_Conv; eauto.
     apply E_Bind'; eauto using E_Refl.
-Admitted.
+  - hauto lq:on rew:off use:Ind_Inv, E_Conv, E_IndCong db:wt.
+  - hauto lq:on rew:off use:Ind_Inv, E_Conv, E_IndCong db:wt.
+  - hauto lq:on rew:off use:Ind_Inv, E_Conv, E_IndCong db:wt.
+  - hauto lq:on rew:off use:Ind_Inv, E_Conv, E_IndCong db:wt.
+  - hauto lq:on use:Suc_Inv, E_Conv, E_SucCong.
+Qed.
 
 Theorem subject_reduction n Γ (a b A : PTm n) :
   Γ ⊢ a ∈ A ->

@@ -2977,6 +2977,11 @@ Module DJoin.
     R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
   Proof. hauto q:on use:REReds.IndCong. Qed.
 
+  Lemma SucCong n (a0 a1 : PTm n) :
+    R a0 a1 ->
+    R (PSuc a0) (PSuc a1).
+  Proof. qauto l:on use:REReds.SucCong. Qed.
+
   Lemma FromRedSNs n (a b : PTm n) :
     rtc TRedSN a b ->
     R a b.

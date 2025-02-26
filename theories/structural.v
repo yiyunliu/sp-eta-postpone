@@ -507,6 +507,7 @@ Proof.
     move /(_ _ Ξ  (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
     move /(_ ltac:(qauto l:on use:morphing_up)).
     asimpl. substify. by asimpl.
+  - eauto with wt.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ρ hΔ hρ.
     move : ihP (hρ) (hΔ). repeat move/[apply].
@@ -733,6 +734,7 @@ Proof.
     move /E_Symmetric in hae.
     by eauto using Su_Sig_Proj2.
     sauto lq:on use:substing_wt.
+  - hauto lq:on ctrs:Wt.
   - hauto lq:on ctrs:Wt.
   - hauto q:on use:substing_wt db:wt.
   - hauto l:on use:bind_inst db:wt.
