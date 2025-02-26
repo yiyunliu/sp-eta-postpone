@@ -91,6 +91,17 @@ Lemma T_Bot_Imp n Γ (A : PTm n) :
   induction hu => //=.
 Qed.
 
+Lemma Zero_Inv n Γ U :
+  Γ ⊢ @PZero n ∈ U ->
+  Γ ⊢ PNat ≲ U.
+Proof.
+  move E : PZero => u hu.
+  move : E.
+  elim : n Γ u U /hu=>//=.
+  by eauto using Su_Eq, E_Refl, T_Nat'.
+  hauto lq:on rew:off ctrs:LEq.
+Qed.
+
 Lemma Sub_Bind_InvR n Γ p (A : PTm n) B C :
   Γ ⊢ PBind p A B ≲ C ->
   exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
@@ -130,6 +141,21 @@ Proof.
     eauto.
   - hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf.
   - hauto lq:on use:regularity, T_Bot_Imp.
+  - move => _ _ /synsub_to_usub [_ [_ h]]. exfalso.
+    apply Sub.nat_bind_noconf in h => //=.
+  - move => h.
+    have {}h : Γ ⊢ PZero ∈ PUniv i by hauto l:on use:regularity.
+    exfalso. move : h. clear.
+    move /Zero_Inv /synsub_to_usub.
+    hauto l:on use:Sub.univ_nat_noconf.
+  - move => a h.
+    have {}h : Γ ⊢ PSuc a  ∈ PUniv i by hauto l:on use:regularity.
+    exfalso. move /Suc_Inv : h => [_ /synsub_to_usub].
+    hauto lq:on use:Sub.univ_nat_noconf.
+  - move => P0 a0 b0 c0 h0 h1 /synsub_to_usub [_ [_ h2]].
+    set u := PInd _ _ _ _ in h0.
+    have hne : SNe u by sfirstorder use:ne_nf_embed.
+    exfalso. move : h2 hne. hauto l:on use:Sub.bind_sne_noconf.
 Qed.
 
 Lemma Sub_Univ_InvR n (Γ : fin n -> PTm n) i C :
@@ -163,6 +189,20 @@ Proof.
   - hauto lq:on use:synsub_to_usub, Sub.univ_bind_noconf.
   - sfirstorder.
   - hauto lq:on use:regularity, T_Bot_Imp.
+  - hauto q:on use:synsub_to_usub, Sub.nat_univ_noconf.
+  - move => h.
+    have {}h : Γ ⊢ PZero ∈ PUniv j by hauto l:on use:regularity.
+    exfalso. move : h. clear.
+    move /Zero_Inv /synsub_to_usub.
+    hauto l:on use:Sub.univ_nat_noconf.
+  - move => a h.
+    have {}h : Γ ⊢ PSuc a  ∈ PUniv j by hauto l:on use:regularity.
+    exfalso. move /Suc_Inv : h => [_ /synsub_to_usub].
+    hauto lq:on use:Sub.univ_nat_noconf.
+  - move => P0 a0 b0 c0 h0 h1 /synsub_to_usub [_ [_ h2]].
+    set u := PInd _ _ _ _ in h0.
+    have hne : SNe u by sfirstorder use:ne_nf_embed.
+    exfalso. move : h2 hne. hauto l:on use:Sub.univ_sne_noconf.
 Qed.
 
 Lemma Sub_Bind_InvL n Γ p (A : PTm n) B C :
@@ -204,6 +244,22 @@ Proof.
     eauto using E_Symmetric.
   - hauto lq:on use:synsub_to_usub, Sub.univ_bind_noconf.
   - hauto lq:on use:regularity, T_Bot_Imp.
+  - move => _ _ /synsub_to_usub [_ [_ h]]. exfalso.
+    apply Sub.bind_nat_noconf in h => //=.
+  - move => h.
+    have {}h : Γ ⊢ PZero ∈ PUniv i by hauto l:on use:regularity.
+    exfalso. move : h. clear.
+    move /Zero_Inv /synsub_to_usub.
+    hauto l:on use:Sub.univ_nat_noconf.
+  - move => a h.
+    have {}h : Γ ⊢ PSuc a  ∈ PUniv i by hauto l:on use:regularity.
+    exfalso. move /Suc_Inv : h => [_ /synsub_to_usub].
+    hauto lq:on use:Sub.univ_nat_noconf.
+  - move => P0 a0 b0 c0 h0 h1 /synsub_to_usub [_ [_ h2]].
+    set u := PInd _ _ _ _ in h0.
+    have hne : SNe u by sfirstorder use:ne_nf_embed.
+    exfalso. move : h2 hne. subst u.
+    hauto l:on use:Sub.sne_bind_noconf.
 Qed.
 
 Lemma T_Abs_Inv n Γ (a0 a1 : PTm (S n)) U :
@@ -236,6 +292,14 @@ Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
 Reserved Notation "a ⇔ b" (at level 70).
 Inductive CoqEq {n} : PTm n -> PTm n -> Prop :=
+| CE_ZeroZero :
+  PZero ↔ PZero
+
+| CE_SucSuc a b :
+  a ⇔ b ->
+  (* ------------- *)
+  PSuc a ↔ PSuc b
+
 | CE_AbsAbs a b :
   a ⇔ b ->
   (* --------------------- *)
@@ -283,6 +347,10 @@ Inductive CoqEq {n} : PTm n -> PTm n -> Prop :=
   (* ---------------------------- *)
   PBind p A0 B0 ↔ PBind p A1 B1
 
+| CE_NatCong :
+  (* ------------------ *)
+  PNat ↔ PNat
+
 | CE_NeuNeu a0 a1 :
   a0 ∼ a1 ->
   a0 ↔ a1
@@ -306,6 +374,16 @@ with CoqEq_Neu  {n} : PTm n -> PTm n -> Prop :=
   a0 ⇔ a1 ->
   (* ------------------------- *)
   PApp u0 a0 ∼ PApp u1 a1
+
+| CE_IndCong P0 P1 u0 u1 b0 b1 c0 c1 :
+  ishne u0 ->
+  ishne u1 ->
+  P0 ⇔ P1 ->
+  u0 ∼ u1 ->
+  b0 ⇔ b1 ->
+  c0 ⇔ c1 ->
+  (* ----------------------------------- *)
+  PInd P0 u0 b0 c0 ∼ PInd P1 u1 b1 c1
 
 with CoqEq_R {n} : PTm n -> PTm n -> Prop :=
 | CE_HRed a a' b b'  :
@@ -336,9 +414,6 @@ Lemma coqeq_symmetric_mutual : forall n,
     (forall (a b : PTm n), a ↔ b -> b ↔ a) /\
     (forall (a b : PTm n), a ⇔ b -> b ⇔ a).
 Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
-
-
-(* Lemma Sub_Univ_InvR *)
 
 Lemma coqeq_sound_mutual : forall n,
     (forall (a b : PTm n), a ∼ b -> forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> exists C,
