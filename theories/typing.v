@@ -116,6 +116,7 @@ with Eq : forall {n}, (fin n -> PTm n) -> PTm n -> PTm n -> PTm n -> Prop :=
   Γ ⊢ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B
 
 | E_IndCong n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i :
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ≡ P1 ∈ PUniv i ->
   Γ ⊢ a0 ≡ a1 ∈ PNat ->
   Γ ⊢ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->

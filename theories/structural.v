@@ -50,7 +50,10 @@ Proof.
   move E :(PBind p A B) => T h.
   move : p A B E.
   elim : n Γ T U / h => //=.
-  - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ.
+  - move => n Γ i p A B hA _ hB _ p0 A0 B0 [*]. subst.
+    exists i. repeat split => //=.
+    eapply wff_mutual in hA.
+    apply Su_Univ; eauto.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
@@ -96,6 +99,16 @@ Lemma T_Pair' n Γ (a b : PTm n) A B i U :
 Proof.
   move => ->. eauto using T_Pair.
 Qed.
+
+Lemma E_IndCong' n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i U :
+  U = subst_PTm (scons a0 VarPTm) P0 ->
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ∈ PUniv i ->
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ≡ P1 ∈ PUniv i ->
+  Γ ⊢ a0 ≡ a1 ∈ PNat ->
+  Γ ⊢ b0 ≡ b1 ∈ subst_PTm (scons PZero VarPTm) P0 ->
+  funcomp (ren_PTm shift) (scons P0 (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c0 ≡ c1 ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P0) ->
+  Γ ⊢ PInd P0 a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ U.
+Proof. move => ->. apply E_IndCong. Qed.
 
 Lemma T_Ind' s Γ P (a : PTm s) b c i U :
   U = subst_PTm (scons a VarPTm) P ->
@@ -188,6 +201,16 @@ Lemma Wff_Cons' n Γ (A : PTm n) i :
   ⊢ funcomp (ren_PTm shift) (scons A Γ).
 Proof. hauto lq:on rew:off use:Wff_Cons, wff_mutual. Qed.
 
+Lemma E_IndSuc' s Γ P (a : PTm s) b c i u U :
+  u = subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c ->
+  U = subst_PTm (scons (PSuc a) VarPTm) P ->
+  funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i ->
+  Γ ⊢ a ∈ PNat ->
+  Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P ->
+  funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
+  Γ ⊢ PInd P (PSuc a) b c ≡ u ∈ U.
+Proof. move => ->->. apply E_IndSuc. Qed.
+
 Lemma renaming :
   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ξ : fin n -> fin m), ⊢ Δ -> renaming_ok Δ Γ ξ ->
@@ -225,12 +248,7 @@ Proof.
     have : renaming_ok Ξ Ξ' (upRen_PTm_PTm (upRen_PTm_PTm ξ)).
     by do 2 apply renaming_up.
     move /[swap] /[apply].
-    set T0 := (X in Ξ ⊢ _ ∈ X).
-    set T1 := (Y in _ -> Ξ ⊢ _ ∈ Y).
-    (* Report an autosubst bug *)
-    suff : T0 = T1 by congruence.
-    subst T0 T1. clear.
-    asimpl. substify. asimpl. rewrite /funcomp. asimpl. rewrite /funcomp. done.
+    by asimpl.
   - hauto lq:on ctrs:Wt,LEq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, renaming_up.
@@ -246,7 +264,27 @@ Proof.
     move : ihb hΔ hξ. repeat move/[apply].
     by asimpl.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
-  - admit.
+  - move => n Γ P0 P1 a0 a1 b0 b1 c0 c1 i hP0 ihP0 hP ihP ha iha hb ihb hc ihc.
+    move => m Δ ξ hΔ hξ [:hP'].
+    apply E_IndCong' with (i := i).
+    by asimpl.
+    abstract : hP'.
+    qauto l:on use:renaming_up, Wff_Cons', T_Nat'.
+    qauto l:on use:renaming_up, Wff_Cons', T_Nat'.
+    by eauto with wt.
+    move : ihb (hΔ) (hξ); do! move/[apply]. by asimpl.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ.
+    subst Ξ. apply :Wff_Cons'; eauto. apply hP'.
+    move /(_ _ Ξ  (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(qauto l:on use:renaming_up)).
+    suff : ren_PTm (upRen_PTm_PTm (upRen_PTm_PTm ξ))
+      (ren_PTm shift
+         (subst_PTm
+            (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift)) P0)) = ren_PTm shift
+      (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift))
+         (ren_PTm (upRen_PTm_PTm ξ) P0)) by scongruence.
+    by asimpl.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ξ hΔ hξ.
     move : ihP (hξ) (hΔ). repeat move/[apply].
@@ -273,8 +311,23 @@ Proof.
     have hΞ : ⊢ Ξ by  qauto l:on use:Wff_Cons', T_Nat', renaming_up.
     move /(_ _ Ξ  (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
     move /(_ ltac:(qauto l:on use:renaming_up)).
-    asimpl. rewrite /funcomp. asimpl. apply.
-  - admit.
+    suff : ren_PTm (upRen_PTm_PTm (upRen_PTm_PTm ξ))
+      (ren_PTm shift
+         (subst_PTm
+            (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift)) P))= ren_PTm shift
+      (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift))
+         (ren_PTm (upRen_PTm_PTm ξ) P)) by scongruence.
+    by asimpl.
+  - move => n Γ P a b c i hP ihP ha iha hb ihb hc ihc m Δ ξ hΔ hξ.
+    apply E_IndSuc' with (i := i). by asimpl. by asimpl.
+    qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    by eauto with wt.
+    move  /(_ m Δ ξ hΔ) : ihb. asimpl. by apply.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ by  qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move /(_ _ Ξ  (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(qauto l:on use:renaming_up)).
+    by asimpl.
   - move => *.
     apply : E_AppEta'; eauto. by asimpl.
   - qauto l:on use:E_PairEta.
@@ -287,7 +340,7 @@ Proof.
   - qauto l:on ctrs:LEq.
   - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
-Admitted.
+Qed.
 
 Definition morphing_ok {n m} Δ Γ (ρ : fin n -> PTm m) :=
   forall i, Δ ⊢ ρ i ∈ subst_PTm ρ (Γ i).
@@ -330,10 +383,6 @@ Lemma renaming_wt' : forall n m Δ Γ a A (ξ : fin n -> fin m) u U,
     Γ ⊢ a ∈ A -> ⊢ Δ ->
     renaming_ok Δ Γ ξ -> Δ ⊢ u ∈ U.
 Proof. hauto use:renaming_wt. Qed.
-
-Lemma renaming_shift n m Γ (ρ : fin n -> PTm m) A :
-  renaming_ok (funcomp (ren_PTm shift) (scons (subst_PTm ρ A) Γ)) Γ shift.
-Proof. sfirstorder. Qed.
 
 Lemma morphing_up n m Γ Δ (ρ : fin n -> PTm m) (A : PTm n) k :
   morphing_ok Γ Δ ρ ->
@@ -397,7 +446,29 @@ Proof.
   - qauto l:on ctrs:Wt.
   - qauto l:on ctrs:Wt.
   - qauto l:on ctrs:Wt.
-  - admit.
+  - move => s Γ P a b c i hP ihP ha iha hb ihb hc ihc m Δ ξ hΔ hξ.
+    have  hξ' : morphing_ok (funcomp (ren_PTm shift) (scons PNat Δ))
+    (funcomp (ren_PTm shift) (scons PNat Γ)) (up_PTm_PTm ξ).
+    move /morphing_up : hξ.  move /(_ PNat 0).
+    apply. by apply T_Nat.
+    move => [:hP].
+    apply : T_Ind'; eauto. by asimpl.
+    abstract :hP. apply ihP. by eauto using Wff_Cons', T_Nat'.
+    move /morphing_up : hξ.  move /(_ PNat 0).
+    apply. by apply T_Nat.
+    move : ihb hξ hΔ; do!move/[apply]. by asimpl.
+    set Ξ := funcomp _ _.
+    have  hΞ : ⊢ Ξ. subst Ξ.
+    apply : Wff_Cons'; eauto. apply hP.
+    move /(_ _ Ξ (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
+    set Ξ' := (funcomp _ _ : fin (S (S _)) -> _) .
+    have : morphing_ok Ξ Ξ' (up_PTm_PTm (up_PTm_PTm ξ)).
+    eapply morphing_up; eauto. apply hP.
+    move /[swap]/[apply].
+    set x := (x in _ ⊢ _ ∈ x).
+    set y := (y in _ -> _ ⊢ _ ∈ y).
+    suff : x = y by scongruence.
+    subst x y. asimpl. substify. by asimpl.
   - qauto l:on ctrs:Wt.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on ctrs:Eq.
@@ -416,7 +487,26 @@ Proof.
     by asimpl.
   - hauto q:on ctrs:Eq.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
-  - admit.
+  - move => n Γ P0 P1 a0 a1 b0 b1 c0 c1 i hP0 ihP0 hP ihP ha iha hb ihb hc ihc.
+    move => m Δ ξ hΔ hξ.
+    have  hξ' : morphing_ok (funcomp (ren_PTm shift) (scons PNat Δ))
+                  (funcomp (ren_PTm shift) (scons PNat Γ)) (up_PTm_PTm ξ).
+    move /morphing_up : hξ.  move /(_ PNat 0).
+    apply. by apply T_Nat.
+    move => [:hP'].
+    apply E_IndCong' with (i := i).
+    by asimpl.
+    abstract : hP'.
+    qauto l:on use:morphing_up, Wff_Cons', T_Nat'.
+    qauto l:on use:renaming_up, Wff_Cons', T_Nat'.
+    by eauto with wt.
+    move : ihb (hΔ) (hξ); do! move/[apply]. by asimpl.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ.
+    subst Ξ. apply :Wff_Cons'; eauto. apply hP'.
+    move /(_ _ Ξ  (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(qauto l:on use:morphing_up)).
+    asimpl. substify. by asimpl.
   - qauto l:on ctrs:Eq, LEq.
   - move => n Γ a b A B i hP ihP hb ihb ha iha m Δ ρ hΔ hρ.
     move : ihP (hρ) (hΔ). repeat move/[apply].
@@ -434,8 +524,34 @@ Proof.
   - move => n Γ a b A B i hP ihP ha iha hb ihb m Δ ρ hΔ hρ.
     apply : E_ProjPair2'; eauto. by asimpl.
     move : ihb hρ hΔ; repeat move/[apply]. by asimpl.
-  - admit.
-  - admit.
+  - move => n Γ P i b c hP ihP hb ihb hc ihc m Δ ξ hΔ hξ.
+    have  hξ' : morphing_ok (funcomp (ren_PTm shift) (scons PNat Δ))
+                  (funcomp (ren_PTm shift) (scons PNat Γ)) (up_PTm_PTm ξ).
+    move /morphing_up : hξ.  move /(_ PNat 0).
+    apply. by apply T_Nat.
+    apply E_IndZero' with (i := i); eauto. by asimpl.
+    qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move  /(_ m Δ ξ hΔ) : ihb.
+    asimpl. by apply.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ by  qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move /(_ _ Ξ  (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(sauto lq:on use:morphing_up)).
+    asimpl. substify. by asimpl.
+  - move => n Γ P a b c i hP ihP ha iha hb ihb hc ihc m Δ ξ hΔ hξ.
+    have  hξ' : morphing_ok (funcomp (ren_PTm shift) (scons PNat Δ))
+                  (funcomp (ren_PTm shift) (scons PNat Γ)) (up_PTm_PTm ξ).
+    move /morphing_up : hξ.  move /(_ PNat 0).
+    apply. by apply T_Nat.
+    apply E_IndSuc' with (i := i). by asimpl. by asimpl.
+    qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    by eauto with wt.
+    move  /(_ m Δ ξ hΔ) : ihb. asimpl. by apply.
+    set Ξ := funcomp _ _.
+    have hΞ : ⊢ Ξ by  qauto l:on use:Wff_Cons', T_Nat', renaming_up.
+    move /(_ _ Ξ  (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
+    move /(_ ltac:(sauto l:on use:morphing_up)).
+    asimpl. substify. by asimpl.
   - move => *.
     apply : E_AppEta'; eauto. by asimpl.
   - qauto l:on use:E_PairEta.
@@ -448,7 +564,7 @@ Proof.
   - qauto l:on ctrs:LEq.
   - move => *; apply : Su_Pi_Proj2'; eauto; by asimpl.
   - move => *. apply : Su_Sig_Proj2'; eauto; by asimpl.
-Admitted.
+Qed.
 
 Lemma morphing_wt : forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> forall m Δ (ρ : fin n -> PTm m), ⊢ Δ -> morphing_ok Δ Γ ρ -> Δ ⊢ subst_PTm ρ a ∈ subst_PTm ρ A.
 Proof. sfirstorder use:morphing. Qed.

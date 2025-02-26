@@ -1,4 +1,4 @@
-Require Import Autosubst2.fintype Autosubst2.syntax ssreflect.
+Require Import Autosubst2.fintype Autosubst2.syntax Autosubst2.core ssreflect.
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
 Import Ltac2.Control.
@@ -106,3 +106,7 @@ Proof. case : a => //=. Qed.
 Definition ishne_ren n m (a : PTm n)  (ξ : fin n -> fin m) :
   ishne (ren_PTm ξ a) = ishne a.
 Proof. move : m ξ. elim : n / a => //=. Qed.
+
+Lemma renaming_shift n m Γ (ρ : fin n -> PTm m) A :
+  renaming_ok (funcomp (ren_PTm shift) (scons (subst_PTm ρ A) Γ)) Γ shift.
+Proof. sfirstorder. Qed.
