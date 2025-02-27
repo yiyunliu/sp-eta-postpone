@@ -1227,7 +1227,14 @@ Lemma algo_metric_suc n k (a0 a1 : PTm n) :
 Proof.
   move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
   exists (k - 1).
-
+  move /lored_nsteps_suc_inv : h0.
+  move => [a0'][ha0]?. subst.
+  move /lored_nsteps_suc_inv : h1.
+  move => [b0'][hb0]?. subst. simpl in *.
+  split; first by lia.
+  rewrite /algo_metric.
+  hauto lq:on rew:off use:EJoin.suc_inj solve+:lia.
+Qed.
 
 Lemma algo_metric_bind n k p0 (A0 : PTm n) B0 p1 A1 B1  :
   algo_metric k (PBind p0 A0 B0) (PBind p1 A1 B1) ->
@@ -1430,6 +1437,13 @@ Proof.
       * move => > /algo_metric_join.
         hauto lq:on rew:off use:REReds.suc_inv, REReds.zero_inv.
       * move => a0 a1 h _ _.
+        move /algo_metric_suc : h => [j [h4 h5]].
+        move => Γ A /Suc_Inv [h0 h1] /Suc_Inv [h2 h3].
+        move : ih h4 h5;do!move/[apply].
+        move => [ih _].
+        move : ih h0 h2;do!move/[apply].
+        move => h. apply : CE_HRed; eauto using rtc_refl.
+        by constructor.
   - move : k a b h fb fa. abstract : hnfneu.
     move => k.
     move => + b.
@@ -1488,9 +1502,24 @@ Proof.
     + hauto lq:on rew:off use:DJoin.hne_univ_noconf, algo_metric_join.
     + hauto lq:on rew:off use:DJoin.hne_nat_noconf, algo_metric_join.
     (* Zero *)
-    + admit.
+    + case => //=.
+      * move => i /algo_metric_join. clear.
+        hauto lq:on rew:off use:REReds.var_inv, REReds.zero_inv.
+      * move => >/algo_metric_join. clear.
+        hauto lq:on rew:off use:REReds.hne_app_inv, REReds.zero_inv.
+      * move => >/algo_metric_join. clear.
+        hauto lq:on rew:off use:REReds.hne_proj_inv, REReds.zero_inv.
+      * sfirstorder use:T_Bot_Imp.
+      * move => >/algo_metric_join. clear.
+        move => h _ h2. exfalso.
+        hauto q:on use:REReds.hne_ind_inv, REReds.zero_inv.
     (* Suc *)
-    + admit.
+    + move => a0.
+      case => //=; move => >/algo_metric_join; clear.
+      * hauto lq:on rew:off use:REReds.var_inv, REReds.suc_inv.
+      * hauto lq:on rew:off use:REReds.hne_app_inv, REReds.suc_inv.
+      * hauto lq:on rew:off use:REReds.hne_proj_inv, REReds.suc_inv.
+      *
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.
