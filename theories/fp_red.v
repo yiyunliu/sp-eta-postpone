@@ -2038,6 +2038,13 @@ Module EReds.
     - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
+  Lemma zero_inv n (C : PTm n) :
+    rtc ERed.R PZero C -> C = PZero.
+    move E : PZero => u hu.
+    move : E. elim : u C /hu=>//=.
+    - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
+  Qed.
+
   Lemma ind_inv n P (a : PTm n) b c C :
     rtc ERed.R (PInd P a b c) C ->
     exists P0 a0 b0 c0,  rtc ERed.R P P0 /\ rtc ERed.R a a0 /\
@@ -2410,6 +2417,13 @@ Module REReds.
     induction h; hauto lq:on rew:off ctrs:rtc use:RERed.ToBetaEta, RReds.nf_refl, @rtc_once, ERed.nf_preservation.
   Qed.
 
+  Lemma zero_inv n (C : PTm n) :
+    rtc RERed.R PZero C -> C = PZero.
+    move E : PZero => u hu.
+    move : E. elim : u C /hu=>//=.
+    - hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R, rtc.
+  Qed.
+
   Lemma suc_inv n (a : PTm n) C :
     rtc RERed.R (PSuc a) C ->
     exists b, rtc RERed.R a b /\ C = PSuc b.
@@ -2419,6 +2433,15 @@ Module REReds.
     elim : u C / hu=>//=.
     - hauto l:on.
     - hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R, rtc.
+  Qed.
+
+  Lemma nat_inv n C :
+    rtc RERed.R (@PNat n) C ->
+    C = PNat.
+  Proof.
+    move E : PNat => u hu. move : E.
+    elim : u C / hu=>//=.
+    hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R.
   Qed.
 
 End REReds.

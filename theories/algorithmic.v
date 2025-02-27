@@ -947,6 +947,16 @@ Proof.
   hauto lq:on use:Sub.bind_univ_noconf.
 Qed.
 
+Lemma lored_nsteps_suc_inv k n (a : PTm n) b :
+  nsteps LoRed.R k (PSuc a) b -> exists b', nsteps LoRed.R k a b' /\ b = PSuc b'.
+Proof.
+  move E : (PSuc a) => u hu.
+  move : a E.
+  elim : u b /hu.
+  - hauto l:on.
+  - scrush ctrs:nsteps inv:LoRed.R.
+Qed.
+
 Lemma lored_nsteps_abs_inv k n (a : PTm (S n)) b :
   nsteps LoRed.R k (PAbs a) b -> exists b', nsteps LoRed.R k a b' /\ b = PAbs b'.
 Proof.
@@ -1211,6 +1221,14 @@ Proof.
     repeat split => //=; sfirstorder b:on use:ne_nf.
 Qed.
 
+Lemma algo_metric_suc n k (a0 a1 : PTm n) :
+  algo_metric k (PSuc a0) (PSuc a1) ->
+  exists j, j < k /\ algo_metric j a0 a1.
+Proof.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
+  exists (k - 1).
+
+
 Lemma algo_metric_bind n k p0 (A0 : PTm n) B0 p1 A1 B1  :
   algo_metric k (PBind p0 A0 B0) (PBind p1 A1 B1) ->
   p0 = p1 /\ exists j, j < k /\ algo_metric j A0 A1 /\ algo_metric j B0 B1.
@@ -1360,8 +1378,9 @@ Proof.
       * move => > /algo_metric_join.
         hauto lq:on use:Sub.nat_bind_noconf, Sub.FromJoin.
       * move => > /algo_metric_join.
-        admit.
-      * admit.
+        clear. hauto lq:on rew:off use:REReds.bind_inv, REReds.zero_inv.
+      * move => > /algo_metric_join. clear.
+        hauto lq:on rew:off use:REReds.bind_inv, REReds.suc_inv.
     + case : b => //=.
       * hauto lq:on use:T_AbsUniv_Imp.
       * hauto lq:on use:T_PairUniv_Imp.
@@ -1371,20 +1390,46 @@ Proof.
         hauto l:on.
       * move => > /algo_metric_join.
         hauto lq:on use:Sub.nat_univ_noconf, Sub.FromJoin.
-      * admit.
-      * admit.
+      * move => > /algo_metric_join.
+        clear. hauto lq:on rew:off use:REReds.univ_inv, REReds.zero_inv.
+      * move => > /algo_metric_join.
+        clear. hauto lq:on rew:off use:REReds.univ_inv, REReds.suc_inv.
     + case : b => //=.
       * qauto l:on use:T_AbsNat_Imp.
       * qauto l:on use:T_PairNat_Imp.
       * move => > /algo_metric_join /Sub.FromJoin. hauto l:on use:Sub.bind_nat_noconf.
       * move => > /algo_metric_join /Sub.FromJoin. hauto lq:on use:Sub.univ_nat_noconf.
       * hauto l:on.
-      * admit.
-      * admit.
+      * move /algo_metric_join.
+        hauto lq:on rew:off use:REReds.nat_inv, REReds.zero_inv.
+      * move => > /algo_metric_join.
+        hauto lq:on rew:off use:REReds.nat_inv, REReds.suc_inv.
     (* Zero *)
-    + admit.
+    + case : b => //=.
+      * hauto lq:on rew:off use:T_AbsZero_Imp.
+      * hauto lq: on use: T_PairZero_Imp.
+      * move =>> /algo_metric_join.
+        hauto lq:on rew:off use:REReds.zero_inv, REReds.bind_inv.
+      * move =>> /algo_metric_join.
+        hauto lq:on rew:off use:REReds.zero_inv, REReds.univ_inv.
+      * move =>> /algo_metric_join.
+        hauto lq:on rew:off use:REReds.zero_inv, REReds.nat_inv.
+      * hauto l:on.
+      * move =>> /algo_metric_join.
+        hauto lq:on rew:off use:REReds.zero_inv, REReds.suc_inv.
     (* Suc *)
-    + admit.
+    + case : b => //=.
+      * hauto lq:on rew:off use:T_AbsSuc_Imp.
+      * hauto lq:on use:T_PairSuc_Imp.
+      * move => > /algo_metric_join.
+        hauto lq:on rew:off use:REReds.suc_inv, REReds.bind_inv.
+      * move => > /algo_metric_join.
+        hauto lq:on rew:off use:REReds.suc_inv, REReds.univ_inv.
+      * move => > /algo_metric_join.
+        hauto lq:on rew:off use:REReds.suc_inv, REReds.nat_inv.
+      * move => > /algo_metric_join.
+        hauto lq:on rew:off use:REReds.suc_inv, REReds.zero_inv.
+      * move => a0 a1 h _ _.
   - move : k a b h fb fa. abstract : hnfneu.
     move => k.
     move => + b.
