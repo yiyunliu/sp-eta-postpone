@@ -995,6 +995,37 @@ Proof.
     exists i,(S j),a1,b1. sauto lq:on solve+:lia.
 Qed.
 
+Lemma lored_nsteps_ind_inv k n P0 (a0 : PTm n) b0 c0 U :
+  nsteps LoRed.R k (PInd P0 a0 b0 c0) U ->
+  ishne a0 ->
+  exists iP ia ib ic P1 a1 b1 c1,
+    iP <= k /\ ia <= k /\ ib <= k /\ ic <= k /\
+      U = PInd P1 a1 b1 c1 /\
+      nsteps LoRed.R iP P0 P1 /\
+      nsteps LoRed.R ia a0 a1 /\
+      nsteps LoRed.R ib b0 b1 /\
+      nsteps LoRed.R ic c0 c1.
+Proof.
+  move E : (PInd P0 a0 b0 c0) => u hu.
+  move : P0 a0 b0 c0 E.
+  elim : k u U / hu.
+  - sauto lq:on.
+  - move => k t0 t1 t2 ht01 ht12 ih P0 a0 b0 c0 ? nea0. subst.
+    inversion ht01; subst => //=; spec_refl.
+    * move /(_ ltac:(done)) : ih.
+      move => [iP][ia][ib][ic].
+      exists (S iP), ia, ib, ic. sauto lq:on solve+:lia.
+    * move /(_ ltac:(sfirstorder use:lored_hne_preservation)) : ih.
+      move => [iP][ia][ib][ic].
+      exists iP, (S ia), ib, ic. sauto lq:on solve+:lia.
+    * move /(_ ltac:(done)) : ih.
+      move => [iP][ia][ib][ic].
+      exists iP, ia, (S ib), ic. sauto lq:on solve+:lia.
+    * move /(_ ltac:(done)) : ih.
+      move => [iP][ia][ib][ic].
+      exists iP, ia, ib, (S ic). sauto lq:on solve+:lia.
+Qed.
+
 Lemma lored_nsteps_app_inv k n (a0 b0 C : PTm n) :
     nsteps LoRed.R k (PApp a0 b0) C ->
     ishne a0 ->
@@ -1059,6 +1090,7 @@ Proof.
   sfirstorder use:ne_nf.
   lia.
 Qed.
+
 
 Lemma lored_nsteps_app_cong k n (a0 a1 b : PTm n) :
   nsteps LoRed.R k a0 a1 ->
@@ -1190,6 +1222,24 @@ Proof.
   rewrite /algo_metric.
   split; do 4 eexists; repeat split;eauto; sfirstorder b:on solve+:lia.
   eapply DJoin.ejoin_pair_inj; hauto qb:on ctrs:rtc, ERed.R.
+Qed.
+
+Lemma algo_metric_ind n k P0 (a0 : PTm n) b0 c0 P1 a1 b1 c1 :
+  algo_metric k (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1) ->
+  ishne a0 ->
+  ishne a1 ->
+  exists j, j < k /\ algo_metric j P0 P1 /\ algo_metric j a0 a1 /\
+         algo_metric j b0 b1 /\ algo_metric j c0 c1.
+Proof.
+  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 hne0 hne1.
+  move /lored_nsteps_ind_inv /(_ hne0) : h0.
+  move =>[iP][ia][ib][ic][P2][a2][b2][c2][?][?][?][?][?][?][?][?]?. subst.
+  move /lored_nsteps_ind_inv /(_ hne1) : h1.
+  move =>[iP0][ia0][ib0][ic0][P3][a3][b3][c3][?][?][?][?][?][?][?][?]?. subst.
+  move /EJoin.ind_inj : h4.
+  move => [?][?][?]?.
+  exists (k -1). simpl in *.
+  hauto lq:on rew:off use:ne_nf b:on solve+:lia.
 Qed.
 
 Lemma algo_metric_app n k (a0 b0 a1 b1 : PTm n) :
@@ -1519,7 +1569,8 @@ Proof.
       * hauto lq:on rew:off use:REReds.var_inv, REReds.suc_inv.
       * hauto lq:on rew:off use:REReds.hne_app_inv, REReds.suc_inv.
       * hauto lq:on rew:off use:REReds.hne_proj_inv, REReds.suc_inv.
-      *
+      * sfirstorder use:T_Bot_Imp.
+      * hauto q:on use:REReds.hne_ind_inv, REReds.suc_inv.
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.
@@ -1532,21 +1583,22 @@ Proof.
     by firstorder.
 
     case : a h fb fa => //=.
-    + case : b => //=.
-      move => i j hi _ _.
-      * have ? : j = i by hauto lq:on use:algo_metric_join, DJoin.var_inj. subst.
-        move => Γ A B hA hB.
-        split. apply CE_VarCong.
-        exists (Γ i). hauto l:on use:Var_Inv, T_Var.
-      * move => p p0 f /algo_metric_join. clear => ? ? _. exfalso.
+    + case : b => //=; move => > /algo_metric_join.
+      * move /DJoin.var_inj => ?. subst. qauto l:on use:Var_Inv, T_Var,CE_VarCong.
+      * clear => ? ? _. exfalso.
         hauto l:on use:REReds.var_inv, REReds.hne_app_inv.
-      * move => a0 a1 i /algo_metric_join. clear => ? ? _. exfalso.
+      * clear => ? ? _. exfalso.
         hauto l:on use:REReds.var_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
-      * admit.
-    + case : b => //=.
-      * clear. move => i a a0 /algo_metric_join h _ ?. exfalso.
-        hauto l:on use:REReds.hne_app_inv, REReds.var_inv.
+      * clear => ? ? _. exfalso.
+        hauto q:on use:REReds.var_inv, REReds.hne_ind_inv.
+    + case : b => //=;
+                   lazymatch goal with
+                   | [|- context[algo_metric _ (PApp _ _) (PApp _ _)]] => idtac
+                   | _ => move => > /algo_metric_join
+                   end.
+      * clear => *. exfalso.
+        hauto lq:on rew:off use:REReds.hne_app_inv, REReds.var_inv.
       (* real case *)
       * move => b1 a1 b0 a0 halg hne1 hne0 Γ A B wtA wtB.
         move /App_Inv : wtA => [A0][B0][hb0][ha0]hS0.
@@ -1592,10 +1644,11 @@ Proof.
         move /E_Symmetric in h01.
         move /regularity_sub0 : hSu20 => [i0].
         sfirstorder use:bind_inst.
-      * move => p p0 p1 p2 /algo_metric_join. clear => ? ? ?. exfalso.
+      * clear => ? ? ?. exfalso.
         hauto q:on use:REReds.hne_app_inv, REReds.hne_proj_inv.
       * sfirstorder use:T_Bot_Imp.
-      * admit.
+      * clear => ? ? ?. exfalso.
+        hauto q:on use:REReds.hne_app_inv, REReds.hne_ind_inv.
     + case : b => //=.
       * move => i p h /algo_metric_join. clear => ? _ ?. exfalso.
         hauto l:on use:REReds.hne_proj_inv, REReds.var_inv.
@@ -1656,11 +1709,67 @@ Proof.
                move /regularity_sub0 in hSu21.
                sfirstorder use:bind_inst.
       * sfirstorder use:T_Bot_Imp.
-      * admit.
+      * move => > /algo_metric_join; clear => ? ? ?. exfalso.
+        hauto q:on use:REReds.hne_proj_inv, REReds.hne_ind_inv.
     + sfirstorder use:T_Bot_Imp.
     (* ind ind case *)
-    + admit.
-Admitted.
+    + move => P a0 b0 c0.
+      case : b => //=;
+                   lazymatch goal with
+                   | [|- context[algo_metric _ (PInd _ _ _ _) (PInd _ _ _ _)]] => idtac
+                   | _ => move => > /algo_metric_join; clear => *; exfalso
+                   end.
+      * hauto q:on use:REReds.hne_ind_inv, REReds.var_inv.
+      * hauto q:on use:REReds.hne_ind_inv, REReds.hne_app_inv.
+      * hauto q:on use:REReds.hne_ind_inv, REReds.hne_proj_inv.
+      * sfirstorder use:T_Bot_Imp.
+      * move => P1 a1 b1 c1 /[dup] halg /algo_metric_ind + h0 h1.
+        move /(_ h1 h0).
+        move => [j][hj][hP][ha][hb]hc Γ A B hL hR.
+        move /Ind_Inv : hL => [iP0][wtP0][wta0][wtb0][wtc0]hSu0.
+        move /Ind_Inv : hR => [iP1][wtP1][wta1][wtb1][wtc1]hSu1.
+        have {}iha : a0 ∼ a1 by qauto l:on.
+        have []  : iP0 <= max iP0 iP1 /\ iP1 <= max iP0 iP1 by lia.
+        move : T_Univ_Raise wtP0; do!move/[apply]. move => wtP0.
+        move : T_Univ_Raise wtP1; do!move/[apply]. move => wtP1.
+        have {}ihP : P ⇔ P1 by qauto l:on.
+        set Δ := funcomp _ _ in wtP0, wtP1, wtc0, wtc1.
+        have wfΔ :⊢ Δ by hauto l:on use:wff_mutual.
+        have hPE : Δ ⊢ P ≡ P1 ∈ PUniv (max iP0 iP1)
+          by hauto l:on use:coqeq_sound_mutual.
+        have haE : Γ ⊢ a0 ≡ a1 ∈ PNat
+          by hauto l:on use:coqeq_sound_mutual.
+        have wtΓ : ⊢ Γ by hauto l:on use:wff_mutual.
+        have hE : Γ ⊢ subst_PTm (scons PZero VarPTm) P ≡ subst_PTm (scons PZero VarPTm) P1 ∈ subst_PTm (scons PZero VarPTm) (PUniv (Nat.max iP0 iP1)).
+        eapply morphing; eauto. apply morphing_ext. by apply morphing_id. by apply T_Zero.
+        have {}wtb1 : Γ ⊢ b1 ∈ subst_PTm (scons PZero VarPTm) P
+          by eauto using T_Conv_E.
+        have {}ihb : b0 ⇔ b1 by hauto l:on.
+        have hPSig : Γ ⊢ PBind PSig PNat P ≡ PBind PSig PNat P1 ∈ PUniv (Nat.max iP0 iP1) by eauto with wt.
+        set T := ren_PTm shift _ in wtc0.
+        have : funcomp (ren_PTm shift) (scons P Δ) ⊢ c1 ∈ T.
+        apply : T_Conv; eauto. apply : ctx_eq_subst_one; eauto with wt.
+        apply : Su_Eq; eauto.
+        subst T. apply : weakening_su; eauto.
+        eapply morphing. apply : Su_Eq. apply E_Symmetric. by eauto.
+        hauto l:on use:wff_mutual.
+        apply morphing_ext. set x := funcomp _ _.
+        have -> : x = funcomp (ren_PTm shift) VarPTm by asimpl.
+        apply : morphing_ren; eauto using renaming_shift.
+        apply : renaming_shift; eauto. by apply morphing_id.
+        apply T_Suc. by apply T_Var. subst T => {}wtc1.
+        have {}ihc : c0 ⇔ c1 by qauto l:on.
+        move => [:ih].
+        split. abstract : ih. move : h0 h1 ihP iha ihb ihc. clear. sauto lq:on.
+        have hEInd : Γ ⊢ PInd P a0 b0 c0 ≡ PInd P1 a1 b1 c1 ∈ subst_PTm (scons a0 VarPTm) P by hfcrush use:coqeq_sound_mutual.
+        exists (subst_PTm (scons a0 VarPTm) P).
+        repeat split => //=; eauto with wt.
+        apply : Su_Transitive.
+        apply : Su_Sig_Proj2; eauto. apply : Su_Sig; eauto using T_Nat' with wt.
+        apply : Su_Eq. apply E_Refl. by apply T_Nat'.
+        apply : Su_Eq. apply hPE. by eauto.
+        move : hEInd. clear. hauto l:on use:regularity.
+Qed.
 
 Lemma coqeq_sound : forall n Γ (a b : PTm n) A,
     Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b -> Γ ⊢ a ≡ b ∈ A.
@@ -1792,8 +1901,16 @@ Proof.
     inversion E; subst => /=.
     + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
-      (* Copy paste from algo_metric_case *)
-Admitted.
+  - inversion h0 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.IndZero unfold:algo_metric solve+:lia.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + sfirstorder use:ne_hne.
+Qed.
 
 Lemma CLE_HRedL n (a a' b : PTm n)  :
   HRed.R a a' ->
@@ -1829,7 +1946,16 @@ Proof.
     inversion E; subst => /=.
     + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
     + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
-Admitted.
+  - inversion 1 as [|A B C D E F]; subst.
+    hauto qb:on use:ne_hne.
+    inversion E; subst => /=.
+    + hauto lq:on use:HRed.IndZero unfold:algo_metric solve+:lia.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + sfirstorder use:ne_hne.
+    + sfirstorder use:ne_hne.
+Qed.
 
 Lemma salgo_metric_sub n k (a b : PTm n) :
   salgo_metric k a b ->
