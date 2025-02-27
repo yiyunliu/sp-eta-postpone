@@ -1815,6 +1815,9 @@ Inductive CoqLEq {n} : PTm n -> PTm n -> Prop :=
   (* ---------------------------- *)
   PBind PSig A0 B0 ⋖ PBind PSig A1 B1
 
+| CLE_NatCong :
+  PNat ⋖ PNat
+
 | CLE_NeuNeu a0 a1 :
   a0 ∼ a1 ->
   a0 ⋖ a1
@@ -1876,6 +1879,7 @@ Proof.
     apply : Su_Sig; eauto using E_Refl, Su_Eq.
     apply : ihB; by eauto using ctx_eq_subst_one.
     apply : Su_Sig; eauto using E_Refl, Su_Eq.
+  - sauto lq:on use:coqeq_sound_mutual, Su_Eq.
   - sauto lq:on use:coqeq_sound_mutual, Su_Eq.
   - move => n a a' b b' ? ? ? ih Γ i ha hb.
     have /Su_Eq ? : Γ ⊢ a ≡ a' ∈ PUniv i by sfirstorder use:HReds.ToEq.
@@ -2040,23 +2044,54 @@ Proof.
            eauto using ctx_eq_subst_one.
       * hauto lq:on use:salgo_metric_sub, Sub.bind_univ_noconf.
       * hauto lq:on use:salgo_metric_sub, Sub.nat_bind_noconf.
-      * admit.
-      * admit.
+      * move => _ > _ /salgo_metric_sub.
+        hauto lq:on rew:off use:REReds.bind_inv, REReds.zero_inv inv:Sub1.R.
+      * hauto lq:on rew:off use:REReds.bind_inv, REReds.suc_inv, salgo_metric_sub inv:Sub1.R.
     + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
       * hauto lq:on use:salgo_metric_sub, Sub.univ_bind_noconf.
       * move => *. econstructor; eauto using rtc_refl.
         hauto lq:on use:salgo_metric_sub, Sub.univ_inj, CLE_UnivCong.
+      * hauto lq:on rew:off use:REReds.univ_inv, REReds.nat_inv, salgo_metric_sub inv:Sub1.R.
+      * hauto lq:on rew:off use:REReds.univ_inv, REReds.zero_inv, salgo_metric_sub inv:Sub1.R.
+      * hauto lq:on rew:off use:REReds.suc_inv, REReds.univ_inv, salgo_metric_sub inv:Sub1.R.
   (* Both cases are impossible *)
+    + case : b fb => //=.
+      * hauto lq:on use:T_AbsNat_Imp.
+      * hauto lq:on use:T_PairNat_Imp.
+      * hauto lq:on rew:off use:REReds.nat_inv, REReds.bind_inv, salgo_metric_sub inv:Sub1.R.
+      * hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv, salgo_metric_sub inv:Sub1.R.
+      * hauto l:on.
+      * hauto lq:on rew:off use:REReds.nat_inv, REReds.zero_inv, salgo_metric_sub inv:Sub1.R.
+      * hauto lq:on rew:off use:REReds.nat_inv, REReds.suc_inv, salgo_metric_sub inv:Sub1.R.
+    + move => ? ? Γ i /Zero_Inv.
+      clear.
+      move /synsub_to_usub => [_ [_ ]].
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv inv:Sub1.R.
+    + move => ? _ _ Γ i /Suc_Inv => [[_]].
+      move /synsub_to_usub.
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv inv:Sub1.R.
   - have {}h : DJoin.R a b by
        hauto lq:on use:salgo_metric_algo_metric, algo_metric_join.
     case : b fb h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
     + hauto lq:on use:DJoin.hne_bind_noconf.
     + hauto lq:on use:DJoin.hne_univ_noconf.
+    + hauto lq:on use:DJoin.hne_nat_noconf.
+    + move => _ _ Γ i _.
+      move /Zero_Inv.
+      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
+    + move => p _ _ Γ i _ /Suc_Inv.
+      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
   - have {}h : DJoin.R b a by
       hauto lq:on use:salgo_metric_algo_metric, algo_metric_join, DJoin.symmetric.
     case : a fa h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
     + hauto lq:on use:DJoin.hne_bind_noconf.
     + hauto lq:on use:DJoin.hne_univ_noconf.
+    + hauto lq:on use:DJoin.hne_nat_noconf.
+    + move => _ _ Γ i.
+      move /Zero_Inv.
+      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
+    + move => p _ _ Γ i /Suc_Inv.
+      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
   - move => Γ i ha hb.
     econstructor; eauto using rtc_refl.
     apply CLE_NeuNeu. move {ih}.
