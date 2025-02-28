@@ -3,10 +3,10 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
 Derive NoConfusion for option sig nat PTag BTag PTm.
 Derive EqDec for BTag PTag PTm.
 Import Logic (inspect).
+Require Import Cdcl.Itauto.
 
 Require Import ssreflect ssrbool.
 From Hammer Require Import Tactics.
-
 
 Definition ishf (a : PTm) :=
   match a with
@@ -59,6 +59,104 @@ Module HRed.
   Definition nf a := forall b, ~ R a b.
 End HRed.
 
+
+Definition isbind  (a : PTm) := if a is PBind _ _ _ then true else false.
+
+Definition isuniv  (a : PTm) := if a is PUniv _ then true else false.
+
+Definition ispair  (a : PTm) :=
+  match a with
+  | PPair _ _ => true
+  | _ => false
+  end.
+
+Definition isnat  (a : PTm) := if a is PNat then true else false.
+
+Definition iszero  (a : PTm) := if a is PZero then true else false.
+
+Definition issuc  (a : PTm) := if a is PSuc _ then true else false.
+
+Definition isabs  (a : PTm) :=
+  match a with
+  | PAbs _ => true
+  | _ => false
+  end.
+
+Inductive eq_view : PTm -> PTm -> Type :=
+| V_AbsAbs a b :
+  eq_view (PAbs a) (PAbs b)
+| V_AbsNeu a b :
+  ~~ isabs b ->
+  eq_view (PAbs a) b
+| V_NeuAbs a b :
+  ~~ isabs a ->
+  eq_view a (PAbs b)
+| V_VarVar i j :
+  eq_view (VarPTm i) (VarPTm j)
+| V_PairPair a0 b0 a1 b1 :
+  eq_view (PPair a0 b0) (PPair a1 b1)
+| V_PairNeu a0 b0 u :
+  ~~ ispair u ->
+  eq_view (PPair a0 b0) u
+| V_NeuPair u a1 b1 :
+  ~~ ispair u ->
+  eq_view u (PPair a1 b1)
+| V_ZeroZero :
+  eq_view PZero PZero
+| V_SucSuc a b :
+  eq_view (PSuc a) (PSuc b)
+| V_AppApp u0 b0 u1 b1 :
+  eq_view (PApp u0 b0) (PApp u1 b1)
+| V_ProjProj p0 u0 p1 u1 :
+  eq_view (PProj p0 u0) (PProj p1 u1)
+| V_IndInd P0 u0 b0 c0  P1 u1 b1 c1 :
+  eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
+| V_NatNat :
+  eq_view PNat PNat
+| V_BindBind p0 A0 B0 p1 A1 B1 :
+  eq_view (PBind p0 A0 B0) (PBind p1 A1 B1)
+| V_UnivUniv i j :
+  eq_view (PUniv i) (PUniv j)
+| V_Others a b :
+  eq_view a b.
+
+Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
+  tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
+  tm_to_eq_view (PAbs a) b := V_AbsNeu a b _;
+  tm_to_eq_view a (PAbs b) := V_NeuAbs a b _;
+  tm_to_eq_view (VarPTm i) (VarPTm j) := V_VarVar i j;
+  tm_to_eq_view (PPair a0 b0) (PPair a1 b1) := V_PairPair a0 b0 a1 b1;
+  tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _;
+  tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _;
+  tm_to_eq_view PZero PZero := V_ZeroZero;
+  tm_to_eq_view (PSuc a) (PSuc b) := V_SucSuc a b;
+  tm_to_eq_view (PApp a0 b0) (PApp a1 b1) := V_AppApp a0 b0 a1 b1;
+  tm_to_eq_view (PProj p0 b0) (PProj p1 b1) := V_ProjProj p0 b0 p1 b1;
+  tm_to_eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) := V_IndInd P0 u0 b0 c0 P1 u1 b1 c1;
+  tm_to_eq_view PNat PNat := V_NatNat;
+  tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
+  tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
+  tm_to_eq_view a b := V_Others a b.
+
+Definition tm_nonconf (a b : PTm) : bool :=
+  match a, b with
+  | PAbs _, _ => ishne b || isabs b
+  | _, PAbs _ => ishne a
+  | VarPTm _, VarPTm _ => true
+  | PPair _ _, _ => ishne b || ispair b
+  | _, PPair _ _ => ishne a
+  | PZero, PZero => true
+  | PSuc _, PSuc _ => true
+  | PApp _ _, PApp _ _ => ishne a && ishne b
+  | PProj _ _, PProj _ _ => ishne a && ishne b
+  | PInd _ _ _ _, PInd _ _ _ _ => ishne a && ishne b
+  | PNat, PNat => true
+  | PUniv _, PUniv _ => true
+  | PBind _ _ _, PBind _ _ _ => true
+  | _,_=> false
+  end.
+
+Definition tm_conf (a b : PTm) := ~~ tm_nonconf a b.
 
 Inductive algo_dom : PTm -> PTm -> Prop :=
 | A_AbsAbs a b :
@@ -145,6 +243,13 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r b0 b1 ->
   algo_dom_r c0 c1 ->
   algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
+
+| A_Conflicting a b :
+  ishne a \/ ishf a ->
+  ishne b \/ ishf b ->
+  (* yes they are equivalent, but need both sides to make the rule reduce better *)
+  ~ tm_nonconf a b ->
+  algo_dom a b
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
@@ -240,10 +345,9 @@ Ltac check_equal_triv :=
   intros;subst;
   lazymatch goal with
   (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
-  | [h : algo_dom _ _ |- _] => try inversion h; by subst
+  | [h : algo_dom _ _ |- _] => try (inversion h; subst;simpl in *; by first [done | exfalso; first [done|sfirstorder b:on]])
   | _ => idtac
   end.
-
 
 Ltac solve_check_equal :=
   try solve [intros *;
@@ -254,92 +358,24 @@ Ltac solve_check_equal :=
 
 (* #[export,global] Obligation Tactic := idtac "fiewof". *)
 
-Definition isbind  (a : PTm) := if a is PBind _ _ _ then true else false.
-
-Definition isuniv  (a : PTm) := if a is PUniv _ then true else false.
-
-Definition ispair  (a : PTm) :=
-  match a with
-  | PPair _ _ => true
-  | _ => false
-  end.
-
-Definition isnat  (a : PTm) := if a is PNat then true else false.
-
-Definition iszero  (a : PTm) := if a is PZero then true else false.
-
-Definition issuc  (a : PTm) := if a is PSuc _ then true else false.
-
-Definition isabs  (a : PTm) :=
-  match a with
-  | PAbs _ => true
-  | _ => false
-  end.
-
-Inductive eq_view : PTm -> PTm -> Type :=
-| V_AbsAbs a b :
-  eq_view (PAbs a) (PAbs b)
-| V_AbsNeu a b :
-  ~~ isabs b ->
-  eq_view (PAbs a) b
-| V_NeuAbs a b :
-  ~~ isabs a ->
-  eq_view a (PAbs b)
-| V_VarVar i j :
-  eq_view (VarPTm i) (VarPTm j)
-| V_PairPair a0 b0 a1 b1 :
-  eq_view (PPair a0 b0) (PPair a1 b1)
-| V_PairNeu a0 b0 u :
-  ~~ ispair u ->
-  eq_view (PPair a0 b0) u
-| V_NeuPair u a1 b1 :
-  ~~ ispair u ->
-  eq_view u (PPair a1 b1)
-| V_ZeroZero :
-  eq_view PZero PZero
-| V_SucSuc a b :
-  eq_view (PSuc a) (PSuc b)
-| V_AppApp u0 b0 u1 b1 :
-  eq_view (PApp u0 b0) (PApp u1 b1)
-| V_ProjProj p0 u0 p1 u1 :
-  eq_view (PProj p0 u0) (PProj p1 u1)
-| V_IndInd P0 u0 b0 c0  P1 u1 b1 c1 :
-  eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
-| V_NatNat :
-  eq_view PNat PNat
-| V_BindBind p0 A0 B0 p1 A1 B1 :
-  eq_view (PBind p0 A0 B0) (PBind p1 A1 B1)
-| V_UnivUniv i j :
-  eq_view (PUniv i) (PUniv j)
-| V_Others a b :
-  eq_view a b.
-
-Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
-  tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
-  tm_to_eq_view (PAbs a) b := V_AbsNeu a b _;
-  tm_to_eq_view a (PAbs b) := V_NeuAbs a b _;
-  tm_to_eq_view (VarPTm i) (VarPTm j) := V_VarVar i j;
-  tm_to_eq_view (PPair a0 b0) (PPair a1 b1) := V_PairPair a0 b0 a1 b1;
-  tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _;
-  tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _;
-  tm_to_eq_view PZero PZero := V_ZeroZero;
-  tm_to_eq_view (PSuc a) (PSuc b) := V_SucSuc a b;
-  tm_to_eq_view (PApp a0 b0) (PApp a1 b1) := V_AppApp a0 b0 a1 b1;
-  tm_to_eq_view (PProj p0 b0) (PProj p1 b1) := V_ProjProj p0 b0 p1 b1;
-  tm_to_eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) := V_IndInd P0 u0 b0 c0 P1 u1 b1 c1;
-  tm_to_eq_view PNat PNat := V_NatNat;
-  tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
-  tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
-  tm_to_eq_view a b := V_Others a b.
 
 Set Transparent Obligations.
+
+(* Lemma algo_dom_abs_inv a b : *)
+(*   algo_dom (PAbs a) b -> ishne b \/ isabs b. *)
+(* Proof. *)
+(*   inversion 1; subst=>//=. itauto. *)
+(*   itauto. *)
+(*   simpl in H2. *)
+(*   simpl in H2. move /negP in H2. move/norP in H2. *)
+(*   clear H0. left. *)
 
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
   check_equal a b h with tm_to_eq_view a b :=
   check_equal _ _ h (V_VarVar i j) := nat_eqdec i j;
   check_equal _ _ h (V_AbsAbs a b) := check_equal_r a b ltac:(check_equal_triv);
-  check_equal _ _ h (V_AbsNeu a b _) := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
+  check_equal _ _ h (V_AbsNeu a b h') := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
   check_equal _ _ h (V_NeuAbs a b _) := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv);
   check_equal _ _ h (V_PairPair a0 b0 a1 b1) :=
     check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
@@ -372,6 +408,15 @@ Equations check_equal (a b : PTm) (h : algo_dom a b) :
   check_equal_r a b h (exist _ None k) with  inspect (hred b) :=
     | (exist _ None l) => check_equal a b _;
     | (exist _ (Some b') l) => check_equal_r a b'  _.
+
+Next Obligation.
+  inversion h; subst;simpl in *; try by first [done | exfalso; first [done|sfirstorder b:on]].
+  exfalso.
+  move /negP /norP in H1.
+  destruct H0 => //=. sfirstorder b:on.
+
+
+
 
 Next Obligation.
   intros.
@@ -411,3 +456,4 @@ Defined.
 Next Obligation.
   qauto inv:algo_dom, algo_dom_r.
 Defined.
+(* Do not step back from here or otherwise equations will cause an error *)
