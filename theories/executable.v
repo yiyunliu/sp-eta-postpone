@@ -289,6 +289,49 @@ Ltac solve_check_equal :=
 
 (* #[export,global] Obligation Tactic := idtac "fiewof". *)
 
+Definition isbind  (a : PTm) := if a is PBind _ _ _ then true else false.
+
+Definition isuniv  (a : PTm) := if a is PUniv _ then true else false.
+
+Definition ispair  (a : PTm) :=
+  match a with
+  | PPair _ _ => true
+  | _ => false
+  end.
+
+Definition isnat  (a : PTm) := if a is PNat then true else false.
+
+Definition iszero  (a : PTm) := if a is PZero then true else false.
+
+Definition issuc  (a : PTm) := if a is PSuc _ then true else false.
+
+Definition isabs  (a : PTm) :=
+  match a with
+  | PAbs _ => true
+  | _ => false
+  end.
+
+Inductive eq_view : PTm -> PTm -> Type :=
+| V_AbsAbs a b :
+  eq_view (PAbs a) (PAbs b)
+| V_AbsNeu a b :
+  ~~ isabs b ->
+  eq_view (PAbs a) b
+(* | V_NeuAbs a b : *)
+(*   ~~ isabs a -> *)
+(*   eq_view a (PAbs b) *)
+(* | V_VarVar i j : *)
+(*   eq_view (VarPTm i) (VarPTm j) *)
+(* | V_PairPair a0 b0 a1 b1 : *)
+(*   eq_view (PPair a0 b0) (PPair a1 b1) *)
+| V_Others a b :
+  eq_view a b.
+
+Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
+  tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
+  tm_to_eq_view (PAbs a) b := V_AbsNeu a b _;
+  (* tm_to_eq_view a (PAbs b) := V_NeuAbs a b _; *)
+  tm_to_eq_view a b := V_Others a b.
 
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
