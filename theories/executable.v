@@ -1,6 +1,6 @@
 From Equations Require Import Equations.
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
-Derive NoConfusion for sig nat PTag BTag PTm.
+Derive NoConfusion for option sig nat PTag BTag PTm.
 Derive EqDec for BTag PTag PTm.
 Import Logic (inspect).
 
@@ -236,27 +236,6 @@ Proof.
   move /hred_complete => + /hred_complete. congruence.
 Qed.
 
-(* Equations hred_fancy (a : PTm ) : *)
-(*   HRed.nf a + {x | HRed.R a x} := *)
-(*   hred_fancy a with hra => { *)
-(*       hred_fancy a None := inl _; *)
-(*       hred_fancy a (Some b) := inr (exist _ b _) *)
-(*     } *)
-(*   with hra := hred a. *)
-(* Next Obligation. *)
-
-
-Definition hred_fancy  (a : PTm) :
-  HRed.nf a + {x | HRed.R a x}.
-Proof.
-  destruct (hred a) as [a'|] eqn:eq .
-  - right. exists a'. hauto q:on use:hred_sound.
-  - left.
-    move => a' h.
-    move /hred_complete in h.
-    congruence.
-Defined.
-
 Ltac check_equal_triv :=
   intros;subst;
   lazymatch goal with
@@ -264,20 +243,6 @@ Ltac check_equal_triv :=
   | [h : algo_dom _ _ |- _] => try inversion h; by subst
   | _ => idtac
   end.
-
-(* Program Fixpoint check_equal {n} (a b : PTm n) (h : algo_dom a b) {struct h} : bool := *)
-(*   match a, b with *)
-(*   | VarPTm i, VarPTm j => fin_beq i j *)
-(*   | PAbs a, PAbs b => check_equal_r a b ltac:(check_equal_triv) *)
-(*   | _, _ => false *)
-(*   end *)
-(* with check_equal_r {n} (a b : PTm n) (h : algo_dom_r a b) {struct h} : bool := *)
-(*   match hred_fancy _ a with *)
-(*   | inr a' => check_equal_r (proj1_sig a') b _ *)
-(*   | _ => false *)
-(*   end. *)
-(* Next Obligation. *)
-(*   simpl. *)
 
 
 Ltac solve_check_equal :=
@@ -317,57 +282,101 @@ Inductive eq_view : PTm -> PTm -> Type :=
 | V_AbsNeu a b :
   ~~ isabs b ->
   eq_view (PAbs a) b
-(* | V_NeuAbs a b : *)
-(*   ~~ isabs a -> *)
-(*   eq_view a (PAbs b) *)
-(* | V_VarVar i j : *)
-(*   eq_view (VarPTm i) (VarPTm j) *)
-(* | V_PairPair a0 b0 a1 b1 : *)
-(*   eq_view (PPair a0 b0) (PPair a1 b1) *)
+| V_NeuAbs a b :
+  ~~ isabs a ->
+  eq_view a (PAbs b)
+| V_VarVar i j :
+  eq_view (VarPTm i) (VarPTm j)
+| V_PairPair a0 b0 a1 b1 :
+  eq_view (PPair a0 b0) (PPair a1 b1)
+| V_PairNeu a0 b0 u :
+  ~~ ispair u ->
+  eq_view (PPair a0 b0) u
+| V_NeuPair u a1 b1 :
+  ~~ ispair u ->
+  eq_view u (PPair a1 b1)
+| V_ZeroZero :
+  eq_view PZero PZero
+| V_SucSuc a b :
+  eq_view (PSuc a) (PSuc b)
+| V_AppApp u0 b0 u1 b1 :
+  eq_view (PApp u0 b0) (PApp u1 b1)
+| V_ProjProj p0 u0 p1 u1 :
+  eq_view (PProj p0 u0) (PProj p1 u1)
+| V_IndInd P0 u0 b0 c0  P1 u1 b1 c1 :
+  eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
+| V_NatNat :
+  eq_view PNat PNat
+| V_BindBind p0 A0 B0 p1 A1 B1 :
+  eq_view (PBind p0 A0 B0) (PBind p1 A1 B1)
+| V_UnivUniv i j :
+  eq_view (PUniv i) (PUniv j)
 | V_Others a b :
   eq_view a b.
 
 Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
   tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
   tm_to_eq_view (PAbs a) b := V_AbsNeu a b _;
-  (* tm_to_eq_view a (PAbs b) := V_NeuAbs a b _; *)
+  tm_to_eq_view a (PAbs b) := V_NeuAbs a b _;
+  tm_to_eq_view (VarPTm i) (VarPTm j) := V_VarVar i j;
+  tm_to_eq_view (PPair a0 b0) (PPair a1 b1) := V_PairPair a0 b0 a1 b1;
+  tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _;
+  tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _;
+  tm_to_eq_view PZero PZero := V_ZeroZero;
+  tm_to_eq_view (PSuc a) (PSuc b) := V_SucSuc a b;
+  tm_to_eq_view (PApp a0 b0) (PApp a1 b1) := V_AppApp a0 b0 a1 b1;
+  tm_to_eq_view (PProj p0 b0) (PProj p1 b1) := V_ProjProj p0 b0 p1 b1;
+  tm_to_eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) := V_IndInd P0 u0 b0 c0 P1 u1 b1 c1;
+  tm_to_eq_view PNat PNat := V_NatNat;
+  tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
+  tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
   tm_to_eq_view a b := V_Others a b.
+
+Set Transparent Obligations.
+
+Equations hred' (a : PTm) : option PTm :=
+  hred' (VarPTm i) := None;
+  hred' (PAbs a) := None;
+  hred' _ :=  None.
 
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
-  check_equal (VarPTm i) (VarPTm j) h := nat_eqdec i j;
-  check_equal (PAbs a) (PAbs b) h := check_equal_r a b ltac:(check_equal_triv);
-  check_equal (PAbs a) b h := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
-  check_equal a (PAbs b) h := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv);
-  check_equal (PPair a0 b0) (PPair a1 b1) h :=
-    check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
-  check_equal (PPair a0 b0) u h :=
-    check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv);
-  check_equal u (PPair a1 b1) h :=
-    check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv);
-  check_equal PNat PNat _ := true;
-  check_equal PZero PZero _ := true;
-  check_equal (PSuc a) (PSuc b) h := check_equal_r a b ltac:(check_equal_triv);
-  check_equal (PProj p0 a) (PProj p1 b) h :=
-    PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv);
-  check_equal (PApp a0 b0) (PApp a1 b1) h :=
-    check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
-  check_equal (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) h :=
-    check_equal_r P0 P1 ltac:(check_equal_triv) &&
-      check_equal u0 u1 ltac:(check_equal_triv) &&
-      check_equal_r b0 b1 ltac:(check_equal_triv) &&
-      check_equal_r c0 c1 ltac:(check_equal_triv);
-  check_equal (PUniv i) (PUniv j) _ := Nat.eqb i j;
-  check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) h :=
-    BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv);
-  check_equal a b h := false;
-  with check_equal_r (a b : PTm) (h : algo_dom_r a b) :
-  bool by struct h :=
+  check_equal a b h with tm_to_eq_view a b :=
+  check_equal _ _ h (V_AbsAbs a b) := check_equal_r a b ltac:(check_equal_triv);
+  check_equal a b h _ := false
+  (* check_equal (VarPTm i) (VarPTm j) h := nat_eqdec i j; *)
+  (* check_equal (PAbs a) (PAbs b) h := check_equal_r a b ltac:(check_equal_triv); *)
+  (* check_equal (PAbs a) b h := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv); *)
+  (* check_equal a (PAbs b) h := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv); *)
+  (* check_equal (PPair a0 b0) (PPair a1 b1) h := *)
+  (*   check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv); *)
+  (* check_equal (PPair a0 b0) u h := *)
+  (*   check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv); *)
+  (* check_equal u (PPair a1 b1) h := *)
+  (*   check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv); *)
+  (* check_equal PNat PNat _ := true; *)
+  (* check_equal PZero PZero _ := true; *)
+  (* check_equal (PSuc a) (PSuc b) h := check_equal_r a b ltac:(check_equal_triv); *)
+  (* check_equal (PProj p0 a) (PProj p1 b) h := *)
+  (*   PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv); *)
+  (* check_equal (PApp a0 b0) (PApp a1 b1) h := *)
+  (*   check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv); *)
+  (* check_equal (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) h := *)
+  (*   check_equal_r P0 P1 ltac:(check_equal_triv) && *)
+  (*     check_equal u0 u1 ltac:(check_equal_triv) && *)
+  (*     check_equal_r b0 b1 ltac:(check_equal_triv) && *)
+  (*     check_equal_r c0 c1 ltac:(check_equal_triv); *)
+  (* check_equal (PUniv i) (PUniv j) _ := Nat.eqb i j; *)
+  (* check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) h := *)
+  (*   BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv); *)
+  (* check_equal a b h := false; *)
+  with check_equal_r (a b : PTm) (h0 : algo_dom_r a b) :
+  bool by struct h0 :=
   check_equal_r a b h with inspect (hred a) :=
-    { check_equal_r a b h (exist _ (Some a') k) := check_equal_r a' b _;
-      check_equal_r a b h (exist _ None k) with inspect (hred b) :=
-        { | (exist _ None l) => check_equal a b _;
-          | (exist _ (Some b') l) => check_equal_r a b'  _}} .
+    check_equal_r a b h (exist _ (Some a') k) := check_equal_r a' b _;
+  check_equal_r a b h (exist _ None k) with  inspect (hred b) :=
+    | (exist _ None l) => check_equal a b _;
+    | (exist _ (Some b') l) => check_equal_r a b'  _.
 
 Next Obligation.
   intros.
@@ -405,5 +414,5 @@ Next Obligation.
 Defined.
 
 Next Obligation.
-  sauto.
+  qauto inv:algo_dom, algo_dom_r.
 Defined.
