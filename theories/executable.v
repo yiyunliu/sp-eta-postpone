@@ -82,6 +82,26 @@ Definition isabs  (a : PTm) :=
   | _ => false
   end.
 
+Definition tm_nonconf (a b : PTm) : bool :=
+  match a, b with
+  | PAbs _, _ => ishne b || isabs b
+  | _, PAbs _ => ishne a
+  | VarPTm _, VarPTm _ => true
+  | PPair _ _, _ => ishne b || ispair b
+  | _, PPair _ _ => ishne a
+  | PZero, PZero => true
+  | PSuc _, PSuc _ => true
+  | PApp _ _, PApp _ _ => ishne a && ishne b
+  | PProj _ _, PProj _ _ => ishne a && ishne b
+  | PInd _ _ _ _, PInd _ _ _ _ => ishne a && ishne b
+  | PNat, PNat => true
+  | PUniv _, PUniv _ => true
+  | PBind _ _ _, PBind _ _ _ => true
+  | _,_=> false
+  end.
+
+Definition tm_conf (a b : PTm) := ~~ tm_nonconf a b.
+
 Inductive eq_view : PTm -> PTm -> Type :=
 | V_AbsAbs a b :
   eq_view (PAbs a) (PAbs b)
@@ -137,26 +157,6 @@ Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
   tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
   tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
   tm_to_eq_view a b := V_Others a b.
-
-Definition tm_nonconf (a b : PTm) : bool :=
-  match a, b with
-  | PAbs _, _ => ishne b || isabs b
-  | _, PAbs _ => ishne a
-  | VarPTm _, VarPTm _ => true
-  | PPair _ _, _ => ishne b || ispair b
-  | _, PPair _ _ => ishne a
-  | PZero, PZero => true
-  | PSuc _, PSuc _ => true
-  | PApp _ _, PApp _ _ => ishne a && ishne b
-  | PProj _ _, PProj _ _ => ishne a && ishne b
-  | PInd _ _ _ _, PInd _ _ _ _ => ishne a && ishne b
-  | PNat, PNat => true
-  | PUniv _, PUniv _ => true
-  | PBind _ _ _, PBind _ _ _ => true
-  | _,_=> false
-  end.
-
-Definition tm_conf (a b : PTm) := ~~ tm_nonconf a b.
 
 Inductive algo_dom : PTm -> PTm -> Prop :=
 | A_AbsAbs a b :
@@ -243,13 +243,6 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r b0 b1 ->
   algo_dom_r c0 c1 ->
   algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
-
-| A_Conflicting a b :
-  ishne a \/ ishf a ->
-  ishne b \/ ishf b ->
-  (* yes they are equivalent, but need both sides to make the rule reduce better *)
-  ~ tm_nonconf a b ->
-  algo_dom a b
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
@@ -345,7 +338,7 @@ Ltac check_equal_triv :=
   intros;subst;
   lazymatch goal with
   (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
-  | [h : algo_dom _ _ |- _] => try (inversion h; subst;simpl in *; by first [done | exfalso; first [done|sfirstorder b:on]])
+  | [h : algo_dom _ _ |- _] => try (inversion h; by subst)
   | _ => idtac
   end.
 
@@ -355,20 +348,6 @@ Ltac solve_check_equal :=
   | [|- _ = _] => sauto
   | _ => idtac
   end].
-
-(* #[export,global] Obligation Tactic := idtac "fiewof". *)
-
-
-Set Transparent Obligations.
-
-(* Lemma algo_dom_abs_inv a b : *)
-(*   algo_dom (PAbs a) b -> ishne b \/ isabs b. *)
-(* Proof. *)
-(*   inversion 1; subst=>//=. itauto. *)
-(*   itauto. *)
-(*   simpl in H2. *)
-(*   simpl in H2. move /negP in H2. move/norP in H2. *)
-(*   clear H0. left. *)
 
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
@@ -406,17 +385,8 @@ Equations check_equal (a b : PTm) (h : algo_dom a b) :
   check_equal_r a b h with inspect (hred a) :=
     check_equal_r a b h (exist _ (Some a') k) := check_equal_r a' b _;
   check_equal_r a b h (exist _ None k) with  inspect (hred b) :=
-    | (exist _ None l) => check_equal a b _;
+    | (exist _ None l) => tm_nonconf a b && check_equal a b _;
     | (exist _ (Some b') l) => check_equal_r a b'  _.
-
-Next Obligation.
-  inversion h; subst;simpl in *; try by first [done | exfalso; first [done|sfirstorder b:on]].
-  exfalso.
-  move /negP /norP in H1.
-  destruct H0 => //=. sfirstorder b:on.
-
-
-
 
 Next Obligation.
   intros.
