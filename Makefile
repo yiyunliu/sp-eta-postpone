@@ -16,7 +16,7 @@ uninstall: $(COQMAKEFILE)
 	$(MAKE) -f $(COQMAKEFILE) uninstall
 
 theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/fintype.v : syntax.sig
-	autosubst -f -v ge813 -s coq -o theories/Autosubst2/syntax.v syntax.sig
+	autosubst -f -v ge813 -s ucoq -o theories/Autosubst2/syntax.v syntax.sig
 
 .PHONY: clean FORCE
 
