@@ -334,41 +334,36 @@ Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
 
 Set Transparent Obligations.
 
-Equations hred' (a : PTm) : option PTm :=
-  hred' (VarPTm i) := None;
-  hred' (PAbs a) := None;
-  hred' _ :=  None.
-
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
   check_equal a b h with tm_to_eq_view a b :=
+  check_equal _ _ h (V_VarVar i j) := nat_eqdec i j;
   check_equal _ _ h (V_AbsAbs a b) := check_equal_r a b ltac:(check_equal_triv);
-  check_equal a b h _ := false
-  (* check_equal (VarPTm i) (VarPTm j) h := nat_eqdec i j; *)
-  (* check_equal (PAbs a) (PAbs b) h := check_equal_r a b ltac:(check_equal_triv); *)
-  (* check_equal (PAbs a) b h := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv); *)
-  (* check_equal a (PAbs b) h := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv); *)
-  (* check_equal (PPair a0 b0) (PPair a1 b1) h := *)
-  (*   check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv); *)
-  (* check_equal (PPair a0 b0) u h := *)
-  (*   check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv); *)
-  (* check_equal u (PPair a1 b1) h := *)
-  (*   check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv); *)
-  (* check_equal PNat PNat _ := true; *)
-  (* check_equal PZero PZero _ := true; *)
-  (* check_equal (PSuc a) (PSuc b) h := check_equal_r a b ltac:(check_equal_triv); *)
-  (* check_equal (PProj p0 a) (PProj p1 b) h := *)
-  (*   PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv); *)
-  (* check_equal (PApp a0 b0) (PApp a1 b1) h := *)
-  (*   check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv); *)
-  (* check_equal (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) h := *)
-  (*   check_equal_r P0 P1 ltac:(check_equal_triv) && *)
-  (*     check_equal u0 u1 ltac:(check_equal_triv) && *)
-  (*     check_equal_r b0 b1 ltac:(check_equal_triv) && *)
-  (*     check_equal_r c0 c1 ltac:(check_equal_triv); *)
-  (* check_equal (PUniv i) (PUniv j) _ := Nat.eqb i j; *)
-  (* check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) h := *)
-  (*   BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv); *)
+  check_equal _ _ h (V_AbsNeu a b _) := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
+  check_equal _ _ h (V_NeuAbs a b _) := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv);
+  check_equal _ _ h (V_PairPair a0 b0 a1 b1) :=
+    check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
+  check_equal _ _ h (V_PairNeu a0 b0 u _) :=
+    check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv);
+  check_equal _ _ h (V_NeuPair u a1 b1 _) :=
+    check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv);
+  check_equal _ _ h V_NatNat := true;
+  check_equal _ _ h V_ZeroZero := true;
+  check_equal _ _ h (V_SucSuc a b) := check_equal_r a b ltac:(check_equal_triv);
+  check_equal _ _ h (V_ProjProj p0 a p1 b) :=
+    PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv);
+  check_equal _ _ h (V_AppApp a0 b0 a1 b1) :=
+    check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
+  check_equal _ _ h (V_IndInd P0 u0 b0 c0 P1 u1 b1 c1) :=
+    check_equal_r P0 P1 ltac:(check_equal_triv) &&
+      check_equal u0 u1 ltac:(check_equal_triv) &&
+      check_equal_r b0 b1 ltac:(check_equal_triv) &&
+      check_equal_r c0 c1 ltac:(check_equal_triv);
+  check_equal _ _ h (V_UnivUniv i j) := Nat.eqb i j;
+  check_equal _ _ h (V_BindBind p0 A0 B0 p1 A1 B1) :=
+    BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv);
+  check_equal _ _ _ _ := false
+
   (* check_equal a b h := false; *)
   with check_equal_r (a b : PTm) (h0 : algo_dom_r a b) :
   bool by struct h0 :=
