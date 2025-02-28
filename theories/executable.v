@@ -93,7 +93,11 @@ with algo_dom_r {n} : PTm n -> PTm n -> Prop :=
   algo_dom_r a b.
 
 Derive Signature for algo_dom algo_dom_r.
-
+Derive NoConfusion for PTm.
+Next Obligation.
+Admitted.
+Next Obligation.
+Admitted.
 
 Derive Dependent Inversion adom_inv with (forall n (a b : PTm n), algo_dom a b) Sort Prop.
 
@@ -230,22 +234,26 @@ Proof.
 Defined.
 
 Ltac check_equal_triv :=
+  intros;subst;
   lazymatch goal with
   (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
   | [h : algo_dom _ _ |- _] => try inversion h; by subst
   | _ => idtac
   end.
 
-Lemma algo_dom_hne_abs_inv n (a : PTm n) b :
-  ishne a ->
-  algo_dom a (PAbs b) ->
-  algo_dom_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b.
-Proof.
-  remember (PAbs b) as u.
-  destruct 2; try (exfalso; simpl in *; congruence).
-  injection Hequ. move => <-.
-  apply H1.
-Defined.
+(* Program Fixpoint check_equal {n} (a b : PTm n) (h : algo_dom a b) {struct h} : bool := *)
+(*   match a, b with *)
+(*   | VarPTm i, VarPTm j => fin_beq i j *)
+(*   | PAbs a, PAbs b => check_equal_r a b ltac:(check_equal_triv) *)
+(*   | _, _ => false *)
+(*   end *)
+(* with check_equal_r {n} (a b : PTm n) (h : algo_dom_r a b) {struct h} : bool := *)
+(*   match hred_fancy _ a with *)
+(*   | inr a' => check_equal_r (proj1_sig a') b _ *)
+(*   | _ => false *)
+(*   end. *)
+(* Next Obligation. *)
+(*   simpl. *)
 
 Equations check_equal {n} (a b : PTm n) (h : algo_dom a b) :
   bool by struct h :=
