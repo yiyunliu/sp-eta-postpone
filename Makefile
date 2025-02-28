@@ -22,6 +22,6 @@ theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/fint
 
 clean:
 	test ! -f $(COQMAKEFILE) || ( $(MAKE) -f $(COQMAKEFILE) clean && rm $(COQMAKEFILE) )
-	rm -f theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/fintype.v
+	rm -f theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/fintype.v theories/Autosubst2/unscoped.v
 
 FORCE:

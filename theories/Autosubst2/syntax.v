@@ -711,11 +711,11 @@ Qed.
 Class Up_PTm X Y :=
     up_PTm : X -> Y.
 
-#[global]Instance Subst_PTm : (Subst1 _ _ _) := @subst_PTm.
+#[global] Instance Subst_PTm : (Subst1 _ _ _) := @subst_PTm.
 
-#[global]Instance Up_PTm_PTm : (Up_PTm _ _) := @up_PTm_PTm.
+#[global] Instance Up_PTm_PTm : (Up_PTm _ _) := @up_PTm_PTm.
 
-#[global]Instance Ren_PTm : (Ren1 _ _ _) := @ren_PTm.
+#[global] Instance Ren_PTm : (Ren1 _ _ _) := @ren_PTm.
 
 #[global]
 Instance VarInstance_PTm : (Var _ _) := @VarPTm.
@@ -833,9 +833,9 @@ Module Extra.
 
 Import Core.
 
-#[global]Hint Opaque subst_PTm: rewrite.
+#[global] Hint Opaque subst_PTm: rewrite.
 
-#[global]Hint Opaque ren_PTm: rewrite.
+#[global] Hint Opaque ren_PTm: rewrite.
 
 End Extra.
 

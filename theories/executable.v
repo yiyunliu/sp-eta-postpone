@@ -1,6 +1,7 @@
 From Equations Require Import Equations.
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
-Derive NoConfusion for sig option nat PTag BTag PTm.
+Derive NoConfusion for sig nat PTag BTag PTm.
+Derive EqDec for BTag PTag PTm.
 Import Logic (inspect).
 
 Require Import ssreflect ssrbool.
@@ -97,6 +98,13 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   (* ----------------------- *)
   algo_dom u (PPair a0 a1)
 
+| A_ZeroZero :
+  algo_dom PZero PZero
+
+| A_SucSuc a0 a1 :
+  algo_dom_r a0 a1 ->
+  algo_dom (PSuc a0) (PSuc a1)
+
 | A_UnivCong i j :
   (* -------------------------- *)
   algo_dom (PUniv i) (PUniv j)
@@ -106,6 +114,9 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r B0 B1 ->
   (* ---------------------------- *)
   algo_dom (PBind p0 A0 B0) (PBind p1 A1 B1)
+
+| A_NatCong :
+  algo_dom PNat PNat
 
 | A_VarCong i j :
   (* -------------------------- *)
@@ -125,6 +136,15 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r a0 a1 ->
   (* ------------------------- *)
   algo_dom (PApp u0 a0) (PApp u1 a1)
+
+| A_IndCong P0 P1 u0 u1 b0 b1 c0 c1 :
+  ishne u0 ->
+  ishne u1 ->
+  algo_dom_r P0 P1 ->
+  algo_dom u0 u1 ->
+  algo_dom_r b0 b1 ->
+  algo_dom_r c0 c1 ->
+  algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
@@ -164,23 +184,6 @@ Lemma hne_no_hred (a b : PTm) :
 Proof. elim : a b => //=; hauto l:on inv:HRed.R. Qed.
 
 Derive Signature for algo_dom algo_dom_r.
-(* Fixpoint PTm_eqb {n} (a b : PTm n) := *)
-(*   match a, b with *)
-(*   | VarPTm i, VarPTm j => fin_eq i j *)
-(*   | PAbs a, PAbs b => PTm_eqb a b *)
-(*   | PApp a0 b0, PApp a1 b1 => PTm_eqb a0 a1 && PTm_eqb b0 b1 *)
-(*   | PBind p0 A0 B0, PBind p1 A1 B1 => BTag_beq p0 p1 && PTm_eqb A0 A1 && PTm_eqb B0 B1 *)
-(*   | PPair a0 b0, PPair a1 b1 => PTm_eqb a0 a1 && PTm_eqb b0 b1 *)
-(*   | *)
-
-(* Lemma hred {n} (a : PTm n) : (relations.nf HRed.R a) + {x | HRed.R a x}. *)
-(* Proof. *)
-(*   induction a. *)
-(*   - hauto lq:on inv:HRed.R unfold:relations.nf. *)
-(*   - hauto lq:on inv:HRed.R unfold:relations.nf. *)
-(*   - clear IHa2. *)
-(*     destruct IHa1. *)
-(*     destruct a1. *)
 
 Fixpoint hred (a : PTm) : option (PTm) :=
     match a with
@@ -262,8 +265,6 @@ Ltac check_equal_triv :=
   | _ => idtac
   end.
 
-Scheme Equality for nat. Scheme Equality for PTag.
-Scheme Equality for BTag. Scheme Equality for PTm.
 (* Program Fixpoint check_equal {n} (a b : PTm n) (h : algo_dom a b) {struct h} : bool := *)
 (*   match a, b with *)
 (*   | VarPTm i, VarPTm j => fin_beq i j *)
@@ -278,24 +279,44 @@ Scheme Equality for BTag. Scheme Equality for PTm.
 (* Next Obligation. *)
 (*   simpl. *)
 
+
+Ltac solve_check_equal :=
+  try solve [intros *;
+  match goal with
+  | [|- _ = _] => sauto
+  | _ => idtac
+  end].
+
+(* #[export,global] Obligation Tactic := idtac "fiewof". *)
+
+
 Equations check_equal (a b : PTm) (h : algo_dom a b) :
   bool by struct h :=
-  (* check_equal (VarPTm i) (VarPTm j) h := nat_beq i j; *)
-  (* check_equal (PAbs a) (PAbs b) h := check_equal_r a b ltac:(check_equal_triv); *)
-  (* check_equal (PAbs a) b h := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv); *)
-  (* check_equal a (PAbs b) h := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv); *)
-  (* check_equal (PPair a0 b0) (PPair a1 b1) h := *)
-  (*   check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv); *)
-  (* check_equal (PPair a0 b0) u h := *)
-  (*   check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv); *)
-  (* check_equal u (PPair a1 b1) h := *)
-  (*   check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv); *)
-  (* check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) h := *)
-  (*   BTag_beq p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv); *)
-  (* check_equal PNat PNat _ := true; *)
-  (* check_equal PZero PZero _ := true; *)
-  (* check_equal (PSuc a) (PSuc b) h := check_equal_r a b ltac:(check_equal_triv); *)
-  (* check_equal (PUniv i) (PUniv j) _ := Nat.eqb i j; *)
+  check_equal (VarPTm i) (VarPTm j) h := nat_eqdec i j;
+  check_equal (PAbs a) (PAbs b) h := check_equal_r a b ltac:(check_equal_triv);
+  check_equal (PAbs a) b h := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
+  check_equal a (PAbs b) h := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv);
+  check_equal (PPair a0 b0) (PPair a1 b1) h :=
+    check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
+  check_equal (PPair a0 b0) u h :=
+    check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv);
+  check_equal u (PPair a1 b1) h :=
+    check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv);
+  check_equal PNat PNat _ := true;
+  check_equal PZero PZero _ := true;
+  check_equal (PSuc a) (PSuc b) h := check_equal_r a b ltac:(check_equal_triv);
+  check_equal (PProj p0 a) (PProj p1 b) h :=
+    PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv);
+  check_equal (PApp a0 b0) (PApp a1 b1) h :=
+    check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
+  check_equal (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) h :=
+    check_equal_r P0 P1 ltac:(check_equal_triv) &&
+      check_equal u0 u1 ltac:(check_equal_triv) &&
+      check_equal_r b0 b1 ltac:(check_equal_triv) &&
+      check_equal_r c0 c1 ltac:(check_equal_triv);
+  check_equal (PUniv i) (PUniv j) _ := Nat.eqb i j;
+  check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) h :=
+    BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv);
   check_equal a b h := false;
   with check_equal_r (a b : PTm) (h : algo_dom_r a b) :
   bool by struct h :=
@@ -306,30 +327,40 @@ Equations check_equal (a b : PTm) (h : algo_dom a b) :
           | (exist _ (Some b') l) => check_equal_r a b'  _}} .
 
 Next Obligation.
-  simpl.
-  inversion h; subst =>//=.
-  exfalso. hauto lq:on use:algo_dom_hf_hne, hf_no_hred, hne_no_hred, hred_sound.
-  suff ? : a'0 = a' by subst; assumption.
-  by eauto using hred_deter, hred_sound.
-  exfalso. hauto lq:on use:hf_no_hred, hne_no_hred, hred_sound.
+  intros.
+  destruct h.
+  exfalso. apply algo_dom_hf_hne in H.
+  apply hred_sound in k.
+  destruct H as [[|] _].
+  eauto using hf_no_hred.
+  eauto using hne_no_hred.
+  apply hred_sound in k.
+  assert (  a'0 = a')by eauto using hred_deter. subst.
+  apply h.
+  exfalso.
+  apply hred_sound in k.
+  destruct H as [|].
+  eauto using hne_no_hred.
+  eauto using hf_no_hred.
 Defined.
 
 Next Obligation.
-  simpl.
+  simpl. intros.
   inversion h; subst =>//=.
-  exfalso. hauto lq:on use:algo_dom_hf_hne, hf_no_hred, hne_no_hred, hred_sound.
-  exfalso. hauto l:on use:hred_complete.
-  have ? : b' = b'0 by eauto using hred_deter, hred_sound.
+  move {h}. hauto lq:on use:algo_dom_hf_hne, hf_no_hred, hne_no_hred, hred_sound.
+  apply False_ind. hauto l:on use:hred_complete.
+  assert (b' = b'0) by eauto using hred_deter, hred_sound.
   subst.
   assumption.
 Defined.
 
 Next Obligation.
+  intros.
   inversion h; subst => //=.
   exfalso. hauto l:on use:hred_complete.
   exfalso. hauto l:on use:hred_complete.
 Defined.
 
 Next Obligation.
-  sauto lq:on.
+  sauto.
 Defined.
