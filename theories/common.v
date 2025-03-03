@@ -10,6 +10,12 @@ Inductive lookup : nat -> list PTm -> PTm -> Prop :=
   lookup i Γ A ->
   lookup (S i) (cons B Γ) (ren_PTm shift A).
 
+Lemma lookup_deter i Γ A B :
+  lookup i Γ A ->
+  lookup i Γ B ->
+  A = B.
+Proof. move => h. move : B. induction h; hauto lq:on inv:lookup. Qed.
+
 Lemma here' A Γ U : U = ren_PTm shift A -> lookup 0 (A :: Γ) U.
 Proof.  move => ->. apply here. Qed.
 
@@ -126,6 +132,14 @@ Definition ishne_ren (a : PTm)  (ξ : nat -> nat) :
   ishne (ren_PTm ξ a) = ishne a.
 Proof. move : ξ. elim : a => //=. Qed.
 
-Lemma renaming_shift Γ (ρ : nat -> PTm) A :
+Lemma renaming_shift Γ A :
   renaming_ok (cons A Γ) Γ shift.
 Proof. rewrite /renaming_ok. hauto lq:on ctrs:lookup. Qed.
+
+Lemma subst_scons_id (a : PTm) :
+  subst_PTm (scons (VarPTm 0) (funcomp VarPTm shift)) a = a.
+Proof.
+  have E : subst_PTm VarPTm a = a by asimpl.
+  rewrite -{2}E.
+  apply ext_PTm. case => //=.
+Qed.

@@ -1,15 +1,15 @@
-Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common typing structural fp_red.
+Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural fp_red.
 From Hammer Require Import Tactics.
 Require Import ssreflect.
 Require Import Psatz.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Lemma App_Inv n Γ (b a : PTm n) U :
+Lemma App_Inv Γ (b a : PTm) U :
   Γ ⊢ PApp b a ∈ U ->
   exists A B, Γ ⊢ b ∈ PBind PPi A B /\ Γ ⊢ a ∈ A /\ Γ ⊢ subst_PTm (scons a VarPTm) B ≲ U.
 Proof.
   move E : (PApp b a) => u hu.
-  move : b a E. elim : n Γ u U / hu => n //=.
+  move : b a E. elim : Γ u U / hu => //=.
   - move => Γ b a A B hb _ ha _ b0 a0 [*]. subst.
     exists A,B.
     repeat split => //=.
@@ -18,12 +18,12 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Abs_Inv n Γ (a : PTm (S n)) U :
+Lemma Abs_Inv Γ (a : PTm) U :
   Γ ⊢ PAbs a ∈ U ->
-  exists A B, funcomp (ren_PTm shift) (scons A Γ) ⊢ a ∈ B /\ Γ ⊢ PBind PPi A B ≲ U.
+  exists A B, (cons A Γ) ⊢ a ∈ B /\ Γ ⊢ PBind PPi A B ≲ U.
 Proof.
   move E : (PAbs a) => u hu.
-  move : a E. elim : n Γ u U / hu => n //=.
+  move : a E. elim : Γ u U / hu => //=.
   - move => Γ a A B i hP _ ha _ a0 [*]. subst.
     exists A, B. repeat split => //=.
     hauto lq:on use:E_Refl, Su_Eq.

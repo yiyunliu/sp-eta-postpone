@@ -12,14 +12,6 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import Btauto.
 Require Import Cdcl.Itauto.
 
-Lemma subst_scons_id (a : PTm) :
-  subst_PTm (scons (VarPTm 0) (funcomp VarPTm shift)) a = a.
-Proof.
-  have E : subst_PTm VarPTm a = a by asimpl.
-  rewrite -{2}E.
-  apply ext_PTm. case => //=.
-Qed.
-
 Ltac2 spec_refl () :=
   List.iter
     (fun a => match a with
