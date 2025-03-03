@@ -10,6 +10,13 @@ Inductive lookup : nat -> list PTm -> PTm -> Prop :=
   lookup i Γ A ->
   lookup (S i) (cons B Γ) (ren_PTm shift A).
 
+Lemma here' A Γ U : U = ren_PTm shift A -> lookup 0 (A :: Γ) U.
+Proof.  move => ->. apply here. Qed.
+
+Lemma there' i Γ A B U : U = ren_PTm shift A -> lookup i Γ A ->
+                       lookup (S i) (cons B Γ) U.
+Proof. move => ->. apply there. Qed.
+
 Derive Inversion lookup_inv with (forall i Γ A, lookup i Γ A).
 
 Definition renaming_ok (Γ : list PTm) (Δ : list PTm) (ξ : nat -> nat) :=

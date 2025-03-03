@@ -1,96 +1,69 @@
-Require Import Autosubst2.core Autosubst2.fintype Autosubst2.syntax common typing.
+Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing.
 From Hammer Require Import Tactics.
 Require Import ssreflect.
 Require Import Psatz.
 
 Lemma wff_mutual :
-  (forall n (Γ : fin n -> PTm n), ⊢ Γ -> True) /\
-  (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> ⊢ Γ)  /\
-  (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ⊢ Γ) /\
-  (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> ⊢ Γ).
+  (forall Γ, ⊢ Γ -> True) /\
+  (forall Γ (a A : PTm), Γ ⊢ a ∈ A -> ⊢ Γ)  /\
+  (forall Γ (a b A : PTm), Γ ⊢ a ≡ b ∈ A -> ⊢ Γ) /\
+  (forall Γ (A B : PTm), Γ ⊢ A ≲ B -> ⊢ Γ).
 Proof. apply wt_mutual; eauto. Qed.
 
 #[export]Hint Constructors Wt Wff Eq : wt.
 
-Lemma T_Nat' n Γ :
+Lemma T_Nat' Γ :
   ⊢ Γ ->
-  Γ ⊢ PNat : PTm n ∈ PUniv 0.
+  Γ ⊢ PNat ∈ PUniv 0.
 Proof. apply T_Nat. Qed.
 
-Lemma renaming_up n m (ξ : fin n -> fin m) Δ Γ A :
+Lemma renaming_up (ξ : nat -> nat) Δ Γ A :
   renaming_ok Δ Γ ξ ->
-  renaming_ok (funcomp (ren_PTm shift) (scons (ren_PTm ξ A) Δ)) (funcomp (ren_PTm shift) (scons A Γ)) (upRen_PTm_PTm ξ) .
+  renaming_ok (cons (ren_PTm ξ A) Δ) (cons A Γ) (upRen_PTm_PTm ξ) .
 Proof.
-  move => h i.
-  destruct i as [i|].
-  asimpl. rewrite /renaming_ok in h.
-  rewrite /funcomp. rewrite -h.
-  by asimpl.
-  by asimpl.
+  move => h i A0.
+  elim /lookup_inv => //=_.
+  - move => A1 Γ0 ? [*]. subst. apply here'. by asimpl.
+  - move => i0 Γ0 A1 B h' ? [*]. subst.
+    apply : there'; eauto. by asimpl.
 Qed.
 
-Lemma Su_Wt n Γ a i :
-  Γ ⊢ a ∈ @PUniv n i ->
+Lemma Su_Wt Γ a i :
+  Γ ⊢ a ∈ PUniv i ->
   Γ ⊢ a ≲ a.
 Proof. hauto lq:on ctrs:LEq, Eq. Qed.
 
-Lemma Wt_Univ n Γ a A i
+Lemma Wt_Univ Γ a A i
   (h : Γ ⊢ a ∈ A) :
-  Γ ⊢ @PUniv n i ∈ PUniv (S i).
+  Γ ⊢ @PUniv i ∈ PUniv (S i).
 Proof.
   hauto lq:on ctrs:Wt use:wff_mutual.
 Qed.
 
-Lemma Bind_Inv n Γ p (A : PTm n) B U :
+Lemma Bind_Inv Γ p (A : PTm) B U :
   Γ ⊢ PBind p A B ∈ U ->
   exists i, Γ ⊢ A ∈ PUniv i /\
-  funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\
+  (cons A Γ) ⊢ B ∈ PUniv i /\
   Γ ⊢ PUniv i ≲ U.
 Proof.
   move E :(PBind p A B) => T h.
   move : p A B E.
-  elim : n Γ T U / h => //=.
-  - move => n Γ i p A B hA _ hB _ p0 A0 B0 [*]. subst.
+  elim : Γ T U / h => //=.
+  - move => Γ i p A B hA _ hB _ p0 A0 B0 [*]. subst.
     exists i. repeat split => //=.
     eapply wff_mutual in hA.
     apply Su_Univ; eauto.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-(* Lemma Pi_Inv n Γ (A : PTm n) B U : *)
-(*   Γ ⊢ PBind PPi A B ∈ U -> *)
-(*   exists i, Γ ⊢ A ∈ PUniv i /\ *)
-(*   funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\ *)
-(*   Γ ⊢ PUniv i ≲ U. *)
-(* Proof. *)
-(*   move E :(PBind PPi A B) => T h. *)
-(*   move : A B E. *)
-(*   elim : n Γ T U / h => //=. *)
-(*   - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ. *)
-(*   - hauto lq:on rew:off ctrs:LEq. *)
-(* Qed. *)
-
-(* Lemma Bind_Inv n Γ (A : PTm n) B U : *)
-(*   Γ ⊢ PBind PSig A B ∈ U -> *)
-(*   exists i, Γ ⊢ A ∈ PUniv i /\ *)
-(*   funcomp (ren_PTm shift) (scons A Γ) ⊢ B ∈ PUniv i /\ *)
-(*   Γ ⊢ PUniv i ≲ U. *)
-(* Proof. *)
-(*   move E :(PBind PSig A B) => T h. *)
-(*   move : A B E. *)
-(*   elim : n Γ T U / h => //=. *)
-(*   - hauto lq:on ctrs:Wt,LEq,Eq use:Wt_Univ. *)
-(*   - hauto lq:on rew:off ctrs:LEq. *)
-(* Qed. *)
-
-Lemma T_App' n Γ (b a : PTm n) A B U :
+Lemma T_App' Γ (b a : PTm) A B U :
   U = subst_PTm (scons a VarPTm) B ->
   Γ ⊢ b ∈ PBind PPi A B ->
   Γ ⊢ a ∈ A ->
   Γ ⊢ PApp b a ∈ U.
 Proof. move => ->. apply T_App. Qed.
 
-Lemma T_Pair' n Γ (a b : PTm n) A B i U :
+Lemma T_Pair' Γ (a b : PTm ) A B i U :
   U = subst_PTm (scons a VarPTm) B ->
   Γ ⊢ a ∈ A ->
   Γ ⊢ b ∈ U ->
@@ -100,7 +73,7 @@ Proof.
   move => ->. eauto using T_Pair.
 Qed.
 
-Lemma E_IndCong' n Γ P0 P1 (a0 a1 : PTm n) b0 b1 c0 c1 i U :
+Lemma E_IndCong' Γ P0 P1 (a0 a1 : PTm ) b0 b1 c0 c1 i U :
   U = subst_PTm (scons a0 VarPTm) P0 ->
   funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ∈ PUniv i ->
   funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P0 ≡ P1 ∈ PUniv i ->
