@@ -1,4 +1,4 @@
-Require Import Autosubst2.fintype Autosubst2.syntax.
+Require Import Autosubst2.unscoped Autosubst2.syntax.
 Require Import fp_red logrel typing.
 From Hammer Require Import Tactics.
 

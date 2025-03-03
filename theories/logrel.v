@@ -1583,7 +1583,7 @@ Lemma SSu_Pi Γ (A0 A1 : PTm ) B0 B1 :
   cons A0 Γ ⊨ B0 ≲ B1 ->
   Γ ⊨ PBind PPi A0 B0 ≲ PBind PPi A1 B1.
 Proof.
-  move => hΓ hA hB.
+  move =>  hA hB.
   have ? : SN A0 /\ SN A1 /\ SN B0 /\ SN B1
     by hauto l:on use:SemLEq_SN_Sub.
   apply SemLEq_SemWt in hA, hB.
@@ -1592,7 +1592,6 @@ Proof.
   apply : SemWt_SemLEq; last by hauto l:on use:Sub.PiCong.
   hauto l:on use:ST_Bind'.
   apply ST_Bind'; eauto.
-  have hΓ' : ⊨ (cons A1 Γ) by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (cons A0 Γ) ρ by hauto l:on.
   move : hρ. suff : Γ_sub' (A0 :: Γ) (A1 :: Γ)
@@ -1614,8 +1613,6 @@ Proof.
   apply : SemWt_SemLEq; last by hauto l:on use:Sub.SigCong.
   2 : { hauto l:on use:ST_Bind'. }
   apply ST_Bind'; eauto.
-  have hΓ' : ⊨ cons A1 Γ by hauto l:on use:SemWff_cons.
-  have hΓ'' : ⊨ cons A0 Γ by hauto l:on use:SemWff_cons.
   move => ρ hρ.
   suff : ρ_ok (cons A1 Γ) ρ by hauto l:on.
   move : hρ. suff : Γ_sub' (A1 :: Γ) (A0 :: Γ) by hauto l:on.

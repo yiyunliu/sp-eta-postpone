@@ -30,12 +30,12 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Proj1_Inv n Γ (a : PTm n) U :
+Lemma Proj1_Inv Γ (a : PTm ) U :
   Γ ⊢ PProj PL a ∈ U ->
   exists A B, Γ ⊢ a ∈ PBind PSig A B /\ Γ ⊢ A ≲ U.
 Proof.
   move E : (PProj PL a) => u hu.
-  move :a E. elim : n Γ u U / hu => n //=.
+  move :a E. elim : Γ u U / hu => //=.
   - move => Γ a A B ha _ a0 [*]. subst.
     exists A, B. split => //=.
     eapply regularity in ha.
@@ -45,12 +45,12 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Proj2_Inv n Γ (a : PTm n) U :
+Lemma Proj2_Inv Γ (a : PTm) U :
   Γ ⊢ PProj PR a ∈ U ->
   exists A B, Γ ⊢ a ∈ PBind PSig A B /\ Γ ⊢ subst_PTm (scons (PProj PL a) VarPTm) B ≲ U.
 Proof.
   move E : (PProj PR a) => u hu.
-  move :a E. elim : n Γ u U / hu => n //=.
+  move :a E. elim : Γ u U / hu => //=.
   - move => Γ a A B ha _ a0 [*]. subst.
     exists A, B. split => //=.
     have ha' := ha.
@@ -62,30 +62,30 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Pair_Inv n Γ (a b : PTm n) U :
+Lemma Pair_Inv Γ (a b : PTm ) U :
   Γ ⊢ PPair a b ∈ U ->
   exists A B, Γ ⊢ a ∈ A /\
          Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B /\
          Γ ⊢ PBind PSig A B ≲ U.
 Proof.
   move E : (PPair a b) => u hu.
-  move : a b E. elim : n Γ u U / hu => n //=.
+  move : a b E. elim : Γ u U / hu => //=.
   - move => Γ a b A B i hS _ ha _ hb _ a0 b0 [*]. subst.
     exists A,B. repeat split => //=.
     move /E_Refl /Su_Eq : hS. apply.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma Ind_Inv n Γ P (a : PTm n) b c U :
+Lemma Ind_Inv Γ P (a : PTm) b c U :
   Γ ⊢ PInd P a b c ∈ U ->
-  exists i, funcomp (ren_PTm shift) (scons PNat Γ) ⊢ P ∈ PUniv i /\
+  exists i, (cons PNat Γ) ⊢ P ∈ PUniv i /\
        Γ ⊢ a ∈ PNat /\
        Γ ⊢ b ∈ subst_PTm (scons PZero VarPTm) P /\
-      funcomp (ren_PTm shift)(scons P (funcomp (ren_PTm shift) (scons PNat Γ))) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) /\
+          (cons P (cons PNat Γ)) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) /\
        Γ ⊢ subst_PTm (scons a VarPTm) P ≲ U.
 Proof.
   move E : (PInd P a b c)=> u hu.
-  move : P a b c E. elim : n Γ u U / hu => n //=.
+  move : P a b c E. elim : Γ u U / hu => //=.
   - move => Γ P a b c i hP _ ha _ hb _ hc _ P0 a0 b0 c0 [*]. subst.
     exists i. repeat split => //=.
     have : Γ ⊢ subst_PTm (scons a VarPTm) P ∈ subst_PTm (scons a VarPTm) (PUniv i) by hauto l:on use:substing_wt.
@@ -93,10 +93,10 @@ Proof.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma E_AppAbs : forall n (a : PTm (S n)) (b : PTm n) (Γ : fin n -> PTm n) (A : PTm n),
+Lemma E_AppAbs : forall (a : PTm) (b : PTm) Γ (A : PTm),
   Γ ⊢ PApp (PAbs a) b ∈ A -> Γ ⊢ PApp (PAbs a) b ≡ subst_PTm (scons b VarPTm) a ∈ A.
 Proof.
-  move => n a b Γ A ha.
+  move => a b Γ A ha.
   move /App_Inv : ha.
   move => [A0][B0][ha][hb]hS.
   move /Abs_Inv : ha => [A1][B1][ha]hS0.
@@ -112,10 +112,10 @@ Proof.
   eauto using T_Conv.
 Qed.
 
-Lemma E_ProjPair1 : forall n (a b : PTm n) (Γ : fin n -> PTm n) (A : PTm n),
+Lemma E_ProjPair1 : forall (a b : PTm) Γ (A : PTm),
     Γ ⊢ PProj PL (PPair a b) ∈ A -> Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A.
 Proof.
-  move => n a b Γ A.
+  move => a b Γ A.
   move /Proj1_Inv. move => [A0][B0][hab]hA0.
   move /Pair_Inv : hab => [A1][B1][ha][hb]hS.
   have [i ?]  : exists i, Γ ⊢ PBind PSig A1 B1 ∈ PUniv i by sfirstorder use:regularity_sub0.
@@ -125,25 +125,25 @@ Proof.
   apply : E_ProjPair1; eauto.
 Qed.
 
-Lemma Suc_Inv n Γ (a : PTm n) A :
+Lemma Suc_Inv Γ (a : PTm) A :
   Γ ⊢ PSuc a ∈ A -> Γ ⊢ a ∈ PNat /\ Γ ⊢ PNat ≲ A.
 Proof.
   move E : (PSuc a) => u hu.
   move : a E.
-  elim : n Γ u A /hu => //=.
-  - move => n Γ a ha iha a0 [*]. subst.
+  elim : Γ u A /hu => //=.
+  - move => Γ a ha iha a0 [*]. subst.
     split => //=. eapply wff_mutual in ha.
     apply : Su_Eq.
     apply E_Refl. by apply T_Nat'.
   - hauto lq:on rew:off ctrs:LEq.
 Qed.
 
-Lemma RRed_Eq n Γ (a b : PTm n) A :
+Lemma RRed_Eq Γ (a b : PTm) A :
   Γ ⊢ a ∈ A ->
   RRed.R a b ->
   Γ ⊢ a ≡ b ∈ A.
 Proof.
-  move => + h. move : Γ A. elim : n a b /h => n.
+  move => + h. move : Γ A. elim : a b /h.
   - apply E_AppAbs.
   - move => p a b Γ A.
     case : p => //=.
@@ -214,7 +214,7 @@ Proof.
   - hauto lq:on use:Suc_Inv, E_Conv, E_SucCong.
 Qed.
 
-Theorem subject_reduction n Γ (a b A : PTm n) :
+Theorem subject_reduction Γ (a b A : PTm) :
   Γ ⊢ a ∈ A ->
   RRed.R a b ->
   Γ ⊢ b ∈ A.
