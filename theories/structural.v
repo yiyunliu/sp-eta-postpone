@@ -794,18 +794,17 @@ Proof.
       Unshelve. all: exact 0.
 Qed.
 
-Lemma Var_Inv Γ (i : nat) B A :
+Lemma Var_Inv Γ (i : nat) A :
   Γ ⊢ VarPTm i ∈ A ->
-  lookup i Γ B ->
-  ⊢ Γ /\ Γ ⊢ B ≲ A.
+  ⊢ Γ /\ exists B, lookup i Γ B /\ Γ ⊢ B ≲ A.
 Proof.
   move E : (VarPTm i) => u hu.
   move : i E.
   elim : Γ u A / hu=>//=.
-  - move => i Γ A hΓ hi i0 [?]. subst.
-    repeat split => //=.
-    have ? : A = B  by eauto using lookup_deter. subst.
-    have h : Γ ⊢ VarPTm i ∈ B by eauto using T_Var.
+  - move => i Γ A hΓ hi i0 [*]. subst.
+    split => //.
+    exists A. split => //.
+    have h : Γ ⊢ VarPTm i ∈ A by eauto using T_Var.
     eapply regularity in h.
     move : h => [i0]?.
     apply : Su_Eq. apply E_Refl; eassumption.
