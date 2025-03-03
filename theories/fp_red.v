@@ -1788,109 +1788,133 @@ Module ERed.
   Qed.
 
   (* Characterization of variable freeness conditions *)
-  Definition tm_i_free a (i : fin n) := exists m (ξ ξ0 : fin n -> fin m), ξ i <> ξ0 i /\ ren_PTm a = ren_PTm0 a.
+  Definition tm_i_free a (i : nat) := exists (ξ ξ0 : nat -> nat), ξ i <> ξ0 i /\ ren_PTm ξ a = ren_PTm ξ0 a.
 
-  Lemma subst_differ_one_ren_up n m i (ξ0 ξ1 : fin n -> fin m) :
+  Lemma subst_differ_one_ren_up i (ξ0 ξ1 : nat -> nat) :
     (forall j, i <> j -> ξ0 j = ξ1 j) ->
-    (forall j, shift i <> j -> upRen_PTm_PTm0 j =  upRen_PTm_PTm1 j).
+    (forall j, shift i <> j -> upRen_PTm_PTm ξ0 j =  upRen_PTm_PTm ξ1 j).
   Proof.
     move => hξ.
-    destruct j. asimpl.
-    move => h. have :  i<> f by hauto lq:on rew:off inv:option.
+    case => // j.
+    asimpl.
+    move => h. have :  i<> j by hauto lq:on rew:off.
     move /hξ. by rewrite /funcomp => ->.
-    done.
   Qed.
 
-  Lemma tm_free_ren_any n a i :
+  Lemma tm_free_ren_any a i :
     tm_i_free a i ->
-    forall m (ξ0 ξ1 : fin n -> fin m), (forall j, i <> j -> ξ0 j = ξ1 j) ->
-             ren_PTm0 a = ren_PTm1 a.
+    forall (ξ0 ξ1 : nat -> nat), (forall j, i <> j -> ξ0 j = ξ1 j) ->
+             ren_PTm ξ0 a = ren_PTm ξ1 a.
   Proof.
     rewrite /tm_i_free.
     move => [+ [+ [+ +]]].
     move : i.
-    elim : n / a => n.
+    elim : a.
     - hauto q:on.
-    - move => a iha i m ρ0 ρ1 [] => h [] h' m' ξ0 ξ1 hξ /=.
+    - move => a iha i ρ0 ρ1 h [] h' ξ0 ξ1 hξ /=.
       f_equal. move /subst_differ_one_ren_up in hξ.
       move /(_ (shift i)) in iha.
       move : iha hξ; move/[apply].
-      apply=>//. split; eauto.
-      asimpl. rewrite /funcomp. hauto l:on.
+      apply; cycle 1; eauto.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
-    - move => p A ihA a iha i m ρ0 ρ1 [] ? h m' ξ0 ξ1 hξ /=.
+    - move => p A ihA a iha i ρ0 ρ1 hρ [] ? h ξ0 ξ1 hξ /=.
       f_equal. hauto lq:on rew:off.
       move /subst_differ_one_ren_up in hξ.
       move /(_ (shift i)) in iha.
-      move : iha hξ. repeat move/[apply].
-      move /(_ _ (upRen_PTm_PTm0) (upRen_PTm_PTm1)).
-      apply. hauto l:on.
+      move : iha (hξ). repeat move/[apply].
+      move /(_ (upRen_PTm_PTm ρ0) (upRen_PTm_PTm ρ1)).
+      apply. simpl. rewrite /funcomp. scongruence.
+      sfirstorder.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
     - hauto lq:on rew:off.
-    - hauto lq:on rew:off.
-    - admit.
-  Admitted.
+    - move => P ihP a iha b ihb c ihc i ρ0 ρ1 hρ /= []hP
+               ha hb hc ξ0 ξ1 hξ.
+      f_equal;eauto.
+      apply : ihP; cycle 1; eauto using subst_differ_one_ren_up.
+      apply : ihc; cycle 1; eauto using subst_differ_one_ren_up.
+      hauto l:on.
+  Qed.
 
-  Lemma antirenaming n m (a : PTm) (b : PTm) (ξ : fin n -> fin m) :
+  Lemma antirenaming (a : PTm) (b : PTm) (ξ : nat -> nat) :
     (forall i j, ξ i = ξ j -> i = j) ->
-    R (ren_PTm a) b -> exists b0, R a b0 /\ ren_PTm b0 = b.
+    R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
   Proof.
     move => hξ.
-    move E : (ren_PTm a) => u hu.
-    move : n ξ a hξ E.
-    elim : m u b / hu; try solve_anti_ren.
-    - move => n a m ξ []//=.
+    move E : (ren_PTm ξ a) => u hu.
+    move : ξ a hξ E.
+    elim : u b / hu; try solve_anti_ren.
+    - move => a ξ []//=.
       move => u hξ [].
       case : u => //=.
       move => u0 u1 [].
       case : u1 => //=.
       move => i /[swap] [].
       case : i => //= _ h.
-      have : exists p, ren_PTm shift p = u0 by admit.
+      suff : exists p, ren_PTm shift p = u0.
       move => [p ?]. subst.
       move : h. asimpl.
-      replace (ren_PTm (funcomp shift ξ) p) with
-        (ren_PTm shift (ren_PTm p)); last by asimpl.
+      replace (ren_PTm (funcomp S ξ) p) with
+        (ren_PTm shift (ren_PTm ξ p)); last by asimpl.
       move /ren_injective.
-      move /(_ ltac:(hauto l:on)).
+      move /(_ ltac:(hauto l:on unfold:ren_inj)).
       move => ?. subst.
       exists p. split=>//. apply AppEta.
-    - move => n a m ξ [] //=.
+      set u := ren_PTm (scons 0 id) u0.
+      suff : ren_PTm shift u = u0 by eauto.
+      subst u.
+      asimpl.
+      have hE : u0 = ren_PTm id u0 by asimpl.
+      rewrite {2}hE. move{hE}.
+      apply (tm_free_ren_any _ 0); last by qauto l:on inv:nat.
+      rewrite /tm_i_free.
+      have h' := h.
+      apply f_equal with (f := ren_PTm (scons 0 id)) in h.
+      apply f_equal with (f := ren_PTm (scons 1 id)) in h'.
+      move : h'. asimpl => *. subst.
+      move : h. asimpl. move => *. do 2 eexists. split; eauto.
+      scongruence.
+    - move => a ξ [] //=.
       move => u u0 hξ [].
       case : u => //=.
       case : u0 => //=.
       move => p p0 p1 p2 [? ?] [? h]. subst.
       have ? : p0 = p2 by eauto using ren_injective. subst.
       hauto l:on.
-    - move => n a0 a1 ha iha m ξ []//= p hξ [?]. subst.
-      sauto lq:on use:up_injective.
-    - move => n p A B0 B1 hB ihB m ξ + hξ.
+    - move => a0 a1 ha iha ξ []//= p hξ [?]. subst.
+      fcrush use:up_injective.
+    - move => p A B0 B1 hB ihB ξ + hξ.
       case => //= p' A2 B2 [*]. subst.
-      have : (forall i j, (upRen_PTm_PTm) i = (upRen_PTm_PTm) j -> i = j) by sauto.
+      have : (forall i j, (upRen_PTm_PTm ξ) i = (upRen_PTm_PTm ξ) j -> i = j) by sfirstorder use:up_injective.
       move => {}/ihB => ihB.
       spec_refl.
       sauto lq:on.
-  Admitted.
+    - move => P0 P1 a b c hP ihP ξ []//=.
+      move => > /up_injective.
+      hauto q:on ctrs:R.
+    - move => P a b c0 c1 hc ihc ξ []//=.
+      move => > /up_injective /up_injective.
+      hauto q:on ctrs:R.
+  Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    R a b -> R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
-    move => h. move : m ρ. elim : n a b /h => n.
-    move => a m ρ /=.
+    move => h. move : ρ. elim : a b /h.
+    move => a ρ /=.
     eapply AppEta'; eauto. by asimpl.
     all : hauto lq:on ctrs:R.
   Qed.
 
-  Lemma nf_preservation n (a b : PTm) :
+  Lemma nf_preservation (a b : PTm) :
     ERed.R a b -> (nf a -> nf b) /\ (ne a -> ne b).
   Proof.
     move => h.
-    elim : n a b /h => //=;
-                        hauto lqb:on use:ne_nf_ren,ne_nf.
+    elim : a b /h => //=;
+      hauto lqb:on use:ne_nf_ren,ne_nf.
   Qed.
 
 End ERed.
@@ -1904,41 +1928,40 @@ Module EReds.
   #[local]Ltac solve_s :=
     repeat (induction 1; last by solve_s_rec); apply rtc_refl.
 
-  Lemma AbsCong n (a b : PTm (S n)) :
+  Lemma AbsCong (a b : PTm) :
     rtc ERed.R a b ->
     rtc ERed.R (PAbs a) (PAbs b).
   Proof. solve_s. Qed.
 
-  Lemma AppCong n (a0 a1 b0 b1 : PTm) :
+  Lemma AppCong (a0 a1 b0 b1 : PTm) :
     rtc ERed.R a0 a1 ->
     rtc ERed.R b0 b1 ->
     rtc ERed.R (PApp a0 b0) (PApp a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma PairCong n (a0 a1 b0 b1 : PTm) :
+  Lemma PairCong (a0 a1 b0 b1 : PTm) :
     rtc ERed.R a0 a1 ->
     rtc ERed.R b0 b1 ->
     rtc ERed.R (PPair a0 b0) (PPair a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma ProjCong n p (a0 a1  : PTm) :
+  Lemma ProjCong p (a0 a1  : PTm) :
     rtc ERed.R a0 a1 ->
     rtc ERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
-  Lemma BindCong n p (A0 A1 : PTm) B0 B1 :
+  Lemma BindCong p (A0 A1 : PTm) B0 B1 :
     rtc ERed.R A0 A1 ->
     rtc ERed.R B0 B1 ->
     rtc ERed.R (PBind p A0 B0) (PBind p A1 B1).
   Proof. solve_s. Qed.
 
-
-  Lemma SucCong n (a0 a1 : PTm) :
+  Lemma SucCong (a0 a1 : PTm) :
     rtc ERed.R a0 a1 ->
     rtc ERed.R (PSuc a0) (PSuc a1).
   Proof. solve_s. Qed.
 
-  Lemma IndCong n P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
+  Lemma IndCong P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
     rtc ERed.R P0 P1 ->
     rtc ERed.R a0 a1 ->
     rtc ERed.R b0 b1 ->
@@ -1946,37 +1969,37 @@ Module EReds.
     rtc ERed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
   Proof. solve_s. Qed.
 
-  Lemma renaming n m (a b : PTm) (ξ : fin n -> fin m) :
-    rtc ERed.R a b -> rtc ERed.R (ren_PTm a) (ren_PTm b).
+  Lemma renaming (a b : PTm) (ξ : nat -> nat) :
+    rtc ERed.R a b -> rtc ERed.R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof. induction 1; hauto l:on use:ERed.renaming ctrs:rtc. Qed.
 
-  Lemma FromEPar n (a b : PTm) :
+  Lemma FromEPar (a b : PTm) :
     EPar.R a b ->
     rtc ERed.R a b.
   Proof.
-    move => h. elim : n a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong, IndCong, SucCong.
-    - move => n a0 a1 _ h.
+    move => h. elim : a b /h; eauto using AbsCong, AppCong, PairCong, ProjCong, rtc_refl, BindCong, IndCong, SucCong.
+    - move => a0 a1 _ h.
       have {}h : rtc ERed.R (ren_PTm shift a0) (ren_PTm shift a1) by apply renaming.
       apply : rtc_r. apply AbsCong. apply AppCong; eauto. apply rtc_refl.
       apply ERed.AppEta.
-    - move => n a0 a1 _ h.
+    - move => a0 a1 _ h.
       apply : rtc_r.
       apply PairCong; eauto using ProjCong.
       apply ERed.PairEta.
   Qed.
 
-  Lemma FromEPars n (a b : PTm) :
+  Lemma FromEPars (a b : PTm) :
     rtc EPar.R a b ->
     rtc ERed.R a b.
   Proof. induction 1; hauto l:on use:FromEPar, @relations.rtc_transitive. Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    rtc ERed.R a b -> rtc ERed.R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    rtc ERed.R a b -> rtc ERed.R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     induction 1; hauto lq:on ctrs:rtc use:ERed.substing.
   Qed.
 
-  Lemma app_inv n (a0 b0 C : PTm) :
+  Lemma app_inv (a0 b0 C : PTm) :
     rtc ERed.R (PApp a0 b0) C ->
     exists a1 b1, C = PApp a1 b1 /\
                rtc ERed.R a0 a1 /\
@@ -1986,11 +2009,12 @@ Module EReds.
     move : a0 b0 E.
     elim : u C / hu.
     - hauto lq:on ctrs:rtc.
-    - move => a b c ha ha' iha a0 b0 ?. subst.
+    - move => a0 a1 a2 ha ha0 iha b0 b1 ?. subst.
+      inversion ha; subst; spec_refl;
       hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R.
   Qed.
 
-  Lemma proj_inv n p (a C : PTm) :
+  Lemma proj_inv p (a C : PTm) :
     rtc ERed.R (PProj p a) C ->
     exists c, C = PProj p c /\ rtc ERed.R a c.
   Proof.
@@ -2000,7 +2024,7 @@ Module EReds.
       scrush ctrs:rtc,ERed.R inv:ERed.R.
   Qed.
 
-  Lemma bind_inv n p (A : PTm) B C :
+  Lemma bind_inv p (A : PTm) B C :
     rtc ERed.R (PBind p A B) C ->
     exists A0 B0, C = PBind p A0 B0 /\ rtc ERed.R A A0 /\ rtc ERed.R B B0.
   Proof.
@@ -2011,7 +2035,7 @@ Module EReds.
     hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
-  Lemma suc_inv n (a : PTm) C :
+  Lemma suc_inv (a : PTm) C :
     rtc ERed.R (PSuc a) C ->
     exists b, rtc ERed.R a b /\ C = PSuc b.
   Proof.
@@ -2022,14 +2046,14 @@ Module EReds.
     - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
-  Lemma zero_inv n (C : PTm) :
+  Lemma zero_inv (C : PTm) :
     rtc ERed.R PZero C -> C = PZero.
     move E : PZero => u hu.
     move : E. elim : u C /hu=>//=.
     - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
-  Lemma ind_inv n P (a : PTm) b c C :
+  Lemma ind_inv P (a : PTm) b c C :
     rtc ERed.R (PInd P a b c) C ->
     exists P0 a0 b0 c0,  rtc ERed.R P P0 /\ rtc ERed.R a a0 /\
                       rtc ERed.R b b0 /\ rtc ERed.R c c0 /\
@@ -2039,7 +2063,7 @@ Module EReds.
     move : P a b c E.
     elim : u C / hu.
     - hauto lq:on ctrs:rtc.
-    - hauto lq:on rew:off ctrs:rtc, ERed.R inv:ERed.R, rtc.
+    - scrush ctrs:rtc, ERed.R inv:ERed.R, rtc.
   Qed.
 
 End EReds.
@@ -2049,35 +2073,35 @@ End EReds.
 Module EJoin.
   Definition R (a b : PTm) := exists c, rtc ERed.R a c /\ rtc ERed.R b c.
 
-  Lemma hne_app_inj n (a0 b0 a1 b1 : PTm) :
+  Lemma hne_app_inj (a0 b0 a1 b1 : PTm) :
     R (PApp a0 b0) (PApp a1 b1) ->
     R a0 a1 /\ R b0 b1.
   Proof.
     hauto lq:on use:EReds.app_inv.
   Qed.
 
-  Lemma hne_proj_inj n p0 p1 (a0 a1 : PTm) :
+  Lemma hne_proj_inj p0 p1 (a0 a1 : PTm) :
     R (PProj p0 a0) (PProj p1 a1) ->
     p0 = p1 /\ R a0 a1.
   Proof.
     hauto lq:on rew:off use:EReds.proj_inv.
   Qed.
 
-  Lemma bind_inj n p0 p1 (A0 A1 : PTm) B0 B1 :
+  Lemma bind_inj p0 p1 (A0 A1 : PTm) B0 B1 :
     R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
     p0 = p1 /\ R A0 A1 /\ R B0 B1.
   Proof.
     hauto lq:on rew:off use:EReds.bind_inv.
   Qed.
 
-  Lemma suc_inj n  (A0 A1 : PTm)  :
+  Lemma suc_inj (A0 A1 : PTm)  :
     R (PSuc A0) (PSuc A1) ->
     R A0 A1.
   Proof.
     hauto lq:on rew:off use:EReds.suc_inv.
   Qed.
 
-  Lemma ind_inj n P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
+  Lemma ind_inj P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
     R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1) ->
     R P0 P1 /\ R a0 a1 /\ R b0 b1 /\ R c0 c1.
   Proof. hauto q:on use:EReds.ind_inv. Qed.
@@ -2094,7 +2118,7 @@ Module RERed.
     R (PProj p (PPair a b)) (if p is PL then a else b)
 
   | IndZero P b c :
-      R (PInd P PZero b c) b
+    R (PInd P PZero b c) b
 
   | IndSuc P a b c :
     R (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
@@ -2224,8 +2248,8 @@ Module REReds.
   Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromEta. Qed.
 
   #[local]Ltac solve_s_rec :=
-  move => *; eapply rtc_l; eauto;
-         hauto lq:on ctrs:RERed.R.
+    move => *; eapply rtc_l; eauto;
+           hauto lq:on ctrs:RERed.R.
 
   #[local]Ltac solve_s :=
     repeat (induction 1; last by solve_s_rec); apply rtc_refl.
@@ -2324,7 +2348,7 @@ Module REReds.
     move : a0 b0 E.
     elim : u C / hu.
     - hauto lq:on ctrs:rtc.
-    - move => a b c ha ha' iha a0 b0 ?. subst.
+    - move => a b c ha ha iha a0 b0 ?. subst.
       hauto lq:on rew:off ctrs:rtc, RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
