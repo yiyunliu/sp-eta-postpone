@@ -1579,7 +1579,6 @@ Proof.
 Qed.
 
 Lemma SSu_Pi Γ (A0 A1 : PTm ) B0 B1 :
-  ⊨ Γ ->
   Γ ⊨ A1 ≲ A0 ->
   cons A0 Γ ⊨ B0 ≲ B1 ->
   Γ ⊨ PBind PPi A0 B0 ≲ PBind PPi A1 B1.
@@ -1602,12 +1601,11 @@ Proof.
 Qed.
 
 Lemma SSu_Sig Γ (A0 A1 : PTm) B0 B1 :
-  ⊨ Γ ->
   Γ ⊨ A0 ≲ A1 ->
   cons A1 Γ ⊨ B0 ≲ B1 ->
   Γ ⊨ PBind PSig A0 B0 ≲ PBind PSig A1 B1.
 Proof.
-  move => hΓ hA hB.
+  move => hA hB.
   have ? : SN A0 /\ SN A1 /\ SN B0 /\ SN B1
     by hauto l:on use:SemLEq_SN_Sub.
   apply SemLEq_SemWt in hA, hB.
