@@ -1296,18 +1296,18 @@ Lemma coqeq_complete' k (a b : PTm ) :
 Proof.
   move : k a b.
   elim /Wf_nat.lt_wf_ind.
-  move => k ih.
-  move => a b /[dup] h /algo_metric_case. move : k a b h => [:hstepL].
-  move => k a b h.
+  move => n ih.
+  move => a b /[dup] h /algo_metric_case. move : a b h => [:hstepL].
+  move => a b h.
   (* Cases where a and b can take steps *)
   case; cycle 1.
-  move : k a b h.
+  move : ih a b h.
   abstract : hstepL. qauto l:on use:HRed.preservation, CE_HRedL, hred_hne.
   move  /algo_metric_sym /algo_metric_case : (h).
   case; cycle 1.
   move {ih}. move /algo_metric_sym : h.
-  move : hstepL => /[apply].
-  hauto lq:on use:coqeq_symmetric_mutual, algo_metric_sym.
+  move : hstepL; repeat move /[apply].
+  best use:coqeq_symmetric_mutual, algo_metric_sym.
   (* Cases where a and b can't take wh steps *)
   move {hstepL}.
   move : k a b h. move => [:hnfneu].
