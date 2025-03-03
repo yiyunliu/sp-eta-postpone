@@ -12,6 +12,14 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import Btauto.
 Require Import Cdcl.Itauto.
 
+Lemma subst_scons_id (a : PTm) :
+  subst_PTm (scons (VarPTm 0) (funcomp VarPTm shift)) a = a.
+Proof.
+  have E : subst_PTm VarPTm a = a by asimpl.
+  rewrite -{2}E.
+  apply ext_PTm. case => //=.
+Qed.
+
 Ltac2 spec_refl () :=
   List.iter
     (fun a => match a with
@@ -2170,79 +2178,79 @@ Module RERed.
     R a0 a1 ->
     R (PSuc a0) (PSuc a1).
 
-  Lemma ToBetaEta n (a b : PTm) :
+  Lemma ToBetaEta (a b : PTm) :
     R a b ->
     ERed.R a b \/ RRed.R a b.
   Proof. induction 1; hauto lq:on db:red. Qed.
 
-  Lemma FromBeta n (a b : PTm) :
+  Lemma FromBeta (a b : PTm) :
     RRed.R a b -> RERed.R a b.
   Proof. induction 1; qauto l:on ctrs:R. Qed.
 
-  Lemma FromEta n (a b : PTm) :
+  Lemma FromEta (a b : PTm) :
     ERed.R a b -> RERed.R a b.
   Proof. induction 1; qauto l:on ctrs:R. Qed.
 
-  Lemma ToBetaEtaPar n (a b : PTm) :
+  Lemma ToBetaEtaPar (a b : PTm) :
     R a b ->
     EPar.R a b \/ RRed.R a b.
   Proof.
     hauto q:on use:ERed.ToEPar, ToBetaEta.
   Qed.
 
-  Lemma sn_preservation n (a b : PTm) :
+  Lemma sn_preservation (a b : PTm) :
     R a b ->
     SN a ->
     SN b.
   Proof. hauto q:on use:ToBetaEtaPar, epar_sn_preservation, red_sn_preservation, RPar.FromRRed. Qed.
 
-  Lemma bind_preservation n (a b : PTm) :
+  Lemma bind_preservation (a b : PTm) :
     R a b -> isbind a -> isbind b.
   Proof. hauto q:on inv:R. Qed.
 
-  Lemma univ_preservation n (a b : PTm) :
+  Lemma univ_preservation (a b : PTm) :
     R a b -> isuniv a -> isuniv b.
   Proof. hauto q:on inv:R. Qed.
 
-  Lemma nat_preservation n (a b : PTm) :
+  Lemma nat_preservation (a b : PTm) :
     R a b -> isnat a -> isnat b.
   Proof. hauto q:on inv:R. Qed.
 
-  Lemma sne_preservation n (a b : PTm) :
+  Lemma sne_preservation (a b : PTm) :
     R a b -> SNe a -> SNe b.
   Proof.
     hauto q:on use:ToBetaEtaPar, RPar.FromRRed use:red_sn_preservation, epar_sn_preservation.
   Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    RERed.R a b -> RERed.R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    RERed.R a b -> RERed.R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     hauto q:on use:ToBetaEta, FromBeta, FromEta, RRed.substing, ERed.substing.
   Qed.
 
-  Lemma hne_preservation n (a b : PTm) :
+  Lemma hne_preservation (a b : PTm) :
     RERed.R a b -> ishne a -> ishne b.
   Proof.  induction 1; sfirstorder. Qed.
 
 End RERed.
 
 Module REReds.
-  Lemma hne_preservation n (a b : PTm) :
+  Lemma hne_preservation (a b : PTm) :
     rtc RERed.R a b -> ishne a -> ishne b.
   Proof.  induction 1; eauto using RERed.hne_preservation, rtc_refl, rtc. Qed.
 
-  Lemma sn_preservation n (a b : PTm) :
+  Lemma sn_preservation (a b : PTm) :
     rtc RERed.R a b ->
     SN a ->
     SN b.
   Proof. induction 1; eauto using RERed.sn_preservation. Qed.
 
-  Lemma FromRReds n (a b : PTm) :
+  Lemma FromRReds (a b : PTm) :
     rtc RRed.R a b ->
     rtc RERed.R a b.
   Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromBeta. Qed.
 
-  Lemma FromEReds n (a b : PTm) :
+  Lemma FromEReds (a b : PTm) :
     rtc ERed.R a b ->
     rtc RERed.R a b.
   Proof. induction 1; hauto lq:on ctrs:rtc use:RERed.FromEta. Qed.
@@ -2254,34 +2262,34 @@ Module REReds.
   #[local]Ltac solve_s :=
     repeat (induction 1; last by solve_s_rec); apply rtc_refl.
 
-  Lemma AbsCong n (a b : PTm (S n)) :
+  Lemma AbsCong (a b : PTm) :
     rtc RERed.R a b ->
     rtc RERed.R (PAbs a) (PAbs b).
   Proof. solve_s. Qed.
 
-  Lemma AppCong n (a0 a1 b0 b1 : PTm) :
+  Lemma AppCong (a0 a1 b0 b1 : PTm) :
     rtc RERed.R a0 a1 ->
     rtc RERed.R b0 b1 ->
     rtc RERed.R (PApp a0 b0) (PApp a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma PairCong n (a0 a1 b0 b1 : PTm) :
+  Lemma PairCong (a0 a1 b0 b1 : PTm) :
     rtc RERed.R a0 a1 ->
     rtc RERed.R b0 b1 ->
     rtc RERed.R (PPair a0 b0) (PPair a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma ProjCong n p (a0 a1  : PTm) :
+  Lemma ProjCong p (a0 a1  : PTm) :
     rtc RERed.R a0 a1 ->
     rtc RERed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
-  Lemma SucCong n (a0 a1 : PTm) :
+  Lemma SucCong (a0 a1 : PTm) :
     rtc RERed.R a0 a1 ->
     rtc RERed.R (PSuc a0) (PSuc a1).
   Proof. solve_s. Qed.
 
-  Lemma IndCong n P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
+  Lemma IndCong P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
     rtc RERed.R P0 P1 ->
     rtc RERed.R a0 a1 ->
     rtc RERed.R b0 b1 ->
@@ -2289,30 +2297,30 @@ Module REReds.
     rtc RERed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
   Proof. solve_s. Qed.
 
-  Lemma BindCong n p (A0 A1 : PTm) B0 B1 :
+  Lemma BindCong p (A0 A1 : PTm) B0 B1 :
     rtc RERed.R A0 A1 ->
     rtc RERed.R B0 B1 ->
     rtc RERed.R (PBind p A0 B0) (PBind p A1 B1).
   Proof. solve_s. Qed.
 
-  Lemma bind_preservation n (a b : PTm) :
+  Lemma bind_preservation (a b : PTm) :
     rtc RERed.R a b -> isbind a -> isbind b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.bind_preservation. Qed.
 
-  Lemma univ_preservation n (a b : PTm) :
+  Lemma univ_preservation (a b : PTm) :
     rtc RERed.R a b -> isuniv a -> isuniv b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.univ_preservation. Qed.
 
-  Lemma nat_preservation n (a b : PTm) :
+  Lemma nat_preservation (a b : PTm) :
     rtc RERed.R a b -> isnat a -> isnat b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.nat_preservation. Qed.
 
-  Lemma sne_preservation n (a b : PTm) :
+  Lemma sne_preservation (a b : PTm) :
     rtc RERed.R a b -> SNe a -> SNe b.
   Proof. induction 1; qauto l:on ctrs:rtc use:RERed.sne_preservation. Qed.
 
-  Lemma bind_inv n p A B C :
-    rtc (@RERed.R n) (PBind p A B) C ->
+  Lemma bind_inv p A B C :
+    rtc RERed.R(PBind p A B) C ->
     exists A0 B0, C = PBind p A0 B0 /\ rtc RERed.R A A0 /\ rtc RERed.R B B0.
   Proof.
     move E : (PBind p A B) => u hu.
@@ -2320,8 +2328,8 @@ Module REReds.
     elim : u C / hu; sauto lq:on rew:off.
   Qed.
 
-  Lemma univ_inv n i C :
-    rtc (@RERed.R n) (PUniv i) C  ->
+  Lemma univ_inv i C :
+    rtc RERed.R (PUniv i) C  ->
     C = PUniv i.
   Proof.
     move E : (PUniv i) => u hu.
@@ -2329,7 +2337,7 @@ Module REReds.
     hauto lq:on rew:off ctrs:rtc inv:RERed.R.
   Qed.
 
-  Lemma var_inv n (i : fin n) C :
+  Lemma var_inv (i : nat) C :
     rtc RERed.R (VarPTm i) C ->
     C = VarPTm i.
   Proof.
@@ -2337,7 +2345,7 @@ Module REReds.
     move : i E. elim : u C /hu; hauto lq:on rew:off inv:RERed.R.
   Qed.
 
-  Lemma hne_app_inv n (a0 b0 C : PTm) :
+  Lemma hne_app_inv (a0 b0 C : PTm) :
     rtc RERed.R (PApp a0 b0) C ->
     ishne a0 ->
     exists a1 b1, C = PApp a1 b1 /\
@@ -2348,11 +2356,11 @@ Module REReds.
     move : a0 b0 E.
     elim : u C / hu.
     - hauto lq:on ctrs:rtc.
-    - move => a b c ha ha iha a0 b0 ?. subst.
+    - move => a b c ha0 ha1 iha a0 b0 ?. subst.
       hauto lq:on rew:off ctrs:rtc, RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
-  Lemma hne_proj_inv n p (a C : PTm) :
+  Lemma hne_proj_inv p (a C : PTm) :
     rtc RERed.R (PProj p a) C ->
     ishne a ->
     exists c, C = PProj p c /\ rtc RERed.R a c.
@@ -2363,7 +2371,7 @@ Module REReds.
       scrush ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
-  Lemma hne_ind_inv n P a b c (C : PTm) :
+  Lemma hne_ind_inv P a b c (C : PTm) :
     rtc RERed.R (PInd P a b c) C -> ishne a ->
     exists P0 a0 b0 c0, C = PInd P0 a0 b0 c0 /\
                      rtc RERed.R P P0 /\
@@ -2377,47 +2385,47 @@ Module REReds.
       scrush ctrs:rtc,RERed.R use:RERed.hne_preservation inv:RERed.R.
   Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    rtc RERed.R a b -> rtc RERed.R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    rtc RERed.R a b -> rtc RERed.R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     induction 1; hauto lq:on ctrs:rtc use:RERed.substing.
   Qed.
 
 
-  Lemma cong_up n m (ρ0 ρ1 : fin n -> PTm) :
+  Lemma cong_up (ρ0 ρ1 : nat -> PTm) :
     (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
-    (forall i, rtc RERed.R (up_PTm_PTm0 i) (up_PTm_PTm1 i)).
-  Proof. move => h i. destruct i as [i|].
+    (forall i, rtc RERed.R (up_PTm_PTm ρ0 i) (up_PTm_PTm ρ1 i)).
+  Proof. move => h [|i]; cycle 1.
          simpl. rewrite /funcomp.
          substify. by apply substing.
          apply rtc_refl.
   Qed.
 
-  Lemma cong_up2 n m (ρ0 ρ1 : fin n -> PTm) :
+  Lemma cong_up2 (ρ0 ρ1 : nat -> PTm) :
     (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
-    (forall i, rtc RERed.R (up_PTm_PTm (up_PTm_PTm0) i) (up_PTm_PTm (up_PTm_PTm1) i)).
+    (forall i, rtc RERed.R (up_PTm_PTm (up_PTm_PTm ρ0) i) (up_PTm_PTm (up_PTm_PTm ρ1) i)).
   Proof. hauto l:on use:cong_up. Qed.
 
-  Lemma cong n m (a : PTm) (ρ0 ρ1 : fin n -> PTm) :
+  Lemma cong (a : PTm) (ρ0 ρ1 : nat -> PTm) :
     (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
-    rtc RERed.R (subst_PTm0 a) (subst_PTm1 a).
+    rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a).
   Proof.
-    move : m ρ0 ρ1. elim : n / a => /=;
+    move : ρ0 ρ1. elim : a => /=;
       eauto 20 using AppCong, AbsCong, BindCong, ProjCong, PairCong, cong_up, rtc_refl, IndCong, SucCong, cong_up2.
   Qed.
 
-  Lemma cong' n m (a b : PTm) (ρ0 ρ1 : fin n -> PTm) :
+  Lemma cong' (a b : PTm) (ρ0 ρ1 : nat -> PTm) :
     rtc RERed.R a b ->
     (forall i, rtc RERed.R (ρ0 i) (ρ1 i)) ->
-    rtc RERed.R (subst_PTm0 a) (subst_PTm1 b).
+    rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 b).
   Proof.
     move => h0 h1.
-    have : rtc RERed.R (subst_PTm0 a) (subst_PTm1 a) by eauto using cong.
+    have : rtc RERed.R (subst_PTm ρ0 a) (subst_PTm ρ1 a) by eauto using cong.
     move => ?. apply : relations.rtc_transitive; eauto.
     hauto l:on use:substing.
   Qed.
 
-  Lemma ToEReds n (a b : PTm) :
+  Lemma ToEReds (a b : PTm) :
     nf a ->
     rtc RERed.R a b -> rtc ERed.R a b.
   Proof.
@@ -2425,14 +2433,14 @@ Module REReds.
     induction h; hauto lq:on rew:off ctrs:rtc use:RERed.ToBetaEta, RReds.nf_refl, @rtc_once, ERed.nf_preservation.
   Qed.
 
-  Lemma zero_inv n (C : PTm) :
+  Lemma zero_inv (C : PTm) :
     rtc RERed.R PZero C -> C = PZero.
     move E : PZero => u hu.
     move : E. elim : u C /hu=>//=.
     - hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R, rtc.
   Qed.
 
-  Lemma suc_inv n (a : PTm) C :
+  Lemma suc_inv (a : PTm) C :
     rtc RERed.R (PSuc a) C ->
     exists b, rtc RERed.R a b /\ C = PSuc b.
   Proof.
@@ -2443,8 +2451,8 @@ Module REReds.
     - hauto lq:on rew:off ctrs:rtc, RERed.R inv:RERed.R, rtc.
   Qed.
 
-  Lemma nat_inv n C :
-    rtc RERed.R (@PNat n) C ->
+  Lemma nat_inv C :
+    rtc RERed.R PNat C ->
     C = PNat.
   Proof.
     move E : PNat => u hu. move : E.
@@ -2523,36 +2531,36 @@ Module LoRed.
     R a0 a1 ->
     R (PSuc a0) (PSuc a1).
 
-  Lemma hf_preservation n (a b : PTm) :
+  Lemma hf_preservation (a b : PTm) :
     LoRed.R a b ->
     ishf a ->
     ishf b.
   Proof.
-    move => h. elim : n a b /h=>//=.
+    move => h. elim : a b /h=>//=.
   Qed.
 
-  Lemma ToRRed n (a b : PTm) :
+  Lemma ToRRed (a b : PTm) :
     LoRed.R a b ->
     RRed.R a b.
   Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
 
-  Lemma AppAbs' n a (b : PTm) u :
+  Lemma AppAbs' a (b : PTm) u :
     u = (subst_PTm (scons b VarPTm) a) ->
     R (PApp (PAbs a) b)  u.
   Proof. move => ->. apply AppAbs. Qed.
 
-  Lemma IndSuc' n P a b c u :
+  Lemma IndSuc' P a b c u :
     u = (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ->
-    R (@PInd n P (PSuc a) b c) u.
+    R (@PInd P (PSuc a) b c) u.
   Proof. move => ->. apply IndSuc. Qed.
 
-  Lemma renaming n m (a b : PTm) (ξ : fin n -> fin m) :
-    R a b -> R (ren_PTm a) (ren_PTm b).
+  Lemma renaming (a b : PTm) (ξ : nat -> nat) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
-    move => h. move : m ξ.
-    elim : n a b /h.
+    move => h. move : ξ.
+    elim : a b /h.
 
-    move => n a b m ξ /=.
+    move => a b ξ /=.
     apply AppAbs'. by asimpl.
     all : try qauto ctrs:R use:ne_nf_ren, ishf_ren.
     move => * /=; apply IndSuc'. by asimpl.
@@ -2561,7 +2569,7 @@ Module LoRed.
 End LoRed.
 
 Module LoReds.
-  Lemma hf_preservation n (a b : PTm) :
+  Lemma hf_preservation (a b : PTm) :
     rtc LoRed.R a b ->
     ishf a ->
     ishf b.
@@ -2569,7 +2577,7 @@ Module LoReds.
     induction 1; eauto using LoRed.hf_preservation.
   Qed.
 
-  Lemma hf_ne_imp n (a b : PTm) :
+  Lemma hf_ne_imp (a b : PTm) :
     rtc LoRed.R a b ->
     ne b ->
     ~~ ishf a.
@@ -2585,39 +2593,39 @@ Module LoReds.
   #[local]Ltac solve_s :=
     repeat (induction 1; last by solve_s_rec); (move => *; apply rtc_refl).
 
-  Lemma AbsCong n (a b : PTm (S n)) :
+  Lemma AbsCong (a b : PTm) :
     rtc LoRed.R a b ->
     rtc LoRed.R (PAbs a) (PAbs b).
   Proof. solve_s. Qed.
 
-  Lemma AppCong n (a0 a1 b0 b1 : PTm) :
+  Lemma AppCong (a0 a1 b0 b1 : PTm) :
     rtc LoRed.R a0 a1 ->
     rtc LoRed.R b0 b1 ->
     ne a1 ->
     rtc LoRed.R (PApp a0 b0) (PApp a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma PairCong n (a0 a1 b0 b1 : PTm) :
+  Lemma PairCong (a0 a1 b0 b1 : PTm) :
     rtc LoRed.R a0 a1 ->
     rtc LoRed.R b0 b1 ->
     nf a1 ->
     rtc LoRed.R (PPair a0 b0) (PPair a1 b1).
   Proof. solve_s. Qed.
 
-  Lemma ProjCong n p (a0 a1  : PTm) :
+  Lemma ProjCong p (a0 a1  : PTm) :
     rtc LoRed.R a0 a1 ->
     ne a1 ->
     rtc LoRed.R (PProj p a0) (PProj p a1).
   Proof. solve_s. Qed.
 
-  Lemma BindCong n p (A0 A1 : PTm) B0 B1 :
+  Lemma BindCong p (A0 A1 : PTm) B0 B1 :
     rtc LoRed.R A0 A1 ->
     rtc LoRed.R B0 B1 ->
     nf A1 ->
     rtc LoRed.R (PBind p A0 B0) (PBind p A1 B1).
   Proof. solve_s. Qed.
 
-  Lemma IndCong n P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
+  Lemma IndCong P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
     rtc LoRed.R a0 a1 ->
     rtc LoRed.R P0 P1 ->
     rtc LoRed.R b0 b1 ->
@@ -2628,14 +2636,14 @@ Module LoReds.
     rtc LoRed.R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
   Proof. solve_s. Qed.
 
-  Lemma SucCong n (a0 a1 : PTm) :
+  Lemma SucCong (a0 a1 : PTm) :
     rtc LoRed.R a0 a1 ->
     rtc LoRed.R (PSuc a0) (PSuc a1).
   Proof. solve_s. Qed.
 
   Local Ltac triv := simpl in *; itauto.
 
-  Lemma FromSN_mutual : forall n,
+  Lemma FromSN_mutual :
     (forall (a : PTm) (_ : SNe a), exists v, rtc LoRed.R a v /\ ne v) /\
     (forall (a : PTm) (_ : SN a), exists v, rtc LoRed.R a v /\ nf v) /\
     (forall (a b : PTm) (_ : TRedSN a b), LoRed.R a b).
@@ -2644,7 +2652,6 @@ Module LoReds.
     - hauto lq:on ctrs:rtc.
     - hauto lq:on rew:off use:LoReds.AppCong solve+:triv.
     - hauto l:on use:LoReds.ProjCong solve+:triv.
-    - hauto lq:on ctrs:rtc.
     - hauto lq:on use:LoReds.IndCong solve+:triv.
     - hauto q:on use:LoReds.PairCong solve+:triv.
     - hauto q:on use:LoReds.AbsCong solve+:triv.
@@ -2656,73 +2663,71 @@ Module LoReds.
     - hauto lq:on ctrs:rtc.
     - hauto l:on use:SucCong.
     - qauto ctrs:LoRed.R.
-    - move => n a0 a1 b hb ihb h.
+    - move => a0 a1 b hb ihb h.
       have : ~~ ishf a0 by inversion h.
       hauto lq:on ctrs:LoRed.R.
     - qauto ctrs:LoRed.R.
     - qauto ctrs:LoRed.R.
-    - move => n p a b h.
+    - move => p a b h.
       have : ~~ ishf a by inversion h.
       hauto lq:on ctrs:LoRed.R.
     - sfirstorder.
     - sfirstorder.
-    - move => n P a0 a1 b c hP ihP hb ihb hc ihc hr.
+    - move => P a0 a1 b c hP ihP hb ihb hc ihc hr.
       have : ~~ ishf a0 by inversion hr.
       hauto q:on ctrs:LoRed.R.
   Qed.
 
-  Lemma FromSN : forall n a, @SN n a -> exists v, rtc LoRed.R a v /\ nf v.
+  Lemma FromSN : forall a, SN a -> exists v, rtc LoRed.R a v /\ nf v.
   Proof. firstorder using FromSN_mutual. Qed.
 
-  Lemma ToRReds : forall n (a b : PTm), rtc LoRed.R a b -> rtc RRed.R a b.
+  Lemma ToRReds : forall (a b : PTm), rtc LoRed.R a b -> rtc RRed.R a b.
   Proof. induction 1; hauto lq:on ctrs:rtc use:LoRed.ToRRed. Qed.
-
 End LoReds.
 
 
 Fixpoint size_PTm (a : PTm) :=
   match a with
   | VarPTm _ => 1
-  | PAbs a => 3 + size_PTm
-  | PApp a b => 1 + Nat.add (size_PTm) (size_PTm)
-  | PProj p a => 1 + size_PTm
-  | PPair a b => 3 + Nat.add (size_PTm) (size_PTm)
+  | PAbs a => 3 + size_PTm a
+  | PApp a b => 1 + Nat.add (size_PTm a) (size_PTm b)
+  | PProj p a => 1 + size_PTm a
+  | PPair a b => 3 + Nat.add (size_PTm a) (size_PTm b)
   | PUniv _ => 3
-  | PBind p A B => 3 + Nat.add (size_PTm) (size_PTm)
-  | PInd P a b c => 3 + size_PTm + size_PTm + size_PTm + size_PTm
+  | PBind p A B => 3 + Nat.add (size_PTm A) (size_PTm B)
+  | PInd P a b c => 3 + size_PTm P + size_PTm a + size_PTm b + size_PTm c
   | PNat => 3
-  | PSuc a => 3 + size_PTm
+  | PSuc a => 3 + size_PTm a
   | PZero => 3
-  | PBot => 1
   end.
 
-Lemma size_PTm_ren n m (ξ : fin n -> fin m) a : size_PTm (ren_PTm a) = size_PTm.
+Lemma size_PTm_ren (ξ : nat -> nat) a : size_PTm (ren_PTm ξ a) = size_PTm a.
 Proof.
-  move : m ξ. elim : n / a => //=; scongruence.
+  move : ξ. elim : a => //=; scongruence.
 Qed.
 
 #[export]Hint Rewrite size_PTm_ren : sizetm.
 
 Lemma ered_size (a b : PTm) :
   ERed.R a b ->
-  size_PTm < size_PTm.
+  size_PTm b < size_PTm a.
 Proof.
-  move => h. elim : n a b /h; hauto l:on rew:db:sizetm.
+  move => h. elim : a b /h; try hauto l:on rew:db:sizetm solve+:lia.
 Qed.
 
-Lemma ered_sn n (a : PTm) : sn ERed.R a.
+Lemma ered_sn (a : PTm) : sn ERed.R a.
 Proof.
   hauto lq:on rew:off use:size_PTm_ren, ered_size,
           well_founded_lt_compat unfold:well_founded.
 Qed.
 
-Lemma ered_local_confluence n (a b c : PTm) :
+Lemma ered_local_confluence (a b c : PTm) :
   ERed.R a b ->
   ERed.R a c ->
   exists d, rtc ERed.R b d  /\ rtc ERed.R c d.
 Proof.
   move => h. move : c.
-  elim : n a b / h => n.
+  elim : a b / h.
   - move => a c.
     elim /ERed.inv => //= _.
     + move => a0 [+ ?]. subst => h.
@@ -2822,7 +2827,7 @@ Proof.
   - qauto l:on inv:ERed.R ctrs:rtc use:EReds.SucCong.
 Qed.
 
-Lemma ered_confluence n (a b c : PTm) :
+Lemma ered_confluence (a b c : PTm) :
   rtc ERed.R a b ->
   rtc ERed.R a c ->
   exists d, rtc ERed.R b d  /\ rtc ERed.R c d.
@@ -2830,7 +2835,7 @@ Proof.
   sfirstorder use:relations.locally_confluent_confluent, ered_sn, ered_local_confluence.
 Qed.
 
-Lemma red_confluence n (a b c : PTm) :
+Lemma red_confluence (a b c : PTm) :
   rtc RRed.R a b ->
   rtc RRed.R a c ->
   exists d, rtc RRed.R b d  /\ rtc RRed.R c d.
@@ -2841,7 +2846,7 @@ Lemma red_confluence n (a b c : PTm) :
   eauto using RPar.diamond.
 Qed.
 
-Lemma red_uniquenf n (a b c : PTm) :
+Lemma red_uniquenf (a b c : PTm) :
   rtc RRed.R a b ->
   rtc RRed.R a c ->
   nf b ->
@@ -2856,20 +2861,20 @@ Proof.
 Qed.
 
 Module NeEPars.
-  Lemma R_nonelim_nf n (a b : PTm) :
+  Lemma R_nonelim_nf (a b : PTm) :
     rtc NeEPar.R_nonelim a b ->
     nf b ->
     nf a.
   Proof. induction 1; sfirstorder use:NeEPar.R_elim_nf. Qed.
 
-  Lemma ToEReds : forall n, (forall (a b : PTm), rtc NeEPar.R_nonelim a b -> rtc ERed.R a b).
+  Lemma ToEReds : (forall (a b : PTm), rtc NeEPar.R_nonelim a b -> rtc ERed.R a b).
   Proof.
     induction 1; hauto l:on use:NeEPar.ToEPar, EReds.FromEPar, @relations.rtc_transitive.
   Qed.
 End NeEPars.
 
 
-Lemma rered_standardization n (a c : PTm) :
+Lemma rered_standardization (a c : PTm) :
   SN a ->
   rtc RERed.R a c ->
   exists b, rtc RRed.R a b /\ rtc NeEPar.R_nonelim b c.
@@ -2886,7 +2891,7 @@ Proof.
   - hauto lq:on ctrs:rtc use:red_sn_preservation, RPar.FromRRed.
 Qed.
 
-Lemma rered_confluence n (a b c : PTm) :
+Lemma rered_confluence (a b c : PTm) :
   SN a ->
   rtc RERed.R a b ->
   rtc RERed.R a c ->
@@ -2921,13 +2926,13 @@ Qed.
 (* Beta joinability *)
 Module BJoin.
   Definition R (a b : PTm) := exists c, rtc RRed.R a c /\ rtc RRed.R b c.
-  Lemma refl n (a : PTm) : R a a.
+  Lemma refl (a : PTm) : R a a.
   Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
 
-  Lemma symmetric n (a b : PTm) : R a b -> R b a.
+  Lemma symmetric (a b : PTm) : R a b -> R b a.
   Proof. sfirstorder unfold:R. Qed.
 
-  Lemma transitive n (a b c : PTm) : R a b -> R b c -> R a c.
+  Lemma transitive (a b c : PTm) : R a b -> R b c -> R a c.
   Proof.
     rewrite /R.
     move => [ab [ha +]] [bc [+ hc]].
@@ -2951,19 +2956,19 @@ End BJoin.
 Module DJoin.
   Definition R (a b : PTm) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
 
-  Lemma refl n (a : PTm) : R a a.
+  Lemma refl (a : PTm) : R a a.
   Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
 
-  Lemma FromEJoin n (a b : PTm) : EJoin.R a b -> DJoin.R a b.
+  Lemma FromEJoin (a b : PTm) : EJoin.R a b -> DJoin.R a b.
   Proof. hauto q:on use:REReds.FromEReds. Qed.
 
-  Lemma ToEJoin n (a b : PTm) : nf a -> nf b -> DJoin.R a b -> EJoin.R a b.
+  Lemma ToEJoin (a b : PTm) : nf a -> nf b -> DJoin.R a b -> EJoin.R a b.
   Proof. hauto q:on use:REReds.ToEReds. Qed.
 
-  Lemma symmetric n (a b : PTm) : R a b -> R b a.
+  Lemma symmetric (a b : PTm) : R a b -> R b a.
   Proof. sfirstorder unfold:R. Qed.
 
-  Lemma transitive n (a b c : PTm) : SN b -> R a b -> R b c -> R a c.
+  Lemma transitive (a b c : PTm) : SN b -> R a b -> R b c -> R a c.
   Proof.
     rewrite /R.
     move => + [ab [ha +]] [bc [+ hc]].
@@ -2972,35 +2977,35 @@ Module DJoin.
     exists v. sfirstorder use:@relations.rtc_transitive.
   Qed.
 
-  Lemma AbsCong n (a b : PTm (S n)) :
+  Lemma AbsCong (a b : PTm) :
     R a b ->
     R (PAbs a) (PAbs b).
   Proof. hauto lq:on use:REReds.AbsCong unfold:R. Qed.
 
-  Lemma AppCong n (a0 a1 b0 b1 : PTm) :
+  Lemma AppCong (a0 a1 b0 b1 : PTm) :
     R a0 a1 ->
     R b0 b1 ->
     R (PApp a0 b0) (PApp a1 b1).
   Proof. hauto lq:on use:REReds.AppCong unfold:R. Qed.
 
-  Lemma PairCong n (a0 a1 b0 b1 : PTm) :
+  Lemma PairCong (a0 a1 b0 b1 : PTm) :
     R a0 a1 ->
     R b0 b1 ->
     R (PPair a0 b0) (PPair a1 b1).
   Proof. hauto q:on use:REReds.PairCong. Qed.
 
-  Lemma ProjCong n p (a0 a1  : PTm) :
+  Lemma ProjCong p (a0 a1  : PTm) :
     R a0 a1 ->
     R (PProj p a0) (PProj p a1).
   Proof. hauto q:on use:REReds.ProjCong. Qed.
 
-  Lemma BindCong n p (A0 A1 : PTm) B0 B1 :
+  Lemma BindCong p (A0 A1 : PTm) B0 B1 :
     R A0 A1 ->
     R B0 B1 ->
     R (PBind p A0 B0) (PBind p A1 B1).
   Proof. hauto q:on use:REReds.BindCong. Qed.
 
-  Lemma IndCong n P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
+  Lemma IndCong P0 P1 (a0 a1 : PTm) b0 b1 c0 c1 :
     R P0 P1 ->
     R a0 a1 ->
     R b0 b1 ->
@@ -3008,12 +3013,12 @@ Module DJoin.
     R (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1).
   Proof. hauto q:on use:REReds.IndCong. Qed.
 
-  Lemma SucCong n (a0 a1 : PTm) :
+  Lemma SucCong (a0 a1 : PTm) :
     R a0 a1 ->
     R (PSuc a0) (PSuc a1).
   Proof. qauto l:on use:REReds.SucCong. Qed.
 
-  Lemma FromRedSNs n (a b : PTm) :
+  Lemma FromRedSNs (a b : PTm) :
     rtc TRedSN a b ->
     R a b.
   Proof.
@@ -3021,7 +3026,7 @@ Module DJoin.
     sfirstorder use:@rtc_refl unfold:R.
   Qed.
 
-  Lemma sne_nat_noconf n (a b : PTm) :
+  Lemma sne_nat_noconf (a b : PTm) :
     R a b -> SNe a -> isnat b -> False.
   Proof.
     move => [c [? ?]] *.
@@ -3029,7 +3034,7 @@ Module DJoin.
     qauto l:on inv:SNe.
   Qed.
 
-  Lemma sne_bind_noconf n (a b : PTm) :
+  Lemma sne_bind_noconf (a b : PTm) :
     R a b -> SNe a -> isbind b -> False.
   Proof.
     move => [c [? ?]] *.
@@ -3037,14 +3042,14 @@ Module DJoin.
     qauto l:on inv:SNe.
   Qed.
 
-  Lemma sne_univ_noconf n (a b : PTm) :
+  Lemma sne_univ_noconf (a b : PTm) :
     R a b -> SNe a -> isuniv b -> False.
   Proof.
     hauto q:on use:REReds.sne_preservation,
           REReds.univ_preservation inv:SNe.
   Qed.
 
-  Lemma bind_univ_noconf n (a b : PTm) :
+  Lemma bind_univ_noconf (a b : PTm) :
     R a b -> isbind a -> isuniv b -> False.
   Proof.
     move => [c [h0 h1]] h2 h3.
@@ -3054,7 +3059,7 @@ Module DJoin.
     case : c => //=; itauto.
   Qed.
 
-  Lemma hne_univ_noconf n (a b : PTm) :
+  Lemma hne_univ_noconf (a b : PTm) :
     R a b -> ishne a -> isuniv b -> False.
   Proof.
     move => [c [h0 h1]] h2 h3.
@@ -3065,7 +3070,7 @@ Module DJoin.
     case : c => //=.
   Qed.
 
-  Lemma hne_bind_noconf n (a b : PTm) :
+  Lemma hne_bind_noconf (a b : PTm) :
     R a b -> ishne a -> isbind b -> False.
   Proof.
     move => [c [h0 h1]] h2 h3.
@@ -3076,7 +3081,7 @@ Module DJoin.
     case : c => //=.
   Qed.
 
-  Lemma hne_nat_noconf n (a b : PTm) :
+  Lemma hne_nat_noconf (a b : PTm) :
     R a b -> ishne a -> isnat b -> False.
   Proof.
     move => [c [h0 h1]] h2 h3.
@@ -3084,7 +3089,7 @@ Module DJoin.
     clear. case : c => //=; itauto.
   Qed.
 
-  Lemma bind_inj n p0 p1 (A0 A1 : PTm) B0 B1 :
+  Lemma bind_inj p0 p1 (A0 A1 : PTm) B0 B1 :
     DJoin.R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
     p0 = p1 /\ DJoin.R A0 A1 /\ DJoin.R B0 B1.
   Proof.
@@ -3092,24 +3097,24 @@ Module DJoin.
     hauto lq:on rew:off use:REReds.bind_inv.
   Qed.
 
-  Lemma var_inj n (i j : fin n) :
+  Lemma var_inj (i j : nat) :
     R (VarPTm i) (VarPTm j) -> i = j.
   Proof. sauto lq:on rew:off use:REReds.var_inv unfold:R. Qed.
 
-  Lemma univ_inj n i j :
-    @R n (PUniv i) (PUniv j)  -> i = j.
+  Lemma univ_inj i j :
+    @R (PUniv i) (PUniv j)  -> i = j.
   Proof.
     sauto lq:on rew:off use:REReds.univ_inv.
   Qed.
 
-  Lemma suc_inj n  (A0 A1 : PTm)  :
+  Lemma suc_inj  (A0 A1 : PTm)  :
     R (PSuc A0) (PSuc A1) ->
     R A0 A1.
   Proof.
     hauto lq:on rew:off use:REReds.suc_inv.
   Qed.
 
-  Lemma hne_app_inj n (a0 b0 a1 b1 : PTm) :
+  Lemma hne_app_inj (a0 b0 a1 b1 : PTm) :
     R (PApp a0 b0) (PApp a1 b1) ->
     ishne a0 ->
     ishne a1 ->
@@ -3118,7 +3123,7 @@ Module DJoin.
     hauto lq:on use:REReds.hne_app_inv.
   Qed.
 
-  Lemma hne_proj_inj n p0 p1 (a0 a1 : PTm) :
+  Lemma hne_proj_inj p0 p1 (a0 a1 : PTm) :
     R (PProj p0 a0) (PProj p1 a1) ->
     ishne a0 ->
     ishne a1 ->
@@ -3127,62 +3132,62 @@ Module DJoin.
     sauto lq:on use:REReds.hne_proj_inv.
   Qed.
 
-  Lemma FromRRed0 n (a b : PTm) :
+  Lemma FromRRed0 (a b : PTm) :
     RRed.R a b -> R a b.
   Proof.
     hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
   Qed.
 
-  Lemma FromRRed1 n (a b : PTm) :
+  Lemma FromRRed1 (a b : PTm) :
     RRed.R b a -> R a b.
   Proof.
     hauto lq:on ctrs:rtc use:RERed.FromBeta unfold:R.
   Qed.
 
-  Lemma FromRReds n (a b : PTm) :
+  Lemma FromRReds (a b : PTm) :
     rtc RRed.R b a -> R a b.
   Proof.
     hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
   Qed.
 
-  Lemma FromBJoin n (a b : PTm) :
+  Lemma FromBJoin (a b : PTm) :
     BJoin.R a b -> R a b.
   Proof.
-    hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
+    hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R, BJoin.R.
   Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    R a b -> R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     hauto lq:on rew:off ctrs:rtc unfold:R use:REReds.substing.
   Qed.
 
-  Lemma renaming n m (a b : PTm) (ρ : fin n -> fin m) :
-    R a b -> R (ren_PTm a) (ren_PTm b).
+  Lemma renaming (a b : PTm) (ρ : nat -> nat) :
+    R a b -> R (ren_PTm ρ a) (ren_PTm ρ b).
   Proof. substify. apply substing. Qed.
 
-  Lemma weakening n (a b : PTm)  :
+  Lemma weakening (a b : PTm)  :
     R a b -> R (ren_PTm shift a) (ren_PTm shift b).
   Proof. apply renaming. Qed.
 
-  Lemma cong n m (a : PTm (S n)) c d (ρ : fin n -> PTm) :
+  Lemma cong (a : PTm) c d (ρ : nat -> PTm) :
     R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) a).
   Proof.
     rewrite /R. move => [cd [h0 h1]].
     exists (subst_PTm (scons cd ρ) a).
-    hauto q:on ctrs:rtc inv:option use:REReds.cong.
+    hauto q:on ctrs:rtc inv:nat use:REReds.cong.
   Qed.
 
-  Lemma cong' n m (a b : PTm (S n)) c d (ρ : fin n -> PTm) :
+  Lemma cong' (a b : PTm) c d (ρ : nat -> PTm) :
     R a b ->
     R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) b).
   Proof.
     rewrite /R. move => [ab [h2 h3]] [cd [h0 h1]].
     exists (subst_PTm (scons cd ρ) ab).
-    hauto q:on ctrs:rtc inv:option use:REReds.cong'.
+    hauto q:on ctrs:rtc inv:nat use:REReds.cong'.
   Qed.
 
-  Lemma pair_inj n (a0 a1 b0 b1 : PTm) :
+  Lemma pair_inj (a0 a1 b0 b1 : PTm) :
     SN (PPair a0 b0) ->
     SN (PPair a1 b1) ->
     R (PPair a0 b0) (PPair a1 b1) ->
@@ -3209,7 +3214,7 @@ Module DJoin.
     split; eauto using transitive.
   Qed.
 
-  Lemma ejoin_pair_inj n (a0 a1 b0 b1 : PTm) :
+  Lemma ejoin_pair_inj (a0 a1 b0 b1 : PTm) :
     nf a0 -> nf b0 -> nf a1 -> nf b1 ->
     EJoin.R (PPair a0 b0) (PPair a1 b1) ->
     EJoin.R a0 a1 /\ EJoin.R b0 b1.
@@ -3221,7 +3226,7 @@ Module DJoin.
     hauto l:on use:ToEJoin.
   Qed.
 
-  Lemma abs_inj n (a0 a1 : PTm (S n)) :
+  Lemma abs_inj (a0 a1 : PTm) :
     SN a0 -> SN a1 ->
     R (PAbs a0) (PAbs a1) ->
     R a0 a1.
@@ -3231,22 +3236,23 @@ Module DJoin.
     move /AppCong. move /(_ (VarPTm var_zero) (VarPTm var_zero)).
     move => /(_ ltac:(sfirstorder use:refl)).
     move => h.
-    have /FromRRed1 h0 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a0)) (VarPTm var_zero)) a0 by apply RRed.AppAbs'; asimpl.
-    have /FromRRed0 h1 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a1)) (VarPTm var_zero)) a1 by apply RRed.AppAbs'; asimpl.
+    have /FromRRed1 h0 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a0)) (VarPTm var_zero)) a0. apply RRed.AppAbs'; asimpl. by rewrite subst_scons_id.
+    have /FromRRed0 h1 : RRed.R (PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a1)) (VarPTm var_zero)) a1 by
+      apply RRed.AppAbs'; eauto; by asimpl; rewrite ?subst_scons_id.
     have sn0' := sn0.
     have sn1' := sn1.
     eapply sn_renaming with (ξ := (upRen_PTm_PTm shift)) in sn0.
     eapply sn_renaming with (ξ := (upRen_PTm_PTm shift)) in sn1.
     apply : transitive; try apply h0.
     apply : N_Exp. apply N_β. sauto.
-    by asimpl.
+    asimpl. by rewrite subst_scons_id.
     apply : transitive; try apply h1.
     apply : N_Exp. apply N_β. sauto.
-    by asimpl.
+    by asimpl; rewrite subst_scons_id.
     eauto.
   Qed.
 
-  Lemma ejoin_abs_inj n (a0 a1 : PTm (S n)) :
+  Lemma ejoin_abs_inj (a0 a1 : PTm) :
     nf a0 -> nf a1 ->
     EJoin.R (PAbs a0) (PAbs a1) ->
     EJoin.R a0 a1.
@@ -3258,13 +3264,13 @@ Module DJoin.
     hauto l:on use:ToEJoin.
   Qed.
 
-  Lemma standardization n (a b : PTm) :
+  Lemma standardization (a b : PTm) :
     SN a -> SN b -> R a b ->
     exists va vb, rtc RRed.R a va /\ rtc RRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb.
   Proof.
     move => h0 h1 [ab [hv0 hv1]].
     have hv : SN ab by sfirstorder use:REReds.sn_preservation.
-    have : exists v, rtc RRed.R ab v  /\ nf v by hauto q:on use:LoReds.FromSN, LoReds.ToRReds.
+    have : exists v, rtc RRed.R ab v  /\ nf v by sfirstorder use:LoReds.FromSN, LoReds.ToRReds.
     move => [v [hv2 hv3]].
     have : rtc RERed.R a v by hauto q:on use:@relations.rtc_transitive, REReds.FromRReds.
     have : rtc RERed.R b v by hauto q:on use:@relations.rtc_transitive, REReds.FromRReds.
@@ -3278,7 +3284,7 @@ Module DJoin.
     hauto q:on use:NeEPars.ToEReds unfold:EJoin.R.
   Qed.
 
-  Lemma standardization_lo n (a b : PTm) :
+  Lemma standardization_lo (a b : PTm) :
     SN a -> SN b -> R a b ->
     exists va vb, rtc LoRed.R a va /\ rtc LoRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb.
   Proof.
@@ -3311,21 +3317,21 @@ Module Sub1.
     R B0 B1 ->
     R (PBind PSig A0 B0) (PBind PSig A1 B1).
 
-  Lemma transitive0 n (A B C : PTm) :
+  Lemma transitive0 (A B C : PTm) :
     R A B -> (R B C -> R A C) /\ (R C A -> R C B).
   Proof.
     move => h. move : C.
-    elim : n A B /h; hauto lq:on ctrs:R inv:R solve+:lia.
+    elim : A B /h; hauto lq:on ctrs:R inv:R solve+:lia.
   Qed.
 
-  Lemma transitive n (A B C : PTm) :
+  Lemma transitive (A B C : PTm) :
     R A B -> R B C -> R A C.
   Proof. hauto q:on use:transitive0. Qed.
 
-  Lemma refl n (A : PTm) : R A A.
+  Lemma refl (A : PTm) : R A A.
   Proof. sfirstorder. Qed.
 
-  Lemma commutativity0 n (A B C : PTm) :
+  Lemma commutativity0 (A B C : PTm) :
     R A B ->
     (RERed.R A C ->
     exists D, RERed.R B D /\ R C D) /\
@@ -3333,26 +3339,27 @@ Module Sub1.
     exists D, RERed.R A D /\ R D C).
   Proof.
     move => h. move : C.
-    elim : n A B / h; hauto lq:on ctrs:RERed.R, R inv:RERed.R.
+    elim : A B / h; hauto lq:on ctrs:RERed.R, R inv:RERed.R.
   Qed.
 
-  Lemma commutativity_Ls n (A B C : PTm) :
+  Lemma commutativity_Ls (A B C : PTm) :
     R A B ->
     rtc RERed.R A C ->
     exists D, rtc RERed.R B D /\ R C D.
   Proof.
-    move => + h. move : B. induction h; sauto lq:on use:commutativity0.
+    move => + h. move : B.
+    induction h; ecrush use:commutativity0.
   Qed.
 
-  Lemma commutativity_Rs n (A B C : PTm) :
+  Lemma commutativity_Rs (A B C : PTm) :
     R A B ->
     rtc RERed.R B C ->
     exists D, rtc RERed.R A D /\ R D C.
   Proof.
-    move => + h. move : A. induction h; sauto lq:on use:commutativity0.
+    move => + h. move : A. induction h; ecrush use:commutativity0.
   Qed.
 
-  Lemma sn_preservation  : forall n,
+  Lemma sn_preservation  :
   (forall (a : PTm) (s : SNe a), forall b, R a b \/ R b a -> a = b) /\
   (forall (a : PTm) (s : SN a), forall b, R a b \/ R b a -> SN b) /\
   (forall (a b : PTm) (_ : TRedSN a b), forall c, R a c \/ R c a -> a = c).
@@ -3360,30 +3367,30 @@ Module Sub1.
     apply sn_mutual; hauto lq:on inv:R ctrs:SN.
   Qed.
 
-  Lemma bind_preservation n (a b : PTm) :
+  Lemma bind_preservation (a b : PTm) :
     R a b -> isbind a = isbind b.
   Proof. hauto q:on inv:R. Qed.
 
-  Lemma univ_preservation n (a b : PTm) :
+  Lemma univ_preservation (a b : PTm) :
     R a b -> isuniv a = isuniv b.
   Proof. hauto q:on inv:R. Qed.
 
-  Lemma sne_preservation n (a b : PTm) :
+  Lemma sne_preservation (a b : PTm) :
     R a b -> SNe a <-> SNe b.
   Proof. hfcrush use:sn_preservation. Qed.
 
-  Lemma renaming n m (a b : PTm) (ξ : fin n -> fin m) :
-    R a b -> R (ren_PTm a) (ren_PTm b).
+  Lemma renaming (a b : PTm) (ξ : nat -> nat) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
   Proof.
-    move => h. move : m ξ.
-    elim : n a b /h; hauto lq:on ctrs:R.
+    move => h. move : ξ.
+    elim : a b /h; hauto lq:on ctrs:R.
   Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    R a b -> R (subst_PTm a) (subst_PTm b).
-  Proof. move => h. move : m ρ. elim : n a b /h; hauto lq:on ctrs:R. Qed.
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
+  Proof. move => h. move : ρ. elim : a b /h; hauto lq:on ctrs:R. Qed.
 
-  Lemma hne_refl n (a b : PTm) :
+  Lemma hne_refl (a b : PTm) :
     ishne a \/ ishne b -> R a b -> a = b.
   Proof. hauto q:on inv:R. Qed.
 
@@ -3392,7 +3399,7 @@ End Sub1.
 Module ESub.
   Definition R (a b : PTm) := exists c0 c1, rtc ERed.R a c0 /\ rtc ERed.R b c1 /\ Sub1.R c0 c1.
 
-  Lemma pi_inj n (A0 A1 : PTm) B0 B1 :
+  Lemma pi_inj (A0 A1 : PTm) B0 B1 :
     R (PBind PPi A0 B0) (PBind PPi A1 B1) ->
     R A1 A0 /\ R B0 B1.
   Proof.
@@ -3402,7 +3409,7 @@ Module ESub.
     sauto lq:on rew:off inv:Sub1.R.
   Qed.
 
-  Lemma sig_inj n (A0 A1 : PTm) B0 B1 :
+  Lemma sig_inj (A0 A1 : PTm) B0 B1 :
     R (PBind PSig A0 B0) (PBind PSig A1 B1) ->
     R A0 A1 /\ R B0 B1.
   Proof.
@@ -3412,7 +3419,7 @@ Module ESub.
     sauto lq:on rew:off inv:Sub1.R.
   Qed.
 
-  Lemma suc_inj n (a b : PTm) :
+  Lemma suc_inj (a b : PTm) :
     R (PSuc a) (PSuc b) ->
     R a b.
   Proof.
@@ -3424,10 +3431,10 @@ End ESub.
 Module Sub.
   Definition R (a b : PTm) := exists c d, rtc RERed.R a c /\ rtc RERed.R b d /\ Sub1.R c d.
 
-  Lemma refl n (a : PTm) : R a a.
+  Lemma refl (a : PTm) : R a a.
   Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
 
-  Lemma ToJoin n (a b : PTm) :
+  Lemma ToJoin (a b : PTm) :
     ishne a \/ ishne b ->
     R a b ->
     DJoin.R a b.
@@ -3437,7 +3444,7 @@ Module Sub.
     hauto lq:on rew:off use:Sub1.hne_refl.
   Qed.
 
-  Lemma transitive n (a b c : PTm) : SN b -> R a b -> R b c -> R a c.
+  Lemma transitive (a b c : PTm) : SN b -> R a b -> R b c -> R a c.
   Proof.
     rewrite /R.
     move => h  [a0][b0][ha][hb]ha0b0 [b1][c0][hb'][hc]hb1c0.
@@ -3449,10 +3456,10 @@ Module Sub.
     exists a',c'; hauto l:on use:Sub1.transitive, @relations.rtc_transitive.
   Qed.
 
-  Lemma FromJoin n (a b : PTm) : DJoin.R a b -> R a b.
+  Lemma FromJoin (a b : PTm) : DJoin.R a b -> R a b.
   Proof. sfirstorder. Qed.
 
-  Lemma PiCong n (A0 A1 : PTm) B0 B1 :
+  Lemma PiCong (A0 A1 : PTm) B0 B1 :
     R A1 A0 ->
     R B0 B1 ->
     R (PBind PPi A0 B0) (PBind PPi A1 B1).
@@ -3464,7 +3471,7 @@ Module Sub.
     repeat split; eauto using REReds.BindCong, Sub1.PiCong.
   Qed.
 
-  Lemma SigCong n (A0 A1 : PTm) B0 B1 :
+  Lemma SigCong (A0 A1 : PTm) B0 B1 :
     R A0 A1 ->
     R B0 B1 ->
     R (PBind PSig A0 B0) (PBind PSig A1 B1).
@@ -3476,12 +3483,12 @@ Module Sub.
     repeat split; eauto using REReds.BindCong, Sub1.SigCong.
   Qed.
 
-  Lemma UnivCong n i j :
+  Lemma UnivCong i j :
     i <= j ->
-    @R n (PUniv i) (PUniv j).
+    @R (PUniv i) (PUniv j).
   Proof. hauto lq:on ctrs:Sub1.R, rtc. Qed.
 
-  Lemma sne_nat_noconf n (a b : PTm) :
+  Lemma sne_nat_noconf (a b : PTm) :
     R a b -> SNe a -> isnat b -> False.
   Proof.
     move => [c [d [h0 [h1 h2]]]] *.
@@ -3489,7 +3496,7 @@ Module Sub.
     move : h2. clear. hauto q:on inv:Sub1.R, SNe.
   Qed.
 
-  Lemma nat_sne_noconf n (a b : PTm) :
+  Lemma nat_sne_noconf (a b : PTm) :
     R a b -> isnat a -> SNe b -> False.
   Proof.
     move => [c [d [h0 [h1 h2]]]] *.
@@ -3497,7 +3504,7 @@ Module Sub.
     move : h2. clear. hauto q:on inv:Sub1.R, SNe.
   Qed.
 
-  Lemma sne_bind_noconf n (a b : PTm) :
+  Lemma sne_bind_noconf (a b : PTm) :
     R a b -> SNe a -> isbind b -> False.
   Proof.
     rewrite /R.
@@ -3507,7 +3514,7 @@ Module Sub.
     qauto l:on inv:SNe.
   Qed.
 
-  Lemma hne_bind_noconf n (a b : PTm) :
+  Lemma hne_bind_noconf (a b : PTm) :
     R a b -> ishne a -> isbind b -> False.
   Proof.
     rewrite /R.
@@ -3518,7 +3525,7 @@ Module Sub.
     clear. case : d => //=.
   Qed.
 
-  Lemma bind_sne_noconf n (a b : PTm) :
+  Lemma bind_sne_noconf (a b : PTm) :
     R a b -> SNe b -> isbind a -> False.
   Proof.
     rewrite /R.
@@ -3528,14 +3535,14 @@ Module Sub.
     qauto l:on inv:SNe.
   Qed.
 
-  Lemma sne_univ_noconf n (a b : PTm) :
+  Lemma sne_univ_noconf (a b : PTm) :
     R a b -> SNe a -> isuniv b -> False.
   Proof.
     hauto l:on use:REReds.sne_preservation,
           REReds.univ_preservation, Sub1.sne_preservation, Sub1.univ_preservation inv:SNe.
   Qed.
 
-  Lemma univ_sne_noconf n (a b : PTm) :
+  Lemma univ_sne_noconf (a b : PTm) :
     R a b -> SNe b -> isuniv a -> False.
   Proof.
     move => [c[d] [? []]] *.
@@ -3545,7 +3552,7 @@ Module Sub.
     clear. case : c => //=. inversion 2.
   Qed.
 
-  Lemma univ_nat_noconf n (a b : PTm)  :
+  Lemma univ_nat_noconf (a b : PTm)  :
     R a b -> isuniv b -> isnat a -> False.
   Proof.
     move => [c[d] [? []]] h0 h1 h2 h3.
@@ -3555,7 +3562,7 @@ Module Sub.
     clear. case : d => //=.
   Qed.
 
-  Lemma nat_univ_noconf n (a b : PTm)  :
+  Lemma nat_univ_noconf (a b : PTm)  :
     R a b -> isnat b -> isuniv a -> False.
   Proof.
     move => [c[d] [? []]] h0 h1 h2 h3.
@@ -3565,7 +3572,7 @@ Module Sub.
     clear. case : d => //=.
   Qed.
 
-  Lemma bind_nat_noconf n (a b : PTm)  :
+  Lemma bind_nat_noconf (a b : PTm)  :
     R a b -> isbind b -> isnat a -> False.
   Proof.
     move => [c[d] [? []]] h0 h1 h2 h3.
@@ -3576,7 +3583,7 @@ Module Sub.
     case : d h1 => //=.
   Qed.
 
-  Lemma nat_bind_noconf n (a b : PTm)  :
+  Lemma nat_bind_noconf (a b : PTm)  :
     R a b -> isnat b -> isbind a -> False.
   Proof.
     move => [c[d] [? []]] h0 h1 h2 h3.
@@ -3587,7 +3594,7 @@ Module Sub.
     case : d h1 => //=.
   Qed.
 
-  Lemma bind_univ_noconf n (a b : PTm) :
+  Lemma bind_univ_noconf (a b : PTm) :
     R a b -> isbind a -> isuniv b -> False.
   Proof.
     move => [c[d] [h0 [h1 h1']]] h2 h3.
@@ -3598,7 +3605,7 @@ Module Sub.
     case : c => //=; itauto.
   Qed.
 
-  Lemma univ_bind_noconf n (a b : PTm) :
+  Lemma univ_bind_noconf (a b : PTm) :
     R a b -> isbind b -> isuniv a -> False.
   Proof.
     move => [c[d] [h0 [h1 h1']]] h2 h3.
@@ -3609,7 +3616,7 @@ Module Sub.
     case : c => //=; itauto.
   Qed.
 
-  Lemma bind_inj n p0 p1 (A0 A1 : PTm) B0 B1 :
+  Lemma bind_inj p0 p1 (A0 A1 : PTm) B0 B1 :
     R (PBind p0 A0 B0) (PBind p1 A1 B1) ->
     p0 = p1 /\ (if p0 is PPi then R A1 A0 else R A0 A1) /\ R B0 B1.
   Proof.
@@ -3620,13 +3627,13 @@ Module Sub.
     inversion h; subst; sauto lq:on.
   Qed.
 
-  Lemma univ_inj n i j :
-    @R n (PUniv i) (PUniv j)  -> i <= j.
+  Lemma univ_inj i j :
+    @R (PUniv i) (PUniv j)  -> i <= j.
   Proof.
     sauto lq:on rew:off use:REReds.univ_inv.
   Qed.
 
-  Lemma suc_inj n  (A0 A1 : PTm)  :
+  Lemma suc_inj (A0 A1 : PTm)  :
     R (PSuc A0) (PSuc A1) ->
     R A0 A1.
   Proof.
@@ -3634,7 +3641,7 @@ Module Sub.
   Qed.
 
 
-  Lemma cong n m (a b : PTm (S n)) c d (ρ : fin n -> PTm) :
+  Lemma cong (a b : PTm) c d (ρ : nat -> PTm) :
     R a b -> DJoin.R c d -> R (subst_PTm (scons c ρ) a) (subst_PTm (scons d ρ) b).
   Proof.
     rewrite /R.
@@ -3642,23 +3649,23 @@ Module Sub.
     move => [cd][h3]h4.
     exists (subst_PTm (scons cd ρ) a0), (subst_PTm (scons cd ρ) b0).
     repeat split.
-    hauto l:on use:REReds.cong' inv:option.
-    hauto l:on use:REReds.cong' inv:option.
+    hauto l:on use:REReds.cong' inv:nat.
+    hauto l:on use:REReds.cong' inv:nat.
     eauto using Sub1.substing.
   Qed.
 
-  Lemma substing n m (a b : PTm) (ρ : fin n -> PTm) :
-    R a b -> R (subst_PTm a) (subst_PTm b).
+  Lemma substing (a b : PTm) (ρ : nat -> PTm) :
+    R a b -> R (subst_PTm ρ a) (subst_PTm ρ b).
   Proof.
     rewrite /R.
     move => [a0][b0][h0][h1]h2.
     hauto ctrs:rtc use:REReds.cong', Sub1.substing.
   Qed.
 
-  Lemma ToESub n (a b : PTm) : nf a -> nf b -> R a b -> ESub.R a b.
+  Lemma ToESub (a b : PTm) : nf a -> nf b -> R a b -> ESub.R a b.
   Proof. hauto q:on use:REReds.ToEReds. Qed.
 
-  Lemma standardization n (a b : PTm) :
+  Lemma standardization (a b : PTm) :
     SN a -> SN b -> R a b ->
     exists va vb, rtc RRed.R a va /\ rtc RRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb.
   Proof.
@@ -3676,7 +3683,7 @@ Module Sub.
     hauto lq:on.
   Qed.
 
-  Lemma standardization_lo n (a b : PTm) :
+  Lemma standardization_lo (a b : PTm) :
     SN a -> SN b -> R a b ->
     exists va vb, rtc LoRed.R a va /\ rtc LoRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb.
   Proof.
