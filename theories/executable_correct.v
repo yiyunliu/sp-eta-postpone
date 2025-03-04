@@ -9,6 +9,20 @@ Scheme algo_ind := Induction for algo_dom Sort Prop
 
 Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
 
+Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
+Proof. hauto l:on rew:db:check_equal. Qed.
+
+Lemma check_equal_abs_neu a u neu h : check_equal (PAbs a) u (A_AbsNeu a u neu h) = check_equal_r a (PApp (ren_PTm shift u) (VarPTm var_zero)) h.
+Proof. case : u neu h => //=.  Qed.
+
+Lemma check_equal_neu_abs a u neu h : check_equal u (PAbs a) (A_NeuAbs a u neu h) = check_equal_r (PApp (ren_PTm shift u) (VarPTm var_zero)) a h.
+Proof. case : u neu h => //=.  Qed.
+
+Lemma check_equal_pair_pair a0 b0 a1 b1 a h :
+  check_equal (PPair a0 b0) (PPair a1 b1) (A_PairPair a0 a1 b0 b1 a h) =
+    check_equal_r a0 a1 a && check_equal_r b0 b1 h.
+Proof. hauto l:on rew:db:check_equal. Qed.
+
 Lemma check_equal_pair_neu a0 a1 u neu h h'
   : check_equal (PPair a0 a1) u (A_PairNeu a0 a1 u neu h h') = check_equal_r a0 (PProj PL u) h && check_equal_r a1 (PProj PR u) h'.
 Proof.
@@ -105,8 +119,8 @@ Lemma check_equal_sound :
 Proof.
   apply algo_dom_mutual.
   - move => a b h.
-    move => h0 h1.
-    have {}h1 : check_equal_r a b h by hauto l:on rew:db:check_equal.
+    move => h0.
+    rewrite check_equal_abs_abs.
     constructor. tauto.
   - move => a u i h0 ih h.
     apply CE_AbsNeu => //.
@@ -116,10 +130,11 @@ Proof.
   - move => a u i h ih h0.
     apply CE_NeuAbs=>//.
     apply ih.
-    case : u i h ih h0 => //=.
+    by rewrite check_equal_neu_abs in h0.
   - move => a0 a1 b0 b1 a ha h.
-    move => h0 h1. constructor. apply ha. hauto lb:on rew:db:check_equal.
-    apply h0. hauto lb:on rew:db:check_equal.
+    move => h0.
+    rewrite check_equal_pair_pair. move /andP => [h1 h2].
+    sauto lq:on.
   - move => a0 a1 u neu h ih h' ih' he.
     rewrite check_equal_pair_neu in he.
     apply CE_PairNeu => //; hauto lqb:on.
