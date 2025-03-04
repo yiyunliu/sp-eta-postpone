@@ -1,4 +1,7 @@
 Require Import Autosubst2.unscoped Autosubst2.syntax Autosubst2.core ssreflect.
+From Equations Require Import Equations.
+Derive NoConfusion for nat PTag BTag PTm.
+Derive EqDec for BTag PTag PTm.
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
 Import Ltac2.Control.
@@ -169,4 +172,6 @@ Module HRed.
   | IndCong P a0 a1 b c :
     R a0 a1 ->
     R (PInd P a0 b c) (PInd P a1 b c).
+
+    Definition nf a := forall b, ~ R a b.
 End HRed.
