@@ -143,3 +143,30 @@ Proof.
   rewrite -{2}E.
   apply ext_PTm. case => //=.
 Qed.
+
+Module HRed.
+    Inductive R : PTm -> PTm ->  Prop :=
+  (****************** Beta ***********************)
+  | AppAbs a b :
+    R (PApp (PAbs a) b)  (subst_PTm (scons b VarPTm) a)
+
+  | ProjPair p a b :
+    R (PProj p (PPair a b)) (if p is PL then a else b)
+
+  | IndZero P b c :
+    R (PInd P PZero b c) b
+
+  | IndSuc P a b c :
+    R (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
+
+  (*************** Congruence ********************)
+  | AppCong a0 a1 b :
+    R a0 a1 ->
+    R (PApp a0 b) (PApp a1 b)
+  | ProjCong p a0 a1 :
+    R a0 a1 ->
+    R (PProj p a0) (PProj p a1)
+  | IndCong P a0 a1 b c :
+    R a0 a1 ->
+    R (PInd P a0 b c) (PInd P a1 b c).
+End HRed.
