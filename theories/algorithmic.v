@@ -1305,13 +1305,15 @@ Proof.
   abstract : hstepL. qauto l:on use:HRed.preservation, CE_HRedL, hred_hne.
   move  /algo_metric_sym /algo_metric_case : (h).
   case; cycle 1.
-  move {ih}. move /algo_metric_sym : h.
-  move : hstepL; repeat move /[apply].
-  best use:coqeq_symmetric_mutual, algo_metric_sym.
+  move /algo_metric_sym : h.
+  move : hstepL ih => /[apply]/[apply].
+  repeat move /[apply].
+  move => hstepL.
+  hauto lq:on use:coqeq_symmetric_mutual, algo_metric_sym.
   (* Cases where a and b can't take wh steps *)
   move {hstepL}.
-  move : k a b h. move => [:hnfneu].
-  move => k a b h.
+  move : a b h. move => [:hnfneu].
+  move => a b h.
   case => fb; case => fa.
   - split; last by sfirstorder use:hf_not_hne.
     move {hnfneu}.
@@ -1397,11 +1399,9 @@ Proof.
           by hauto lq:on rew:off use:Su_Univ, wff_mutual solve+:lia.
         have {}hA0 : Γ ⊢ A0 ∈ PUniv (max i0 i1) by eauto using T_Conv.
         have {}hA1 : Γ ⊢ A1 ∈ PUniv (max i0 i1) by eauto using T_Conv.
-        have {}hB0 : funcomp (ren_PTm shift) (scons A0 Γ) ⊢
-                       B0 ∈ PUniv (max i0 i1)
+        have {}hB0 : (cons A0 Γ) ⊢ B0 ∈ PUniv (max i0 i1)
           by hauto lq:on use:T_Univ_Raise solve+:lia.
-        have {}hB1 : funcomp (ren_PTm shift) (scons A1 Γ) ⊢
-                       B1 ∈ PUniv (max i0 i1)
+        have {}hB1 : (cons A1 Γ) ⊢ B1 ∈ PUniv (max i0 i1)
           by hauto lq:on use:T_Univ_Raise solve+:lia.
 
         have ihA : A0 ⇔ A1 by hauto l:on.
@@ -1477,8 +1477,7 @@ Proof.
         move : ih h0 h2;do!move/[apply].
         move => h. apply : CE_HRed; eauto using rtc_refl.
         by constructor.
-  - move : k a b h fb fa. abstract : hnfneu.
-    move => k.
+  - move : a b h fb fa. abstract : hnfneu.
     move => + b.
     case : b => //=.
     (* NeuAbs *)
@@ -1491,14 +1490,14 @@ Proof.
         by hauto l:on use:regularity.
       have {i} [j {}hE] : exists j, Γ ⊢ A2 ∈ PUniv j
           by qauto l:on use:Bind_Inv.
-      have hΓ : ⊢ funcomp (ren_PTm shift) (scons A2 Γ) by eauto using Wff_Cons'.
-      set Δ := funcomp _ _ in hΓ.
+      have hΓ : ⊢ cons A2 Γ by eauto using Wff_Cons'.
+      set Δ := cons _ _ in hΓ.
       have {}hu : Δ ⊢ PApp (ren_PTm shift u) (VarPTm var_zero) ∈ B2.
       apply : T_App'; cycle 1. apply : weakening_wt' => //=; eauto.
       reflexivity.
       rewrite -/ren_PTm.
-      by apply T_Var.
-      rewrite -/ren_PTm. by asimpl.
+      apply T_Var; eauto using here.
+      rewrite -/ren_PTm. by asimpl; rewrite subst_scons_id.
       move /Abs_Pi_Inv in ha.
       move /algo_metric_neu_abs /(_ nea) : halg.
       move => [j0][hj0]halg.
@@ -1542,7 +1541,6 @@ Proof.
         hauto lq:on rew:off use:REReds.hne_app_inv, REReds.zero_inv.
       * move => >/algo_metric_join. clear.
         hauto lq:on rew:off use:REReds.hne_proj_inv, REReds.zero_inv.
-      * sfirstorder use:T_Bot_Imp.
       * move => >/algo_metric_join. clear.
         move => h _ h2. exfalso.
         hauto q:on use:REReds.hne_ind_inv, REReds.zero_inv.
@@ -1552,27 +1550,28 @@ Proof.
       * hauto lq:on rew:off use:REReds.var_inv, REReds.suc_inv.
       * hauto lq:on rew:off use:REReds.hne_app_inv, REReds.suc_inv.
       * hauto lq:on rew:off use:REReds.hne_proj_inv, REReds.suc_inv.
-      * sfirstorder use:T_Bot_Imp.
       * hauto q:on use:REReds.hne_ind_inv, REReds.suc_inv.
   - move {ih}.
     move /algo_metric_sym in h.
     qauto l:on use:coqeq_symmetric_mutual.
   - move {hnfneu}.
-
     (* Clear out some trivial cases *)
-    suff : (forall (Γ : fin k -> PTm k) (A B : PTm k), Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ (exists C : PTm k, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C)).
+    suff : (forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ (exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C)).
     move => h0.
     split. move => *. apply : CE_HRed; eauto using rtc_refl. apply CE_NeuNeu. by firstorder.
     by firstorder.
 
     case : a h fb fa => //=.
     + case : b => //=; move => > /algo_metric_join.
-      * move /DJoin.var_inj => ?. subst. qauto l:on use:Var_Inv, T_Var,CE_VarCong.
+      * move /DJoin.var_inj => i _ _. subst.
+        move => Γ A B /Var_Inv [? [B0 [h0 h1]]].
+        move /Var_Inv => [_ [C0 [h2 h3]]].
+        have ? : B0 = C0 by eauto using lookup_deter. subst.
+        sfirstorder use:T_Var.
       * clear => ? ? _. exfalso.
         hauto l:on use:REReds.var_inv, REReds.hne_app_inv.
       * clear => ? ? _. exfalso.
         hauto l:on use:REReds.var_inv, REReds.hne_proj_inv.
-      * sfirstorder use:T_Bot_Imp.
       * clear => ? ? _. exfalso.
         hauto q:on use:REReds.var_inv, REReds.hne_ind_inv.
     + case : b => //=;
@@ -1629,7 +1628,6 @@ Proof.
         sfirstorder use:bind_inst.
       * clear => ? ? ?. exfalso.
         hauto q:on use:REReds.hne_app_inv, REReds.hne_proj_inv.
-      * sfirstorder use:T_Bot_Imp.
       * clear => ? ? ?. exfalso.
         hauto q:on use:REReds.hne_app_inv, REReds.hne_ind_inv.
     + case : b => //=.
@@ -1691,10 +1689,8 @@ Proof.
                move /E_Symmetric in haE.
                move /regularity_sub0 in hSu21.
                sfirstorder use:bind_inst.
-      * sfirstorder use:T_Bot_Imp.
       * move => > /algo_metric_join; clear => ? ? ?. exfalso.
         hauto q:on use:REReds.hne_proj_inv, REReds.hne_ind_inv.
-    + sfirstorder use:T_Bot_Imp.
     (* ind ind case *)
     + move => P a0 b0 c0.
       case : b => //=;
@@ -1705,7 +1701,6 @@ Proof.
       * hauto q:on use:REReds.hne_ind_inv, REReds.var_inv.
       * hauto q:on use:REReds.hne_ind_inv, REReds.hne_app_inv.
       * hauto q:on use:REReds.hne_ind_inv, REReds.hne_proj_inv.
-      * sfirstorder use:T_Bot_Imp.
       * move => P1 a1 b1 c1 /[dup] halg /algo_metric_ind + h0 h1.
         move /(_ h1 h0).
         move => [j][hj][hP][ha][hb]hc Γ A B hL hR.
@@ -1716,7 +1711,7 @@ Proof.
         move : T_Univ_Raise wtP0; do!move/[apply]. move => wtP0.
         move : T_Univ_Raise wtP1; do!move/[apply]. move => wtP1.
         have {}ihP : P ⇔ P1 by qauto l:on.
-        set Δ := funcomp _ _ in wtP0, wtP1, wtc0, wtc1.
+        set Δ := cons _ _ in wtP0, wtP1, wtc0, wtc1.
         have wfΔ :⊢ Δ by hauto l:on use:wff_mutual.
         have hPE : Δ ⊢ P ≡ P1 ∈ PUniv (max iP0 iP1)
           by hauto l:on use:coqeq_sound_mutual.
@@ -1730,7 +1725,7 @@ Proof.
         have {}ihb : b0 ⇔ b1 by hauto l:on.
         have hPSig : Γ ⊢ PBind PSig PNat P ≡ PBind PSig PNat P1 ∈ PUniv (Nat.max iP0 iP1) by eauto with wt.
         set T := ren_PTm shift _ in wtc0.
-        have : funcomp (ren_PTm shift) (scons P Δ) ⊢ c1 ∈ T.
+        have : (cons P Δ) ⊢ c1 ∈ T.
         apply : T_Conv; eauto. apply : ctx_eq_subst_one; eauto with wt.
         apply : Su_Eq; eauto.
         subst T. apply : weakening_su; eauto.
@@ -1738,9 +1733,8 @@ Proof.
         hauto l:on use:wff_mutual.
         apply morphing_ext. set x := funcomp _ _.
         have -> : x = funcomp (ren_PTm shift) VarPTm by asimpl.
-        apply : morphing_ren; eauto using renaming_shift.
-        apply : renaming_shift; eauto. by apply morphing_id.
-        apply T_Suc. by apply T_Var. subst T => {}wtc1.
+        apply : morphing_ren; eauto using renaming_shift. by apply morphing_id.
+        apply T_Suc. apply T_Var => //=. apply here. subst T => {}wtc1.
         have {}ihc : c0 ⇔ c1 by qauto l:on.
         move => [:ih].
         split. abstract : ih. move : h0 h1 ihP iha ihb ihc. clear. sauto lq:on.
@@ -1754,11 +1748,11 @@ Proof.
         move : hEInd. clear. hauto l:on use:regularity.
 Qed.
 
-Lemma coqeq_sound : forall n Γ (a b : PTm n) A,
+Lemma coqeq_sound : forall Γ (a b : PTm) A,
     Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b -> Γ ⊢ a ≡ b ∈ A.
 Proof. sfirstorder use:coqeq_sound_mutual. Qed.
 
-Lemma coqeq_complete n Γ (a b A : PTm n) :
+Lemma coqeq_complete Γ (a b A : PTm) :
   Γ ⊢ a ≡ b ∈ A -> a ⇔ b.
 Proof.
   move => h.
@@ -1766,7 +1760,7 @@ Proof.
   eapply fundamental_theorem in h.
   move /logrel.SemEq_SN_Join : h.
   move => h.
-  have : exists va vb : PTm n,
+  have : exists va vb : PTm,
          rtc LoRed.R a va /\
          rtc LoRed.R b vb /\ nf va /\ nf vb /\ EJoin.R va vb
       by hauto l:on use:DJoin.standardization_lo.
@@ -1780,7 +1774,7 @@ Qed.
 
 Reserved Notation "a ≪ b" (at level 70).
 Reserved Notation "a ⋖ b" (at level 70).
-Inductive CoqLEq {n} : PTm n -> PTm n -> Prop :=
+Inductive CoqLEq : PTm -> PTm -> Prop :=
 | CLE_UnivCong i j :
   i <= j ->
   (* -------------------------- *)
@@ -1805,7 +1799,7 @@ Inductive CoqLEq {n} : PTm n -> PTm n -> Prop :=
   a0 ∼ a1 ->
   a0 ⋖ a1
 
-with CoqLEq_R {n} : PTm n -> PTm n -> Prop :=
+with CoqLEq_R : PTm -> PTm -> Prop :=
 | CLE_HRed a a' b b'  :
   rtc HRed.R a a' ->
   rtc HRed.R b b' ->
@@ -1819,10 +1813,10 @@ Scheme coqleq_ind := Induction for CoqLEq Sort Prop
 
 Combined Scheme coqleq_mutual from coqleq_ind, coqleq_r_ind.
 
-Definition salgo_metric {n} k (a b : PTm n) :=
+Definition salgo_metric k (a b : PTm ) :=
   exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ ESub.R va vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
-Lemma salgo_metric_algo_metric n k (a b : PTm n) :
+Lemma salgo_metric_algo_metric k (a b : PTm) :
   ishne a \/ ishne b ->
   salgo_metric k a b ->
   algo_metric k a b.
@@ -1840,13 +1834,13 @@ Proof.
   hauto lq:on use:Sub1.hne_refl.
 Qed.
 
-Lemma coqleq_sound_mutual : forall n,
-    (forall (a b : PTm n), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
-    (forall (a b : PTm n), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
+Lemma coqleq_sound_mutual :
+    (forall (a b : PTm), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
+    (forall (a b : PTm), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
 Proof.
   apply coqleq_mutual.
   - hauto lq:on use:wff_mutual ctrs:LEq.
-  - move => n A0 A1 B0 B1 hA ihA hB ihB Γ i.
+  - move => A0 A1 B0 B1 hA ihA hB ihB Γ i.
     move /Bind_Univ_Inv => [hA0]hB0 /Bind_Univ_Inv [hA1]hB1.
     have hlA  : Γ ⊢ A1 ≲ A0 by sfirstorder.
     have hΓ : ⊢ Γ by sfirstorder use:wff_mutual.
@@ -1854,7 +1848,7 @@ Proof.
     by apply : Su_Pi; eauto using E_Refl, Su_Eq.
     apply : Su_Pi; eauto using E_Refl, Su_Eq.
     apply : ihB; eauto using ctx_eq_subst_one.
-  - move => n A0 A1 B0 B1 hA ihA hB ihB Γ i.
+  - move => A0 A1 B0 B1 hA ihA hB ihB Γ i.
     move /Bind_Univ_Inv => [hA0]hB0 /Bind_Univ_Inv [hA1]hB1.
     have hlA  : Γ ⊢ A0 ≲ A1 by sfirstorder.
     have hΓ : ⊢ Γ by sfirstorder use:wff_mutual.
@@ -1864,14 +1858,14 @@ Proof.
     apply : Su_Sig; eauto using E_Refl, Su_Eq.
   - sauto lq:on use:coqeq_sound_mutual, Su_Eq.
   - sauto lq:on use:coqeq_sound_mutual, Su_Eq.
-  - move => n a a' b b' ? ? ? ih Γ i ha hb.
+  - move => a a' b b' ? ? ? ih Γ i ha hb.
     have /Su_Eq ? : Γ ⊢ a ≡ a' ∈ PUniv i by sfirstorder use:HReds.ToEq.
     have /E_Symmetric /Su_Eq ? : Γ ⊢ b ≡ b' ∈ PUniv i by sfirstorder use:HReds.ToEq.
     suff : Γ ⊢ a' ≲ b' by eauto using Su_Transitive.
     eauto using HReds.preservation.
 Qed.
 
-Lemma salgo_metric_case n k (a b : PTm n) :
+Lemma salgo_metric_case k (a b : PTm ) :
   salgo_metric k a b ->
   (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ salgo_metric k' a' b /\ k' < k.
 Proof.
@@ -1899,7 +1893,7 @@ Proof.
     + sfirstorder use:ne_hne.
 Qed.
 
-Lemma CLE_HRedL n (a a' b : PTm n)  :
+Lemma CLE_HRedL (a a' b : PTm )  :
   HRed.R a a' ->
   a' ≪ b ->
   a ≪ b.
@@ -1907,7 +1901,7 @@ Proof.
   hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
 Qed.
 
-Lemma CLE_HRedR n (a a' b : PTm n)  :
+Lemma CLE_HRedR (a a' b : PTm)  :
   HRed.R a a' ->
   b ≪ a' ->
   b ≪ a.
@@ -1916,7 +1910,7 @@ Proof.
 Qed.
 
 
-Lemma algo_metric_caseR n k (a b : PTm n) :
+Lemma algo_metric_caseR k (a b : PTm) :
   salgo_metric k a b ->
   (ishf b \/ ishne b) \/ exists k' b', HRed.R b b' /\ salgo_metric k' a b' /\ k' < k.
 Proof.
@@ -1944,7 +1938,7 @@ Proof.
     + sfirstorder use:ne_hne.
 Qed.
 
-Lemma salgo_metric_sub n k (a b : PTm n) :
+Lemma salgo_metric_sub k (a b : PTm) :
   salgo_metric k a b ->
   Sub.R a b.
 Proof.
@@ -1958,7 +1952,7 @@ Proof.
   rewrite /Sub.R. exists va', vb'. sfirstorder use:@relations.rtc_transitive.
 Qed.
 
-Lemma salgo_metric_pi n k (A0 : PTm n) B0 A1 B1  :
+Lemma salgo_metric_pi k (A0 : PTm) B0 A1 B1  :
   salgo_metric k (PBind PPi A0 B0) (PBind PPi A1 B1) ->
   exists j, j < k /\ salgo_metric j A1 A0 /\ salgo_metric j B0 B1.
 Proof.
@@ -1971,7 +1965,7 @@ Proof.
   hauto qb:on solve+:lia.
 Qed.
 
-Lemma salgo_metric_sig n k (A0 : PTm n) B0 A1 B1  :
+Lemma salgo_metric_sig k (A0 : PTm) B0 A1 B1  :
   salgo_metric k (PBind PSig A0 B0) (PBind PSig A1 B1) ->
   exists j, j < k /\ salgo_metric j A0 A1 /\ salgo_metric j B0 B1.
 Proof.
@@ -1984,16 +1978,16 @@ Proof.
   hauto qb:on solve+:lia.
 Qed.
 
-Lemma coqleq_complete' n k (a b : PTm n) :
+Lemma coqleq_complete' k (a b : PTm ) :
   salgo_metric k a b -> (forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ≪ b).
 Proof.
-  move : k n a b.
+  move : k a b.
   elim /Wf_nat.lt_wf_ind.
   move => n ih.
-  move => k a b /[dup] h /salgo_metric_case.
+  move => a b /[dup] h /salgo_metric_case.
   (* Cases where a and b can take steps *)
   case; cycle 1.
-  move : k a b h.
+  move : a b h.
   qauto l:on use:HRed.preservation, CLE_HRedL, hred_hne.
   case /algo_metric_caseR : (h); cycle 1.
   qauto l:on use:HRed.preservation, CLE_HRedR, hred_hne.
@@ -2013,7 +2007,7 @@ Proof.
            have ihA : A0 ≪ A1 by hauto l:on.
            econstructor; eauto using E_Refl; constructor=> //.
            have ihA' : Γ ⊢ A0 ≲ A1 by hauto l:on use:coqleq_sound_mutual.
-           suff : funcomp (ren_PTm shift) (scons A0 Γ) ⊢ B1 ∈ PUniv i
+           suff : (cons A0 Γ) ⊢ B1 ∈ PUniv i
              by hauto l:on.
            eauto using ctx_eq_subst_one.
         ** move /salgo_metric_sig.
@@ -2022,7 +2016,7 @@ Proof.
            have ihA : A1 ≪ A0 by hauto l:on.
            econstructor; eauto using E_Refl; constructor=> //.
            have ihA' : Γ ⊢ A1 ≲ A0 by hauto l:on use:coqleq_sound_mutual.
-           suff : funcomp (ren_PTm shift) (scons A1 Γ) ⊢ B0 ∈ PUniv i
+           suff : (cons A1 Γ) ⊢ B0 ∈ PUniv i
              by hauto l:on.
            eauto using ctx_eq_subst_one.
       * hauto lq:on use:salgo_metric_sub, Sub.bind_univ_noconf.
@@ -2083,7 +2077,7 @@ Proof.
     eapply coqeq_complete'; eauto.
 Qed.
 
-Lemma coqleq_complete n Γ (a b : PTm n) :
+Lemma coqleq_complete Γ (a b : PTm) :
   Γ ⊢ a ≲ b -> a ≪ b.
 Proof.
   move => h.
@@ -2091,7 +2085,7 @@ Proof.
   eapply fundamental_theorem in h.
   move /logrel.SemLEq_SN_Sub : h.
   move => h.
-  have : exists va vb : PTm n,
+  have : exists va vb : PTm ,
          rtc LoRed.R a va /\
          rtc LoRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb
       by hauto l:on use:Sub.standardization_lo.
@@ -2102,10 +2096,10 @@ Proof.
   hauto lq:on solve+:lia.
 Qed.
 
-Lemma coqleq_sound : forall n Γ (a b : PTm n) i j,
+Lemma coqleq_sound : forall Γ (a b : PTm) i j,
     Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv j -> a ≪ b -> Γ ⊢ a ≲ b.
 Proof.
-  move => n Γ a b i j.
+  move => Γ a b i j.
   have [*] : i <= i + j /\ j <= i + j by lia.
   have : Γ ⊢ a ∈ PUniv (i + j) /\ Γ ⊢ b ∈ PUniv (i + j)
     by sfirstorder use:T_Univ_Raise.
