@@ -107,6 +107,8 @@ Proof.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
 
+#[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf : ce_prop.
+
 Lemma coqeq_neuneu u0 u1 :
   ishne u0 -> ishne u1 -> u0 ↔ u1 -> u0 ∼ u1.
 Proof.
@@ -175,3 +177,28 @@ Proof.
   - move => a b b' hu r a0 ha hb. rewrite check_equal_hredr in hb.
     sauto lq:on rew:off.
 Qed.
+
+Lemma check_equal_complete :
+  (forall a b (h : algo_dom a b), ~ check_equal a b h -> ~ a ↔ b) /\
+  (forall a b (h : algo_dom_r a b), ~ check_equal_r a b h -> ~ a ⇔ b).
+Proof.
+  apply algo_dom_mutual.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - move => i j.
+    move => h0 h1.
+    have ? : i = j by sauto lq:on. subst.
+    simp check_equal in h0.
+    set x := (nat_eqdec j j).
+    destruct x as [].
+    sauto q:on.
+    sfirstorder.
+  - admit.
+  - sfirstorder.
+  - best.
