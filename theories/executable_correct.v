@@ -9,58 +9,6 @@ Scheme algo_ind := Induction for algo_dom Sort Prop
 
 Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
 
-Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
-Proof. hauto l:on rew:db:check_equal. Qed.
-
-Lemma check_equal_abs_neu a u neu h : check_equal (PAbs a) u (A_AbsNeu a u neu h) = check_equal_r a (PApp (ren_PTm shift u) (VarPTm var_zero)) h.
-Proof. case : u neu h => //=.  Qed.
-
-Lemma check_equal_neu_abs a u neu h : check_equal u (PAbs a) (A_NeuAbs a u neu h) = check_equal_r (PApp (ren_PTm shift u) (VarPTm var_zero)) a h.
-Proof. case : u neu h => //=.  Qed.
-
-Lemma check_equal_pair_pair a0 b0 a1 b1 a h :
-  check_equal (PPair a0 b0) (PPair a1 b1) (A_PairPair a0 a1 b0 b1 a h) =
-    check_equal_r a0 a1 a && check_equal_r b0 b1 h.
-Proof. hauto l:on rew:db:check_equal. Qed.
-
-Lemma check_equal_pair_neu a0 a1 u neu h h'
-  : check_equal (PPair a0 a1) u (A_PairNeu a0 a1 u neu h h') = check_equal_r a0 (PProj PL u) h && check_equal_r a1 (PProj PR u) h'.
-Proof.
-  case : u neu h h' => //=; simp check_equal tm_to_eq_view.
-Qed.
-
-Lemma check_equal_neu_pair a0 a1 u neu h h'
-  : check_equal u (PPair a0 a1) (A_NeuPair a0 a1 u neu h h') = check_equal_r  (PProj PL u) a0 h && check_equal_r (PProj PR u) a1 h'.
-Proof.
-  case : u neu h h' => //=; simp check_equal tm_to_eq_view.
-Qed.
-
-Lemma check_equal_bind_bind p0 A0 B0 p1 A1 B1 h0 h1 :
-  check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) (A_BindCong p0 p1 A0 A1 B0 B1 h0 h1) =
-    BTag_eqdec p0 p1 &&  check_equal_r A0 A1 h0 && check_equal_r  B0 B1 h1.
-Proof. hauto lq:on. Qed.
-
-Lemma check_equal_proj_proj p0 u0 p1 u1 neu0 neu1 h :
-  check_equal (PProj p0 u0) (PProj p1 u1) (A_ProjCong p0 p1 u0 u1 neu0 neu1 h) =
-    PTag_eqdec p0 p1 && check_equal u0 u1 h.
-Proof. hauto lq:on. Qed.
-
-Lemma check_equal_app_app u0 a0 u1 a1 hu0 hu1 hdom hdom' :
-  check_equal (PApp u0 a0) (PApp u1 a1) (A_AppCong u0 u1 a0 a1 hu0 hu1 hdom hdom') =
-    check_equal u0 u1 hdom && check_equal_r a0 a1 hdom'.
-Proof. hauto lq:on. Qed.
-
-Lemma check_equal_ind_ind P0 u0 b0 c0 P1 u1 b1 c1 neu0 neu1 domP domu domb domc :
-  check_equal (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
-    (A_IndCong P0 P1 u0 u1 b0 b1 c0 c1 neu0 neu1 domP domu domb domc) =
-    check_equal_r P0 P1 domP && check_equal u0 u1 domu && check_equal_r b0 b1 domb && check_equal_r c0 c1 domc.
-Proof. hauto lq:on. Qed.
-
-Lemma hred_none a : HRed.nf a -> hred a = None.
-Proof.
-  destruct (hred a) eqn:eq;
-  sfirstorder use:hred_complete, hred_sound.
-Qed.
 
 Lemma coqeqr_no_hred a b : a ∼ b -> HRed.nf a /\ HRed.nf b.
 Proof. induction 1; sauto lq:on unfold:HRed.nf. Qed.
@@ -70,52 +18,6 @@ Proof. induction 1;
          qauto inv:HRed.R use:coqeqr_no_hred, hne_no_hred unfold:HRed.nf.
 Qed.
 
-Lemma check_equal_nfnf a b dom : check_equal_r a b (A_NfNf a b dom) = check_equal a b dom.
-Proof.
-  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
-  have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
-  simp check_equal.
-  destruct (fancy_hred a).
-  simp check_equal.
-  destruct (fancy_hred b).
-  simp check_equal. hauto lq:on.
-  exfalso. hauto l:on use:hred_complete.
-  exfalso. hauto l:on use:hred_complete.
-Qed.
-
-Lemma check_equal_hredl a b a' ha doma :
-  check_equal_r a b (A_HRedL a a' b ha doma) = check_equal_r a' b doma.
-Proof.
-  simp check_equal.
-  destruct (fancy_hred a).
-  - hauto q:on unfold:HRed.nf.
-  - simp check_equal.
-    destruct s as [x ?]. have ? : x = a' by eauto using hred_deter. subst.
-    simpl.
-    simp check_equal.
-    f_equal.
-    apply PropExtensionality.proof_irrelevance.
-Qed.
-
-Lemma check_equal_hredr a b b' hu r a0 :
-  check_equal_r a b (A_HRedR a b b' hu r a0) =
-    check_equal_r a b' a0.
-Proof.
-  simp check_equal.
-  destruct (fancy_hred a).
-  - rewrite check_equal_r_clause_1_equation_1.
-    destruct (fancy_hred b) as [|[b'' hb']].
-    + hauto lq:on unfold:HRed.nf.
-    + have ? : (b'' = b') by eauto using hred_deter. subst.
-      rewrite check_equal_r_clause_1_equation_1.  simpl.
-      simp check_equal. destruct (fancy_hred a). simp check_equal.
-      f_equal; apply PropExtensionality.proof_irrelevance.
-      simp check_equal. exfalso. sfirstorder use:hne_no_hred, hf_no_hred.
-  - simp check_equal. exfalso.
-    sfirstorder use:hne_no_hred, hf_no_hred.
-Qed.
-
-#[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf : ce_prop.
 
 Lemma coqeq_neuneu u0 u1 :
   ishne u0 -> ishne u1 -> u0 ↔ u1 -> u0 ∼ u1.
