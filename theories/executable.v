@@ -30,20 +30,20 @@ Inductive eq_view : PTm -> PTm -> Type :=
 | V_AbsAbs a b :
   eq_view (PAbs a) (PAbs b)
 | V_AbsNeu a b :
-  ~~ isabs b ->
+  ~~ ishf b ->
   eq_view (PAbs a) b
 | V_NeuAbs a b :
-  ~~ isabs a ->
+  ~~ ishf a ->
   eq_view a (PAbs b)
 | V_VarVar i j :
   eq_view (VarPTm i) (VarPTm j)
 | V_PairPair a0 b0 a1 b1 :
   eq_view (PPair a0 b0) (PPair a1 b1)
 | V_PairNeu a0 b0 u :
-  ~~ ispair u ->
+  ~~ ishf u ->
   eq_view (PPair a0 b0) u
 | V_NeuPair u a1 b1 :
-  ~~ ispair u ->
+  ~~ ishf u ->
   eq_view u (PPair a1 b1)
 | V_ZeroZero :
   eq_view PZero PZero
@@ -62,16 +62,31 @@ Inductive eq_view : PTm -> PTm -> Type :=
 | V_UnivUniv i j :
   eq_view (PUniv i) (PUniv j)
 | V_Others a b :
+  tm_conf a b ->
   eq_view a b.
 
 Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
   tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
-  tm_to_eq_view (PAbs a) b := V_AbsNeu a b _;
-  tm_to_eq_view a (PAbs b) := V_NeuAbs a b _;
+  tm_to_eq_view (PAbs a) (PApp b0 b1) := V_AbsNeu a (PApp b0 b1) _;
+  tm_to_eq_view (PAbs a) (VarPTm i) := V_AbsNeu a (VarPTm i) _;
+  tm_to_eq_view (PAbs a) (PProj p b) := V_AbsNeu a (PProj p b) _;
+  tm_to_eq_view (PAbs a) (PInd P u b c) := V_AbsNeu a (PInd P u b c) _;
+  tm_to_eq_view (VarPTm i) (PAbs a) := V_NeuAbs (VarPTm i) a _;
+  tm_to_eq_view (PApp b0 b1) (PAbs b) := V_NeuAbs (PApp b0 b1) b _;
+  tm_to_eq_view (PProj p b) (PAbs a) := V_NeuAbs (PProj p b) a _;
+  tm_to_eq_view (PInd P u b c) (PAbs a) := V_NeuAbs (PInd P u b c) a _;
   tm_to_eq_view (VarPTm i) (VarPTm j) := V_VarVar i j;
   tm_to_eq_view (PPair a0 b0) (PPair a1 b1) := V_PairPair a0 b0 a1 b1;
-  tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _;
-  tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _;
+  (* tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _; *)
+  tm_to_eq_view (PPair a0 b0) (VarPTm i) := V_PairNeu a0 b0 (VarPTm i) _;
+  tm_to_eq_view (PPair a0 b0) (PApp c0 c1) := V_PairNeu a0 b0 (PApp c0 c1) _;
+  tm_to_eq_view (PPair a0 b0) (PProj p c) := V_PairNeu a0 b0 (PProj p c) _;
+  tm_to_eq_view (PPair a0 b0) (PInd P t0 t1 t2) := V_PairNeu a0 b0 (PInd P t0 t1 t2) _;
+  (* tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _; *)
+  tm_to_eq_view (VarPTm i) (PPair a1 b1) := V_NeuPair (VarPTm i) a1 b1 _;
+  tm_to_eq_view (PApp t0 t1) (PPair a1 b1) := V_NeuPair (PApp t0 t1) a1 b1 _;
+  tm_to_eq_view (PProj t0 t1) (PPair a1 b1) := V_NeuPair (PProj t0 t1) a1 b1 _;
+  tm_to_eq_view (PInd t0 t1 t2 t3) (PPair a1 b1) := V_NeuPair (PInd t0 t1 t2 t3) a1 b1 _;
   tm_to_eq_view PZero PZero := V_ZeroZero;
   tm_to_eq_view (PSuc a) (PSuc b) := V_SucSuc a b;
   tm_to_eq_view (PApp a0 b0) (PApp a1 b1) := V_AppApp a0 b0 a1 b1;
@@ -80,7 +95,7 @@ Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
   tm_to_eq_view PNat PNat := V_NatNat;
   tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
   tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
-  tm_to_eq_view a b := V_Others a b.
+  tm_to_eq_view a b := V_Others a b _.
 
 Inductive algo_dom : PTm -> PTm -> Prop :=
 | A_AbsAbs a b :
