@@ -72,7 +72,7 @@ Qed.
 
 Lemma check_equal_nfnf a b dom : check_equal_r a b (A_NfNf a b dom) = check_equal a b dom.
 Proof.
-  have [h0 h1] : (ishf a \/ ishne a) /\ (ishf b \/ ishne b) by hauto l:on use:algo_dom_hf_hne.
+  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
   have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
   simp check_equal.
   destruct (fancy_hred a).
@@ -249,9 +249,8 @@ Proof.
     rewrite check_equal_nfnf.
     move : ih => /[apply].
     move => + h0.
-    move /algo_dom_hf_hne in h.
+    have {h} [? ?] : HRed.nf a /\ HRed.nf b by sfirstorder use:algo_dom_no_hred.
     inversion h0; subst.
-    have {h} [? ?] : HRed.nf a /\ HRed.nf b by sfirstorder use:hf_no_hred, hne_no_hred.
     hauto l:on use:hreds_nf_refl.
   - move => a a' b h dom.
     simp ce_prop => /[apply].
