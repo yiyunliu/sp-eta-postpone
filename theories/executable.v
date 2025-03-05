@@ -183,6 +183,10 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r c0 c1 ->
   algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
 
+(* | A_Conf a b : *)
+(*   tm_conf a b -> *)
+(*   algo_dom a b *)
+
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
   algo_dom a b ->
@@ -195,18 +199,11 @@ with algo_dom_r : PTm  -> PTm -> Prop :=
   algo_dom_r a b
 
 | A_HRedR a b b'  :
-  ishne a \/ ishf a ->
+  HRed.nf a ->
   HRed.R b b' ->
   algo_dom_r a b' ->
   (* ----------------------- *)
   algo_dom_r a b.
-
-Lemma algo_dom_hf_hne (a b : PTm) :
-  algo_dom a b ->
-  (ishf a \/ ishne a) /\ (ishf b \/ ishne b).
-Proof.
-  induction 1 =>//=; hauto lq:on.
-Qed.
 
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
@@ -219,6 +216,13 @@ Lemma hne_no_hred (a b : PTm) :
   HRed.R a b ->
   False.
 Proof. elim : a b => //=; hauto l:on inv:HRed.R. Qed.
+
+Lemma algo_dom_no_hred (a b : PTm) :
+  algo_dom a b ->
+  HRed.nf a /\ HRed.nf b.
+Proof.
+  induction 1 =>//=; try hauto inv:HRed.R use:hne_no_hred, hf_no_hred lq:on unfold:HRed.nf.
+Qed.
 
 Derive Signature for algo_dom algo_dom_r.
 
@@ -342,9 +346,7 @@ Defined.
 Next Obligation.
   intros.
   destruct h.
-  exfalso. apply algo_dom_hf_hne in H0.
-  destruct H0 as [h0 h1].
-  sfirstorder use:hf_no_hred, hne_no_hred.
+  exfalso. sfirstorder use: algo_dom_no_hred.
   exfalso. sfirstorder.
   assert (  b' = b'0)by eauto using hred_deter. subst.
   apply h.
@@ -353,7 +355,8 @@ Defined.
 Next Obligation.
   simpl. intros.
   inversion h; subst =>//=.
-  move {h}. hauto lq:on use:algo_dom_hf_hne, hf_no_hred, hne_no_hred, hred_sound.
+  exfalso. sfirstorder use:algo_dom_no_hred.
+  move {h}.
   assert (a' = a'0) by eauto using hred_deter, hred_sound. by subst.
   exfalso. sfirstorder use:hne_no_hred, hf_no_hred.
 Defined.
