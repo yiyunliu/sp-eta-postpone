@@ -37,8 +37,7 @@ Proof.
   - move => a u i h0 ih h.
     apply CE_AbsNeu => //.
     apply : ih. simp check_equal tm_to_eq_view in h.
-    have h1 : check_equal (PAbs a) u (A_AbsNeu a u i h0) = check_equal_r a (PApp (ren_PTm shift u) (VarPTm var_zero)) h0 by  clear; case : u i h0 => //=.
-    hauto lq:on.
+    by rewrite check_equal_abs_neu in h.
   - move => a u i h ih h0.
     apply CE_NeuAbs=>//.
     apply ih.
@@ -79,6 +78,7 @@ Proof.
     rewrite check_equal_ind_ind.
     move /andP => [/andP [/andP [h0 h1] h2 ] h3].
     sauto lq:on use:coqeq_neuneu.
+  - move => a b n n0 i. by rewrite check_equal_conf.
   - move => a b dom h ih. apply : CE_HRed; eauto using rtc_refl.
     rewrite check_equal_nfnf in ih.
     tauto.
@@ -94,27 +94,25 @@ Lemma hreds_nf_refl a b  :
   a = b.
 Proof. inversion 2; sfirstorder. Qed.
 
+Ltac ce_solv := move => *; simp ce_prop in *; hauto qb:on rew:off inv:CoqEq, CoqEq_Neu.
+
 Lemma check_equal_complete :
   (forall a b (h : algo_dom a b), ~ check_equal a b h -> ~ a ↔ b) /\
   (forall a b (h : algo_dom_r a b), ~ check_equal_r a b h -> ~ a ⇔ b).
 Proof.
   apply algo_dom_mutual.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
-  - hauto q:on inv:CoqEq, CoqEq_Neu b:on rew:db:ce_prop.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
+  - ce_solv.
   - move => i j.
-    move => h0 h1.
-    have ? : i = j by sauto lq:on. subst.
-    simp check_equal in h0.
-    set x := (nat_eqdec j j).
-    destruct x as [].
-    sauto q:on.
-    sfirstorder.
+    rewrite check_equal_univ.
+    case : nat_eqdec => //=.
+    ce_solv.
   - move => p0 p1 A0 A1 B0 B1 h0 ih0 h1 ih1.
     rewrite check_equal_bind_bind.
     move /negP.
@@ -125,8 +123,8 @@ Proof.
     hauto qb:on inv:CoqEq,CoqEq_Neu.
     hauto qb:on inv:CoqEq,CoqEq_Neu.
   - simp check_equal. done.
-  - move => i j. simp check_equal.
-    case : nat_eqdec => //=. sauto lq:on.
+  - move => i j. move => h. have {h} : ~ nat_eqdec i j by done.
+    case : nat_eqdec => //=. ce_solv.
   - move => p0 p1 u0 u1 neu0 neu1 h ih.
     rewrite check_equal_proj_proj.
     move /negP /nandP. case.
@@ -147,6 +145,14 @@ Proof.
     sauto lqb:on inv:CoqEq, CoqEq_Neu.
     sauto lqb:on inv:CoqEq, CoqEq_Neu.
     sauto lqb:on inv:CoqEq, CoqEq_Neu.
+  - rewrite /tm_conf.
+    move => a b n n0 i. simp ce_prop.
+    move => _. inversion 1; subst => //=.
+    + destruct b => //=.
+    + destruct a => //=.
+    + destruct b => //=.
+    + destruct a => //=.
+    + hauto l:on inv:CoqEq_Neu.
   - move => a b h ih.
     rewrite check_equal_nfnf.
     move : ih => /[apply].

@@ -477,6 +477,10 @@ Proof.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
 
+Lemma check_equal_univ i j :
+  check_equal (PUniv i) (PUniv j) (A_UnivCong i j) = nat_eqdec i j.
+Proof. reflexivity. Qed.
+
 Lemma check_equal_conf a b nfa nfb nfab :
   check_equal a b (A_Conf a b nfa nfb nfab) = false.
 Proof. destruct a; destruct b => //=. Qed.
