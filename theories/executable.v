@@ -3,22 +3,26 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import Logic.PropExtensionality (propositional_extensionality).
 Require Import ssreflect ssrbool.
 Import Logic (inspect).
+From Ltac2 Require Import Ltac2.
+Import Ltac2.Constr.
+Set Default Proof Mode "Classic".
+
 
 Require Import ssreflect ssrbool.
 From Hammer Require Import Tactics.
 
 Definition tm_nonconf (a b : PTm) : bool :=
   match a, b with
-  | PAbs _, _ => ishne b || isabs b
-  | _, PAbs _ => ishne a
+  | PAbs _, _ => (~~ ishf b) || isabs b
+  | _, PAbs _ => ~~ ishf a
   | VarPTm _, VarPTm _ => true
-  | PPair _ _, _ => ishne b || ispair b
-  | _, PPair _ _ => ishne a
+  | PPair _ _, _ => (~~ ishf b) || ispair b
+  | _, PPair _ _ => ~~ ishf a
   | PZero, PZero => true
   | PSuc _, PSuc _ => true
-  | PApp _ _, PApp _ _ => ishne a && ishne b
-  | PProj _ _, PProj _ _ => ishne a && ishne b
-  | PInd _ _ _ _, PInd _ _ _ _ => ishne a && ishne b
+  | PApp _ _, PApp _ _ => (~~ ishf a) && (~~ ishf b)
+  | PProj _ _, PProj _ _ => (~~ ishf a) && (~~ ishf b)
+  | PInd _ _ _ _, PInd _ _ _ _ => (~~ ishf a) && (~~ ishf b)
   | PNat, PNat => true
   | PUniv _, PUniv _ => true
   | PBind _ _ _, PBind _ _ _ => true
@@ -184,9 +188,11 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom_r c0 c1 ->
   algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
 
-(* | A_Conf a b : *)
-(*   tm_conf a b -> *)
-(*   algo_dom a b *)
+| A_Conf a b :
+  HRed.nf a ->
+  HRed.nf b ->
+  tm_conf a b ->
+  algo_dom a b
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
@@ -283,11 +289,19 @@ Definition fancy_hred (a : PTm) : HRed.nf a + {b | HRed.R a b}.
   left. move => b /hred_complete. congruence.
 Defined.
 
+Ltac2 destruct_algo () :=
+  lazy_match! goal with
+  | [h : algo_dom ?a ?b |- _ ] =>
+      if is_var a then destruct $a; ltac1:(done)  else
+        (if is_var b then destruct $b; ltac1:(done) else ())
+  end.
+
+
 Ltac check_equal_triv :=
   intros;subst;
   lazymatch goal with
   (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
-  | [h : algo_dom _ _ |- _] => try (inversion h; by subst)
+  | [h : algo_dom _ _ |- _] => try (inversion h; subst => //=; ltac2:(Control.enter destruct_algo))
   | _ => idtac
   end.
 
@@ -335,7 +349,8 @@ Ltac solve_check_equal :=
       check_equal_r a b h (inr a') := check_equal_r (proj1_sig a') b _;
       check_equal_r a b h (inl h')  with (fancy_hred b) :=
         | inr b' := check_equal_r a (proj1_sig b') _;
-        | inl h'' := check_equal a b _.
+                 | inl h'' := check_equal a b _.
+
 
 Next Obligation.
   intros.
@@ -362,12 +377,6 @@ Next Obligation.
   exfalso. sfirstorder use:hne_no_hred, hf_no_hred.
 Defined.
 
-
-
-
-(* Next Obligation. *)
-(*   qauto inv:algo_dom, algo_dom_r. *)
-(* Defined. *)
 
 Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
 Proof. reflexivity. Qed.
@@ -468,4 +477,8 @@ Proof.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
 
-#[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf : ce_prop.
+Lemma check_equal_conf a b nfa nfb nfab :
+  check_equal a b (A_Conf a b nfa nfb nfab) = false.
+Proof. destruct a; destruct b => //=. Qed.
+
+#[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf check_equal_conf : ce_prop.
