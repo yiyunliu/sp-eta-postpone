@@ -212,6 +212,11 @@ with algo_dom_r : PTm  -> PTm -> Prop :=
   (* ----------------------- *)
   algo_dom_r a b.
 
+Scheme algo_ind := Induction for algo_dom Sort Prop
+  with algor_ind := Induction for algo_dom_r Sort Prop.
+
+Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
+
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
   HRed.R a b ->
@@ -351,7 +356,6 @@ Ltac solve_check_equal :=
         | inr b' := check_equal_r a (proj1_sig b') _;
                  | inl h'' := check_equal a b _.
 
-
 Next Obligation.
   intros.
   inversion h; subst => //=.
@@ -487,7 +491,17 @@ Proof. destruct a; destruct b => //=. Qed.
 
 #[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf check_equal_conf : ce_prop.
 
-Scheme algo_ind := Induction for algo_dom Sort Prop
-  with algor_ind := Induction for algo_dom_r Sort Prop.
+Obligation Tactic := solve [check_equal_triv | sfirstorder].
 
-Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
+Program Fixpoint check_sub (q : bool) (a b : PTm) (h : algo_dom a b) {struct h} :=
+  match a, b with
+  | PBind PPi A0 B0, PBind PPi A1 B1 =>
+      check_sub_r (negb q) A0 A1 _ && check_sub_r q B0 B1 _
+  | PBind PSig A0 B0, PBind PSig A1 B1 =>
+      check_sub_r q A0 A1 _ && check_sub_r q B0 B1 _
+  | PUniv i, PUniv j =>
+      if q then PeanoNat.Nat.leb i j else PeanoNat.Nat.leb j i
+  | PNat, PNat => true
+  | _ ,_ => ishne a && ishne b && check_equal a b h
+  end
+with check_sub_r (q : bool) (a b : PTm) (h : algo_dom_r a b) {struct h} := false.
