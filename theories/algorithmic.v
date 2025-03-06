@@ -1050,6 +1050,12 @@ Proof.
 Qed.
 
 
+Lemma hreds_nf_refl a b  :
+  HRed.nf a ->
+  rtc HRed.R a b ->
+  a = b.
+Proof. inversion 2; sfirstorder. Qed.
+
 Lemma lored_nsteps_app_cong k (a0 a1 b : PTm) :
   nsteps LoRed.R k a0 a1 ->
   ishne a0 ->

@@ -486,3 +486,8 @@ Lemma check_equal_conf a b nfa nfb nfab :
 Proof. destruct a; destruct b => //=. Qed.
 
 #[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf check_equal_conf : ce_prop.
+
+Scheme algo_ind := Induction for algo_dom Sort Prop
+  with algor_ind := Induction for algo_dom_r Sort Prop.
+
+Combined Scheme algo_dom_mutual from algo_ind, algor_ind.

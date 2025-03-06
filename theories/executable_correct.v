@@ -4,12 +4,6 @@ Require Import ssreflect ssrbool.
 From stdpp Require Import relations (rtc(..)).
 From Hammer Require Import Tactics.
 
-Scheme algo_ind := Induction for algo_dom Sort Prop
-  with algor_ind := Induction for algo_dom_r Sort Prop.
-
-Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
-
-
 Lemma coqeqr_no_hred a b : a ∼ b -> HRed.nf a /\ HRed.nf b.
 Proof. induction 1; sauto lq:on unfold:HRed.nf. Qed.
 
@@ -17,7 +11,6 @@ Lemma coqeq_no_hred a b : a ↔ b -> HRed.nf a /\ HRed.nf b.
 Proof. induction 1;
          qauto inv:HRed.R use:coqeqr_no_hred, hne_no_hred unfold:HRed.nf.
 Qed.
-
 
 Lemma coqeq_neuneu u0 u1 :
   ishne u0 -> ishne u1 -> u0 ↔ u1 -> u0 ∼ u1.
@@ -87,12 +80,6 @@ Proof.
   - move => a b b' hu r a0 ha hb. rewrite check_equal_hredr in hb.
     sauto lq:on rew:off.
 Qed.
-
-Lemma hreds_nf_refl a b  :
-  HRed.nf a ->
-  rtc HRed.R a b ->
-  a = b.
-Proof. inversion 2; sfirstorder. Qed.
 
 Ltac ce_solv := move => *; simp ce_prop in *; hauto qb:on rew:off inv:CoqEq, CoqEq_Neu.
 
