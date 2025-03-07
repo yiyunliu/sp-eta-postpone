@@ -12,6 +12,11 @@ Proof. induction 1;
          qauto inv:HRed.R use:coqeqr_no_hred, hne_no_hred unfold:HRed.nf.
 Qed.
 
+Lemma coqleq_no_hred a b : a ⋖ b -> HRed.nf a /\ HRed.nf b.
+Proof.
+  induction 1; qauto inv:HRed.R use:coqeqr_no_hred, hne_no_hred, coqeqr_no_hred unfold:HRed.nf.
+Qed.
+
 Lemma coqeq_neuneu u0 u1 :
   ishne u0 -> ishne u1 -> u0 ↔ u1 -> u0 ∼ u1.
 Proof.
@@ -165,8 +170,9 @@ Proof.
     + sauto lq:on use:hred_deter.
 Qed.
 
-Ltac simp_sub := with_strategy opaque [check_equal] simpl.
+Ltac simp_sub := with_strategy opaque [check_equal] simpl in *.
 
+(* Reusing algo_dom results in an inefficient proof, but i'll brute force it so i can get the result more quickly *)
 Lemma check_sub_sound :
   (forall a b (h : algo_dom a b), forall q, check_sub q a b h -> if q then a ⋖ b else b ⋖ a) /\
     (forall a b (h : algo_dom_r a b), forall q, check_sub_r q a b h -> if q then a ≪ b else b ≪ a).
@@ -176,14 +182,121 @@ Proof.
   - move => a0 a1 []//=; hauto qb:on.
   - simpl. move => i j [];
     sauto lq:on use:Reflect.Nat_leb_le.
-  - admit.
+  - move => p0 p1 A0 A1 B0 B1 a iha b ihb q.
+    case : p0; case : p1; try done; simp ce_prop.
+    sauto lqb:on.
+    sauto lqb:on.
   - hauto l:on.
   - move => i j q h.
     have {}h : nat_eqdec i j by sfirstorder.
     case : nat_eqdec h => //=; sauto lq:on.
   - simp_sub.
-    move => p0 p1 u0 u1 i i0 dom ihdom q.
-    move /andP => [/andP [h00 h01] h1].
-    best use:check_sub_
+    sauto lqb:on use:coqeq_symmetric_mutual, coqeq_neuneu, check_equal_sound.
+  - simp_sub.
+    sauto lqb:on use:coqeq_symmetric_mutual, coqeq_neuneu, check_equal_sound.
+  - simp_sub.
+    sauto lqb:on use:coqeq_symmetric_mutual, coqeq_neuneu, check_equal_sound.
+  - move => a b n n0 i q h.
+    exfalso.
+    destruct a, b; try done; simp_sub; hauto lb:on use:check_equal_conf.
+  - move => a b doma ihdom q.
+    simp ce_prop. sauto lq:on.
+  - move => a a' b hr doma ihdom q.
+    simp ce_prop. move : ihdom => /[apply]. move {doma}.
+    sauto lq:on.
+  - move => a b b' n r dom ihdom q.
+    simp ce_prop.
+    move : ihdom => /[apply].
+    move {dom}.
+    sauto lq:on rew:off.
+Qed.
 
-best b:on use:check_equal_sound.
+Lemma check_sub_complete :
+  (forall a b (h : algo_dom a b), forall q, check_sub q a b h = false -> if q then ~ a ⋖ b else ~ b ⋖ a) /\
+    (forall a b (h : algo_dom_r a b), forall q, check_sub_r q a b h = false -> if q then ~ a ≪ b else ~ b ≪ a).
+Proof.
+  apply algo_dom_mutual; try first [done | hauto depth:4 lq:on inv:CoqLEq, CoqEq_Neu].
+  - move => i j q /=.
+    sauto lq:on rew:off use:PeanoNat.Nat.leb_le.
+  - move => p0 p1 A0 A1 B0 B1 a iha b ihb [].
+    + move => + h. inversion h; subst; simp ce_prop.
+      * move /nandP.
+        case.
+        by move => /negbTE {}/iha.
+        by move => /negbTE {}/ihb.
+      * move /nandP.
+        case.
+        by move => /negbTE {}/iha.
+        by move => /negbTE {}/ihb.
+      * inversion H.
+    + move => + h. inversion h; subst; simp ce_prop.
+      * move /nandP.
+        case.
+        by move => /negbTE {}/iha.
+        by move => /negbTE {}/ihb.
+      * move /nandP.
+        case.
+        by move => /negbTE {}/iha.
+        by move => /negbTE {}/ihb.
+      * inversion H.
+  - simp_sub.
+    sauto lq:on use:check_equal_complete.
+  - simp_sub.
+    move => p0 p1 u0 u1 i i0 a iha q.
+    move /nandP.
+    case.
+    move /nandP.
+    case => //.
+    by move /negP.
+    by move /negP.
+    move /negP.
+    move => h. eapply check_equal_complete in h.
+    sauto use:coqeq_symmetric_mutual inv:CoqLEq lq:on.
+  - move => u0 u1 a0 a1 i i0 a hdom ihdom hdom' ihdom'.
+    simp_sub.
+    move /nandP.
+    case.
+    move/nandP.
+    case.
+    by move/negP.
+    by move/negP.
+    move /negP.
+    move => h. eapply check_equal_complete in h.
+    sauto use:coqeq_symmetric_mutual inv:CoqLEq lq:on.
+  - move => P0 P1 u0 u1 b0 b1 c0 c1 i i0 dom ihdom dom' ihdom' dom'' ihdom'' dom''' ihdom''' q.
+    move /nandP.
+    case.
+    move /nandP.
+    case => //=.
+    by move/negP.
+    by move/negP.
+    move /negP => h. eapply check_equal_complete in h.
+    sauto use:coqeq_symmetric_mutual inv:CoqLEq lq:on.
+  - move => a b h ih q. simp ce_prop => {}/ih.
+    case : q => h0;
+    inversion 1; subst; hauto l:on use:algo_dom_no_hred, hreds_nf_refl.
+  - move => a a' b r dom ihdom q.
+    simp ce_prop => {}/ihdom.
+    case : q => h0.
+    inversion 1; subst.
+    inversion H0; subst. sfirstorder use:coqleq_no_hred.
+    have ? : a' = y by eauto using hred_deter. subst.
+    sauto lq:on.
+    inversion 1; subst.
+    inversion H1; subst. sfirstorder use:coqleq_no_hred.
+    have ? : a' = y by eauto using hred_deter. subst.
+    sauto lq:on.
+  - move => a b b' n r hr ih q.
+    simp ce_prop => {}/ih.
+    case : q.
+    + move => h. inversion 1; subst.
+      inversion H1; subst.
+      sfirstorder use:coqleq_no_hred.
+      have ? : b' = y by eauto using hred_deter. subst.
+      sauto lq:on.
+    + move => h. inversion 1; subst.
+      inversion H0; subst.
+      sfirstorder use:coqleq_no_hred.
+      have ? : b' = y by eauto using hred_deter. subst.
+      sauto lq:on.
+Qed.

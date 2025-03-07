@@ -107,8 +107,8 @@ Lemma term_metric_pair : forall k a0 b0 a1 b1,
 Proof.
   move => k a0 b0 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_pair_inv in hva, hvb.
-  move : hva => [?][?][?][?][?][?][?][?]?.
-  move : hvb => [?][?][?][?][?][?][?][?]?. subst.
+  decompose record hva => {hva}.
+  decompose record hvb => {hvb}. subst.
   simpl in *. exists (k - 1).
   hauto lqb:on solve+:lia.
 Qed.
@@ -119,8 +119,8 @@ Lemma term_metric_bind : forall k p0 a0 b0 p1 a1 b1,
 Proof.
   move => k p0 a0 b0 p1 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_bind_inv in hva, hvb.
-  move : hva => [?][?][?][?][?][?][?][?]?.
-  move : hvb => [?][?][?][?][?][?][?][?]?. subst.
+  decompose record hva => {hva}.
+  decompose record hvb => {hvb}. subst.
   simpl in *. exists (k - 1).
   hauto lqb:on solve+:lia.
 Qed.

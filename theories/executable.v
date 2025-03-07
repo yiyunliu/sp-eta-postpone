@@ -217,6 +217,62 @@ Scheme algo_ind := Induction for algo_dom Sort Prop
 
 Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
 
+
+(* Inductive salgo_dom : PTm -> PTm -> Prop := *)
+(* | S_UnivCong i j : *)
+(*   (* -------------------------- *) *)
+(*   salgo_dom (PUniv i) (PUniv j) *)
+
+(* | S_PiCong A0 A1 B0 B1 : *)
+(*   salgo_dom_r A1 A0 -> *)
+(*   salgo_dom_r B0 B1 -> *)
+(*   (* ---------------------------- *) *)
+(*   salgo_dom (PBind PPi A0 B0) (PBind PPi A1 B1) *)
+
+(* | S_SigCong A0 A1 B0 B1 : *)
+(*   salgo_dom_r A0 A1 -> *)
+(*   salgo_dom_r B0 B1 -> *)
+(*   (* ---------------------------- *) *)
+(*   salgo_dom (PBind PSig A0 B0) (PBind PSig A1 B1) *)
+
+(* | S_NatCong : *)
+(*   salgo_dom PNat PNat *)
+
+(* | S_NeuNeu a b : *)
+(*   ishne a -> *)
+(*   ishne b -> *)
+(*   algo_dom a b -> *)
+(*   (* ------------------- *) *)
+(*   salgo_dom *)
+
+(* | S_Conf a b : *)
+(*   HRed.nf a -> *)
+(*   HRed.nf b -> *)
+(*   tm_conf a b -> *)
+(*   salgo_dom a b *)
+
+(* with salgo_dom_r : PTm  -> PTm -> Prop := *)
+(* | S_NfNf a b : *)
+(*   salgo_dom a b -> *)
+(*   salgo_dom_r a b *)
+
+(* | S_HRedL a a' b  : *)
+(*   HRed.R a a' -> *)
+(*   salgo_dom_r a' b -> *)
+(*   (* ----------------------- *) *)
+(*   salgo_dom_r a b *)
+
+(* | S_HRedR a b b'  : *)
+(*   HRed.nf a -> *)
+(*   HRed.R b b' -> *)
+(*   salgo_dom_r a b' -> *)
+(*   (* ----------------------- *) *)
+(*   salgo_dom_r a b. *)
+
+(* Scheme salgo_ind := Induction for salgo_dom Sort Prop *)
+(*   with algor_ind := Induction for salgo_dom_r Sort Prop. *)
+
+
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
   HRed.R a b ->
