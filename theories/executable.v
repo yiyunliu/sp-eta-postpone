@@ -491,7 +491,7 @@ Proof. destruct a; destruct b => //=. Qed.
 
 #[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf check_equal_conf : ce_prop.
 
-Obligation Tactic := solve [check_equal_triv | sfirstorder].
+Obligation Tactic := try solve [check_equal_triv | sfirstorder].
 
 Program Fixpoint check_sub (q : bool) (a b : PTm) (h : algo_dom a b) {struct h} :=
   match a, b with
@@ -504,4 +504,101 @@ Program Fixpoint check_sub (q : bool) (a b : PTm) (h : algo_dom a b) {struct h} 
   | PNat, PNat => true
   | _ ,_ => ishne a && ishne b && check_equal a b h
   end
-with check_sub_r (q : bool) (a b : PTm) (h : algo_dom_r a b) {struct h} := false.
+with check_sub_r (q : bool) (a b : PTm) (h : algo_dom_r a b) {struct h} :=
+  match fancy_hred a with
+  | inr a' => check_sub_r q (proj1_sig a') b _
+  | inl ha' => match fancy_hred b with
+            | inr b' => check_sub_r q a (proj1_sig b') _
+            | inl hb' => check_sub q a b _
+            end
+  end.
+Next Obligation.
+  simpl. intros. clear Heq_anonymous.  destruct a' as [a' ha']. simpl.
+  inversion h; subst => //=.
+  exfalso. sfirstorder use:algo_dom_no_hred.
+  assert (a' = a'0) by eauto using hred_deter. by subst.
+  exfalso. sfirstorder.
+Defined.
+
+Next Obligation.
+  simpl. intros. clear Heq_anonymous Heq_anonymous0.
+  destruct b' as [b' hb']. simpl.
+  inversion h; subst.
+  - exfalso.
+    sfirstorder use:algo_dom_no_hred.
+  - exfalso.
+    sfirstorder.
+  - assert (b' = b'0) by eauto using hred_deter. by subst.
+Defined.
+
+(* Need to avoid ssreflect tactics since they generate terms that make the termination checker upset *)
+Next Obligation.
+  move => _ /= a b hdom ha _ hb _.
+  inversion hdom; subst.
+  - assumption.
+  - exfalso; sfirstorder.
+  - exfalso; sfirstorder.
+Defined.
+
+Lemma check_sub_pi_pi q A0 B0  A1 B1 h0 h1 :
+  check_sub q (PBind PPi A0 B0) (PBind PPi A1 B1) (A_BindCong PPi PPi A0 A1 B0 B1 h0 h1) =
+    check_sub_r (~~ q) A0 A1 h0 && check_sub_r q B0 B1 h1.
+Proof. reflexivity. Qed.
+
+Lemma check_sub_sig_sig q A0 B0  A1 B1 h0 h1 :
+  check_sub q (PBind PSig A0 B0) (PBind PSig A1 B1) (A_BindCong PSig PSig A0 A1 B0 B1 h0 h1) =
+    check_sub_r q A0 A1 h0 && check_sub_r q B0 B1 h1.
+  reflexivity. Qed.
+
+Lemma check_sub_univ_univ i j :
+  check_sub true (PUniv i) (PUniv j) (A_UnivCong i j) = PeanoNat.Nat.leb i j.
+Proof. reflexivity. Qed.
+
+Lemma check_sub_univ_univ' i j :
+  check_sub false (PUniv i) (PUniv j) (A_UnivCong i j) = PeanoNat.Nat.leb j i.
+  reflexivity. Qed.
+
+Lemma check_sub_nfnf q a b dom : check_sub_r q a b (A_NfNf a b dom) = check_sub q a b dom.
+Proof.
+  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
+  have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
+  simpl.
+  destruct (fancy_hred b)=>//=.
+  destruct (fancy_hred a) =>//=.
+  destruct s as [a' ha']. simpl.
+  hauto l:on use:hred_complete.
+  destruct s as [b' hb']. simpl.
+  hauto l:on use:hred_complete.
+Qed.
+
+Lemma check_sub_hredl q a b a' ha doma :
+  check_sub_r q a b (A_HRedL a a' b ha doma) = check_sub_r q a' b doma.
+Proof.
+  simpl.
+  destruct (fancy_hred a).
+  - hauto q:on unfold:HRed.nf.
+  - destruct s as [x ?].
+    have ? : x = a' by eauto using hred_deter. subst.
+    simpl.
+    f_equal.
+    apply PropExtensionality.proof_irrelevance.
+Qed.
+
+Lemma check_sub_hredr q a b b' hu r a0 :
+  check_sub_r q a b (A_HRedR a b b' hu r a0) =
+    check_sub_r q a b' a0.
+Proof.
+  simpl.
+  destruct (fancy_hred a).
+  - simpl.
+    destruct (fancy_hred b) as [|[b'' hb']].
+    + hauto lq:on unfold:HRed.nf.
+    + simpl.
+      have ? : (b'' = b') by eauto using hred_deter. subst.
+      f_equal.
+      apply PropExtensionality.proof_irrelevance.
+  - exfalso.
+    sfirstorder use:hne_no_hred, hf_no_hred.
+Qed.
+
+#[export]Hint Rewrite check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ' check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.

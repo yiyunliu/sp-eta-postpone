@@ -164,3 +164,26 @@ Proof.
       sfirstorder unfold:HRed.nf.
     + sauto lq:on use:hred_deter.
 Qed.
+
+Ltac simp_sub := with_strategy opaque [check_equal] simpl.
+
+Lemma check_sub_sound :
+  (forall a b (h : algo_dom a b), forall q, check_sub q a b h -> if q then a ⋖ b else b ⋖ a) /\
+    (forall a b (h : algo_dom_r a b), forall q, check_sub_r q a b h -> if q then a ≪ b else b ≪ a).
+Proof.
+  apply algo_dom_mutual; try done.
+  - move => a [] //=; hauto qb:on.
+  - move => a0 a1 []//=; hauto qb:on.
+  - simpl. move => i j [];
+    sauto lq:on use:Reflect.Nat_leb_le.
+  - admit.
+  - hauto l:on.
+  - move => i j q h.
+    have {}h : nat_eqdec i j by sfirstorder.
+    case : nat_eqdec h => //=; sauto lq:on.
+  - simp_sub.
+    move => p0 p1 u0 u1 i i0 dom ihdom q.
+    move /andP => [/andP [h00 h01] h1].
+    best use:check_sub_
+
+best b:on use:check_equal_sound.
