@@ -255,50 +255,39 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
 | A_NatCong :
   algo_dom PNat PNat
 
-| A_NeuNeu a b :
-  algo_dom_neu a b ->
-  algo_dom a b
-
-| A_Conf a b :
-  ishf a ->
-  ishf b ->
-  tm_conf a b ->
-  algo_dom a b
-
-with algo_dom_neu : PTm -> PTm -> Prop :=
 | A_VarCong i j :
   (* -------------------------- *)
-  algo_dom_neu (VarPTm i) (VarPTm j)
+  algo_dom (VarPTm i) (VarPTm j)
 
 | A_AppCong u0 u1 a0 a1 :
   ishne u0 ->
   ishne u1 ->
-  algo_dom_neu u0 u1 ->
+  algo_dom u0 u1 ->
   algo_dom_r a0 a1 ->
   (* ------------------------- *)
-  algo_dom_neu (PApp u0 a0) (PApp u1 a1)
+  algo_dom (PApp u0 a0) (PApp u1 a1)
 
 | A_ProjCong p0 p1 u0 u1 :
   ishne u0 ->
   ishne u1 ->
-  algo_dom_neu u0 u1 ->
+  algo_dom u0 u1 ->
   (* ---------------------  *)
-  algo_dom_neu (PProj p0 u0) (PProj p1 u1)
+  algo_dom (PProj p0 u0) (PProj p1 u1)
 
 | A_IndCong P0 P1 u0 u1 b0 b1 c0 c1 :
   ishne u0 ->
   ishne u1 ->
   algo_dom_r P0 P1 ->
-  algo_dom_neu u0 u1 ->
+  algo_dom u0 u1 ->
   algo_dom_r b0 b1 ->
   algo_dom_r c0 c1 ->
-  algo_dom_neu (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
+  algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
 
-| A_NeuConf a b :
-  ishne a ->
-  ishne b ->
+| A_Conf a b :
+  HRed.nf a ->
+  HRed.nf b ->
   tm_conf a b ->
-  algo_dom_neu a b
+  algo_dom a b
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
@@ -319,11 +308,10 @@ with algo_dom_r : PTm  -> PTm -> Prop :=
   algo_dom_r a b.
 
 Scheme algo_ind := Induction for algo_dom Sort Prop
-  with algo_neu_ind := Induction for algo_dom_neu Sort Prop
   with algor_ind := Induction for algo_dom_r Sort Prop.
 
-Combined Scheme algo_dom_mutual from algo_ind, algo_neu_ind, algor_ind.
-#[export]Hint Constructors algo_dom algo_dom_neu algo_dom_r : adom.
+Combined Scheme algo_dom_mutual from algo_ind, algor_ind.
+#[export]Hint Constructors algo_dom algo_dom_r : adom.
 
 Definition stm_nonconf a b :=
   match a, b with
@@ -332,9 +320,18 @@ Definition stm_nonconf a b :=
   | PBind PSig _ _, PBind PSig _ _ => true
   | PNat, PNat => true
   | VarPTm _, VarPTm _ => true
-  | PApp _ _, PApp _ _ => (~~ ishf a) && (~~ ishf b)
-  | PProj _ _, PProj _ _ => (~~ ishf a) && (~~ ishf b)
-  | PInd _ _ _ _, PInd _ _ _ _ => (~~ ishf a) && (~~ ishf b)
+  | PApp _ _, PApp _ _ => true
+  | PProj _ _, PProj _ _ => true
+  | PInd _ _ _ _, PInd _ _ _ _ => true
+  | _, _ => false
+  end.
+
+Definition neuneu_nonconf a b :=
+  match a, b with
+  | VarPTm _, VarPTm _ => true
+  | PApp _ _, PApp _ _ => true
+  | PProj _ _, PProj _ _ => true
+  | PInd _ _ _ _, PInd _ _ _ _ => true
   | _, _ => false
   end.
 
@@ -374,7 +371,8 @@ Inductive salgo_dom : PTm -> PTm -> Prop :=
   salgo_dom PNat PNat
 
 | S_NeuNeu a b :
-  algo_dom_neu a b ->
+  neuneu_nonconf a b ->
+  algo_dom a b ->
   salgo_dom a b
 
 | S_Conf a b :
@@ -400,6 +398,8 @@ with salgo_dom_r : PTm -> PTm -> Prop :=
   salgo_dom_r a b' ->
   (* ----------------------- *)
   salgo_dom_r a b.
+
+#[export]Hint Constructors salgo_dom salgo_dom_r : sdom.
 
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
@@ -446,16 +446,11 @@ Proof. induction 2; sauto. Qed.
 Lemma tm_conf_sym a b : tm_conf a b = tm_conf b a.
 Proof. case : a; case : b => //=. Qed.
 
-Lemma algo_dom_neu_hne (a b : PTm) :
-  algo_dom_neu a b ->
-  ishne a /\ ishne b.
-Proof. inversion 1; subst => //=. Qed.
-
 Lemma algo_dom_no_hred (a b : PTm) :
   algo_dom a b ->
   HRed.nf a /\ HRed.nf b.
 Proof.
-  induction 1 =>//=; try hauto inv:HRed.R use:hne_no_hred, hf_no_hred use:algo_dom_neu_hne lq:on unfold:HRed.nf.
+  induction 1 =>//=; try hauto inv:HRed.R use:hne_no_hred, hf_no_hred lq:on unfold:HRed.nf.
 Qed.
 
 
@@ -473,7 +468,6 @@ Qed.
 
 Lemma algo_dom_sym :
   (forall a b (h : algo_dom a b), algo_dom b a) /\
-    (forall a b, algo_dom_neu a b -> algo_dom_neu b a) /\
     (forall a b (h : algo_dom_r a b), algo_dom_r b a).
 Proof.
   apply algo_dom_mutual; try qauto use:tm_conf_sym,A_HRedR' db:adom.
@@ -506,7 +500,7 @@ Lemma salgo_dom_no_hred (a b : PTm) :
   salgo_dom a b ->
   HRed.nf a /\ HRed.nf b.
 Proof.
-  induction 1 =>//=; try hauto inv:HRed.R use:hne_no_hred, hf_no_hred, algo_dom_neu_hne lq:on unfold:HRed.nf.
+  induction 1 =>//=; try hauto inv:HRed.R use:hne_no_hred, hf_no_hred, algo_dom_no_hred lq:on unfold:HRed.nf.
 Qed.
 
 Lemma S_HRedR' a b b' :
@@ -521,17 +515,20 @@ Proof.
   hauto lq:on use:S_HRedsL, S_HRedsR.
 Qed.
 
+Ltac solve_conf := intros; split;
+      apply S_Conf; solve [destruct_salgo | sfirstorder ctrs:salgo_dom use:hne_no_hred, hf_no_hred].
+
+Ltac solve_basic := hauto q:on ctrs:salgo_dom, salgo_dom_r, algo_dom use:algo_dom_sym.
+
 Lemma algo_dom_salgo_dom :
   (forall a b, algo_dom a b -> salgo_dom a b /\ salgo_dom b a) /\
-    (forall a b, algo_dom_neu a b -> True) /\
     (forall a b, algo_dom_r a b -> salgo_dom_r a b /\ salgo_dom_r b a).
 Proof.
-  apply algo_dom_mutual => //=;
-                             try hauto lq:on ctrs:salgo_dom, algo_dom_neu, salgo_dom_r use:S_Conf, hne_no_hred, algo_dom_sym, tm_stm_conf, S_HRedR' inv:HRed.R unfold:HRed.nf  solve+:destruct_salgo.
-  - case;case; hauto lq:on ctrs:salgo_dom, algo_dom_neu, salgo_dom_r use:S_Conf, hne_no_hred, algo_dom_sym inv:HRed.R unfold:HRed.nf  solve+:destruct_salgo.
-  - move => a b ha hb /[dup] /tm_stm_conf h.
-    rewrite tm_conf_sym => /tm_stm_conf h0.
-    hauto l:on use:S_Conf inv:HRed.R unfold:HRed.nf.
+  apply algo_dom_mutual => //=; try first [solve_conf | solve_basic].
+  - case; case; hauto lq:on ctrs:salgo_dom use:algo_dom_sym inv:HRed.R unfold:HRed.nf.
+  - move => a b ha hb hc. split;
+      apply S_Conf; hauto l:on use:tm_conf_sym, tm_stm_conf.
+  - hauto lq:on ctrs:salgo_dom_r use:S_HRedR'.
 Qed.
 
 Fixpoint hred (a : PTm) : option (PTm) :=
