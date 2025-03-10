@@ -400,6 +400,8 @@ with salgo_dom_r : PTm -> PTm -> Prop :=
   salgo_dom_r a b.
 
 #[export]Hint Constructors salgo_dom salgo_dom_r : sdom.
+Scheme salgo_ind := Induction for salgo_dom Sort Prop
+  with salgor_ind := Induction for salgo_dom_r Sort Prop.
 
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
