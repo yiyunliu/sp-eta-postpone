@@ -737,8 +737,6 @@ Lemma A_Conf' a b :
   algo_dom_r a b.
 Proof.
   move => ha hb.
-  have {}ha : HRed.nf a by sfirstorder use:hf_no_hred, hne_no_hred.
-  have {}hb : HRed.nf b by sfirstorder use:hf_no_hred, hne_no_hred.
   move => ?.
   apply A_NfNf.
   by apply A_Conf.
@@ -1234,6 +1232,11 @@ Qed.
 Lemma algo_dom_r_algo_dom : forall a b, HRed.nf a -> HRed.nf b -> algo_dom_r a b -> algo_dom a b.
 Proof. hauto l:on use:algo_dom_r_inv, hreds_nf_refl. Qed.
 
+Lemma algo_dom_algo_dom_neu : forall a b, ishne a -> ishne b -> algo_dom a b -> algo_dom_neu a b \/ tm_conf a b.
+Proof.
+  inversion 3; subst => //=; tauto.
+Qed.
+
 Lemma term_metric_algo_dom : forall k a b, term_metric k a b -> algo_dom_r a b.
 Proof.
   move => [:hneL].
@@ -1268,9 +1271,12 @@ Proof.
     case : b hfa hfb h => //=; case a => //=; eauto 5 using A_Conf' with adom.
     + move => a0 b0 a1 b1 nfa0 nfa1.
       move /term_metric_app /(_ nfa0  nfa1) => [j][hj][ha]hb.
-      apply A_NfNf. apply A_AppCong => //; eauto.
-      have {}nfa0 : HRed.nf a0 by sfirstorder use:hne_no_hred.
-      have {}nfb0 : HRed.nf a1 by sfirstorder use:hne_no_hred.
+      apply A_NfNf.
+      (* apply A_NfNf. apply A_NeuNeu. apply A_AppCong => //; eauto. *)
+      have nfa0' : HRed.nf a0 by sfirstorder use:hne_no_hred.
+      have nfb0' : HRed.nf a1 by sfirstorder use:hne_no_hred.
+      have ha0 : algo_dom a0 a1 by eauto using algo_dom_r_algo_dom.
+      apply A_Conf. admit. admit. rewrite /tm_conf. simpl.
       eauto using algo_dom_r_algo_dom.
     + move => p0 A0 p1 A1 neA0 neA1.
       have {}nfa0 : HRed.nf A0 by sfirstorder use:hne_no_hred.

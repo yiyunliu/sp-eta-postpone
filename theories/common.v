@@ -129,9 +129,9 @@ Definition tm_nonconf (a b : PTm) : bool :=
   | _, PPair _ _ => ~~ ishf a
   | PZero, PZero => true
   | PSuc _, PSuc _ => true
-  | PApp _ _, PApp _ _ => (~~ ishf a) && (~~ ishf b)
-  | PProj _ _, PProj _ _ => (~~ ishf a) && (~~ ishf b)
-  | PInd _ _ _ _, PInd _ _ _ _ => (~~ ishf a) && (~~ ishf b)
+  | PApp _ _, PApp _ _ => true
+  | PProj _ _, PProj _ _ => true
+  | PInd _ _ _ _, PInd _ _ _ _ => true
   | PNat, PNat => true
   | PUniv _, PUniv _ => true
   | PBind _ _ _, PBind _ _ _ => true
@@ -139,8 +139,6 @@ Definition tm_nonconf (a b : PTm) : bool :=
   end.
 
 Definition tm_conf (a b : PTm) := ~~ tm_nonconf a b.
-
-
 
 Definition ishf_ren (a : PTm)  (ξ : nat -> nat) :
   ishf (ren_PTm ξ a) = ishf a.
@@ -262,8 +260,8 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom a b
 
 | A_Conf a b :
-  HRed.nf a ->
-  HRed.nf b ->
+  ishf a ->
+  ishf b ->
   tm_conf a b ->
   algo_dom a b
 
@@ -295,6 +293,12 @@ with algo_dom_neu : PTm -> PTm -> Prop :=
   algo_dom_r b0 b1 ->
   algo_dom_r c0 c1 ->
   algo_dom_neu (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
+
+| A_NeuConf a b :
+  ishne a ->
+  ishne b ->
+  tm_conf a b ->
+  algo_dom_neu a b
 
 with algo_dom_r : PTm  -> PTm -> Prop :=
 | A_NfNf a b :
