@@ -673,8 +673,12 @@ Proof.
     hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
 Qed.
 
-Definition algo_metric k (a b : PTm) :=
-  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ EJoin.R va vb /\ size_PTm va + size_PTm vb + i + j <= k.
+Definition term_metric k (a b : PTm) :=
+  exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j <= k.
+
+Lemma term_metric_sym k (a b : PTm) :
+  term_metric k a b -> term_metric k b a.
+Proof. hauto lq:on unfold:term_metric solve+:lia. Qed.
 
 Lemma ne_hne (a : PTm) : ne a -> ishne a.
 Proof. elim : a => //=; sfirstorder b:on. Qed.
@@ -698,37 +702,58 @@ Proof.
   - hauto lq:on use:ne_hne.
 Qed.
 
-Lemma algo_metric_case k (a b : PTm) :
-  algo_metric k a b ->
-  (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ algo_metric k' a' b /\ k' < k.
+Lemma term_metric_case k (a b : PTm) :
+  term_metric k a b ->
+  (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ term_metric k' a' b /\ k' < k.
 Proof.
-  move=>[i][j][va][vb][h0] [h1][h2][h3][[v [h4 h5]]] h6.
+  move=>[i][j][va][vb][h0] [h1][h2][h3]h4.
   case : a h0 => //=; try firstorder.
   - inversion h0 as [|A B C D E F]; subst.
     hauto qb:on use:ne_hne.
     inversion E; subst => /=.
-    + hauto lq:on use:HRed.AppAbs unfold:algo_metric solve+:lia.
-    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+    + hauto lq:on use:HRed.AppAbs unfold:term_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:term_metric solve+:lia.
     + sfirstorder qb:on use:ne_hne.
   - inversion h0 as [|A B C D E F]; subst.
     hauto qb:on use:ne_hne.
     inversion E; subst => /=.
-    + hauto lq:on use:HRed.ProjPair unfold:algo_metric solve+:lia.
-    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:algo_metric solve+:lia.
+    + hauto lq:on use:HRed.ProjPair unfold:term_metric solve+:lia.
+    + hauto q:on ctrs:HRed.R use: hf_hred_lored unfold:term_metric solve+:lia.
   - inversion h0 as [|A B C D E F]; subst.
     hauto qb:on use:ne_hne.
     inversion E; subst => /=.
-    + hauto lq:on use:HRed.IndZero unfold:algo_metric solve+:lia.
-    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + hauto lq:on use:HRed.IndZero unfold:term_metric solve+:lia.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:term_metric solve+:lia.
     + sfirstorder use:ne_hne.
-    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:algo_metric solve+:lia.
+    + hauto lq:on ctrs:HRed.R use:hf_hred_lored unfold:term_metric solve+:lia.
     + sfirstorder use:ne_hne.
     + sfirstorder use:ne_hne.
 Qed.
 
-Lemma algo_metric_sym k (a b : PTm) :
-  algo_metric k a b -> algo_metric k b a.
-Proof. hauto lq:on unfold:algo_metric solve+:lia. Qed.
+Lemma A_Conf' a b :
+  ishf a \/ ishne a ->
+  ishf b \/ ishne b ->
+  tm_conf a b ->
+  algo_dom_r a b.
+Proof.
+  move => ha hb.
+  have {}ha : HRed.nf a by sfirstorder use:hf_no_hred, hne_no_hred.
+  have {}hb : HRed.nf b by sfirstorder use:hf_no_hred, hne_no_hred.
+  move => ?.
+  apply A_NfNf.
+  by apply A_Conf.
+Qed.
+
+Lemma hne_nf_ne (a : PTm ) :
+  ishne a -> nf a -> ne a.
+Proof. case : a => //=. Qed.
+
+Lemma lored_nsteps_renaming k (a b : PTm) (ξ : nat -> nat) :
+  nsteps LoRed.R k a b ->
+  nsteps LoRed.R k (ren_PTm ξ a) (ren_PTm ξ b).
+Proof.
+  induction 1; hauto lq:on ctrs:nsteps use:LoRed.renaming.
+Qed.
 
 Lemma hred_hne (a b : PTm) :
   HRed.R a b ->
@@ -1028,28 +1053,6 @@ Proof.
     exists (S i), a1. hauto lq:on ctrs:nsteps solve+:lia.
 Qed.
 
-Lemma algo_metric_proj k p0 p1 (a0 a1 : PTm) :
-  algo_metric k (PProj p0 a0) (PProj p1 a1) ->
-  ishne a0 ->
-  ishne a1 ->
-  p0 = p1 /\ exists j, j < k /\ algo_metric j a0 a1.
-Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 hne0 hne1.
-  move : lored_nsteps_proj_inv h0 (hne0);repeat move/[apply].
-  move => [i0][a2][hi][?]ha02. subst.
-  move : lored_nsteps_proj_inv h1 (hne1);repeat move/[apply].
-  move => [i1][a3][hj][?]ha13. subst.
-  simpl in *.
-  move /EJoin.hne_proj_inj : h4 => [h40 h41]. subst.
-  split => //.
-  exists (k - 1). split. simpl in *; lia.
-  rewrite/algo_metric.
-  do 4 eexists. repeat split; eauto. sfirstorder use:ne_nf.
-  sfirstorder use:ne_nf.
-  lia.
-Qed.
-
-
 Lemma hreds_nf_refl a b  :
   HRed.nf a ->
   rtc HRed.R a b ->
@@ -1103,174 +1106,185 @@ Lemma lored_nsteps_pair_inv k (a0 b0 C : PTm ) :
     exists i, (S j), a1, b1. sauto lq:on solve+:lia.
 Qed.
 
-Lemma algo_metric_join k (a b : PTm ) :
-  algo_metric k a b ->
-  DJoin.R a b.
-  rewrite /algo_metric.
-  move => [i][j][va][vb][h0][h1][h2][h3][[v [h40 h41]]]h5.
-  have {}h0 : rtc LoRed.R a va by hauto lq:on use:@relations.rtc_nsteps.
-  have {}h1 : rtc LoRed.R b vb by hauto lq:on use:@relations.rtc_nsteps.
-  apply REReds.FromEReds in h40,h41.
-  apply LoReds.ToRReds in h0,h1.
-  apply REReds.FromRReds in h0,h1.
-  rewrite /DJoin.R. exists v. sfirstorder use:@relations.rtc_transitive.
-Qed.
-
-Lemma algo_metric_pair k (a0 b0 a1 b1 : PTm) :
-  SN (PPair a0 b0) ->
-  SN (PPair a1 b1) ->
-  algo_metric k (PPair a0 b0) (PPair a1 b1) ->
-  exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
-  move => sn0 sn1 /[dup] /algo_metric_join hj.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
-  move : lored_nsteps_pair_inv h0;repeat move/[apply].
-  move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
-  move : lored_nsteps_pair_inv h1;repeat move/[apply].
-  move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
+Lemma term_metric_abs : forall k a b,
+    term_metric k (PAbs a) (PAbs b) ->
+    exists k', k' < k /\ term_metric k' a b.
+Proof.
+  move => k a b [i][j][va][vb][hva][hvb][nfa][nfb]h.
+  apply lored_nsteps_abs_inv in hva, hvb.
+  move : hva => [a'][hva]?. subst.
+  move : hvb => [b'][hvb]?. subst.
   simpl in *. exists (k - 1).
-  move /andP : h2 => [h20 h21].
-  move /andP : h3 => [h30 h31].
-  suff : EJoin.R a2 a3 /\ EJoin.R b2 b3 by hauto lq:on solve+:lia.
-  hauto l:on use:DJoin.ejoin_pair_inj.
+  hauto lq:on unfold:term_metric solve+:lia.
 Qed.
 
-Lemma hne_nf_ne (a : PTm ) :
-  ishne a -> nf a -> ne a.
-Proof. case : a => //=. Qed.
-
-Lemma lored_nsteps_renaming k (a b : PTm) (ξ : nat -> nat) :
-  nsteps LoRed.R k a b ->
-  nsteps LoRed.R k (ren_PTm ξ a) (ren_PTm ξ b).
+Lemma term_metric_pair : forall k a0 b0 a1 b1,
+    term_metric k (PPair a0 b0) (PPair a1 b1) ->
+    exists k', k' < k /\ term_metric k' a0 a1 /\ term_metric k' b0 b1.
 Proof.
-  induction 1; hauto lq:on ctrs:nsteps use:LoRed.renaming.
+  move => k a0 b0 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
+  apply lored_nsteps_pair_inv in hva, hvb.
+  decompose record hva => {hva}.
+  decompose record hvb => {hvb}. subst.
+  simpl in *. exists (k - 1).
+  hauto lqb:on solve+:lia.
 Qed.
 
-Lemma algo_metric_neu_abs k (a0 : PTm) u :
-  algo_metric k u (PAbs a0) ->
+Lemma term_metric_bind : forall k p0 a0 b0 p1 a1 b1,
+    term_metric k (PBind p0 a0 b0) (PBind p1 a1 b1) ->
+    exists k', k' < k /\ term_metric k' a0 a1 /\ term_metric k' b0 b1.
+Proof.
+  move => k p0 a0 b0 p1 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
+  apply lored_nsteps_bind_inv in hva, hvb.
+  decompose record hva => {hva}.
+  decompose record hvb => {hvb}. subst.
+  simpl in *. exists (k - 1).
+  hauto lqb:on solve+:lia.
+Qed.
+
+Lemma term_metric_suc : forall k a b,
+    term_metric k (PSuc a) (PSuc b) ->
+    exists k', k' < k /\ term_metric k' a b.
+Proof.
+  move => k a b [i][j][va][vb][hva][hvb][nfa][nfb]h.
+  apply lored_nsteps_suc_inv in hva, hvb.
+  move : hva => [a'][hva]?. subst.
+  move : hvb => [b'][hvb]?. subst.
+  simpl in *. exists (k - 1).
+  hauto lq:on unfold:term_metric solve+:lia.
+Qed.
+
+Lemma term_metric_abs_neu k (a0 : PTm) u :
+  term_metric k (PAbs a0) u ->
   ishne u ->
-  exists j, j < k /\ algo_metric j (PApp (ren_PTm shift u) (VarPTm var_zero)) a0.
+  exists j, j < k /\ term_metric j a0 (PApp (ren_PTm shift u) (VarPTm var_zero)).
 Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 neu.
-  have neva : ne va by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
-  move /lored_nsteps_abs_inv : h1 => [a1][h01]?. subst.
-  exists (k - 1). simpl in *. split. lia.
-  have {}h0 : nsteps LoRed.R i (ren_PTm shift u) (ren_PTm shift va)
-    by eauto using lored_nsteps_renaming.
-  have {}h0 : nsteps LoRed.R i (PApp (ren_PTm shift u) (VarPTm var_zero)) (PApp (ren_PTm shift va) (VarPTm var_zero)).
-  apply lored_nsteps_app_cong => //=.
-  scongruence use:ishne_ren.
-  do 4 eexists. repeat split; eauto.
-  hauto b:on use:ne_nf_ren.
-  have h : EJoin.R (PAbs (PApp (ren_PTm shift va) (VarPTm var_zero))) (PAbs a1) by hauto q:on ctrs:rtc,ERed.R.
-  apply DJoin.ejoin_abs_inj; eauto.
-  hauto b:on drew:off use:ne_nf_ren.
-  simpl in *.  rewrite size_PTm_ren. lia.
+  move => [i][j][va][vb][h0][h1][h2][h3]h4 neu.
+  have neva : ne vb by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
+  move /lored_nsteps_abs_inv : h0 => [a1][h01]?. subst.
+  exists (k - 1).
+  simpl in *. split. lia.
+  exists i,j,a1,(PApp (ren_PTm shift vb) (VarPTm var_zero)).
+  repeat split => //=.
+  apply lored_nsteps_app_cong.
+  by apply lored_nsteps_renaming.
+  by rewrite ishne_ren.
+  rewrite Bool.andb_true_r.
+  sfirstorder use:ne_nf_ren.
+  rewrite size_PTm_ren. lia.
 Qed.
 
-Lemma algo_metric_neu_pair k (a0 b0 : PTm) u :
-  algo_metric k u (PPair a0 b0) ->
+Lemma term_metric_pair_neu k (a0 b0 : PTm) u :
+  term_metric k (PPair a0 b0) u ->
   ishne u ->
-  exists j, j < k /\ algo_metric j (PProj PL u) a0 /\ algo_metric j (PProj PR u) b0.
+  exists j, j < k /\ term_metric j (PProj PL u) a0 /\ term_metric j (PProj PR u) b0.
 Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 neu.
-  move /lored_nsteps_pair_inv : h1.
-  move => [i0][j0][a1][b1][hi][hj][?][ha01]hb01. subst.
-  simpl in *.
-  have ? : ishne va by
-    hauto lq:on use:loreds_hne_preservation, @relations.rtc_nsteps.
-  have ? : ne va by sfirstorder use:hne_nf_ne.
-  exists (k - 1). split. lia.
-  move :lored_nsteps_proj_cong (neu) h0; repeat move/[apply].
-  move => h. have hL := h PL. have {h} hR := h PR.
-  suff [? ?] : EJoin.R (PProj PL va) a1  /\ EJoin.R (PProj PR va) b1.
-  rewrite /algo_metric.
-  split; do 4 eexists; repeat split;eauto; sfirstorder b:on solve+:lia.
-  eapply DJoin.ejoin_pair_inj; hauto qb:on ctrs:rtc, ERed.R.
+  move => [i][j][va][vb][h0][h1][h2][h3]h4 neu.
+  have neva : ne vb by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
+  move /lored_nsteps_pair_inv : h0 => [i0][j0][a1][b1][?][?][?][?]?. subst.
+  exists (k-1). sauto qb:on use:lored_nsteps_proj_cong unfold:term_metric solve+:lia.
 Qed.
 
-Lemma algo_metric_ind k P0 (a0 : PTm ) b0 c0 P1 a1 b1 c1 :
-  algo_metric k (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1) ->
+Lemma term_metric_app k (a0 b0 a1 b1 : PTm) :
+  term_metric k (PApp a0 b0) (PApp a1 b1) ->
   ishne a0 ->
   ishne a1 ->
-  exists j, j < k /\ algo_metric j P0 P1 /\ algo_metric j a0 a1 /\
-         algo_metric j b0 b1 /\ algo_metric j c0 c1.
+  exists j, j < k /\ term_metric j a0 a1 /\ term_metric j b0 b1.
 Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5 hne0 hne1.
-  move /lored_nsteps_ind_inv /(_ hne0) : h0.
-  move =>[iP][ia][ib][ic][P2][a2][b2][c2][?][?][?][?][?][?][?][?]?. subst.
-  move /lored_nsteps_ind_inv /(_ hne1) : h1.
-  move =>[iP0][ia0][ib0][ic0][P3][a3][b3][c3][?][?][?][?][?][?][?][?]?. subst.
-  move /EJoin.ind_inj : h4.
-  move => [?][?][?]?.
-  exists (k -1). simpl in *.
-  hauto lq:on rew:off use:ne_nf b:on solve+:lia.
-Qed.
-
-Lemma algo_metric_app k (a0 b0 a1 b1 : PTm) :
-  algo_metric k (PApp a0 b0) (PApp a1 b1) ->
-  ishne a0 ->
-  ishne a1 ->
-  exists j, j < k /\ algo_metric j a0 a1 /\ algo_metric j b0 b1.
-Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
+  move => [i][j][va][vb][h0][h1][h2][h3]h4.
   move => hne0 hne1.
   move : lored_nsteps_app_inv h0 (hne0);repeat move/[apply].
   move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
   move : lored_nsteps_app_inv h1 (hne1);repeat move/[apply].
   move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
-  simpl in *. exists (k - 1).
-  move /andP : h2 => [h20 h21].
-  move /andP : h3 => [h30 h31].
-  move /EJoin.hne_app_inj : h4 => [h40 h41].
-  split. lia.
-  split.
-  + rewrite /algo_metric.
-    exists i0,j0,a2,a3.
-    repeat split => //=.
-    sfirstorder b:on use:ne_nf.
-    sfirstorder b:on use:ne_nf.
-    lia.
-  + rewrite /algo_metric.
-    exists i1,j1,b2,b3.
-    repeat split => //=; sfirstorder b:on use:ne_nf.
+  simpl in *. exists (k - 1). hauto lqb:on use:lored_nsteps_app_cong, ne_nf unfold:term_metric solve+:lia.
 Qed.
 
-Lemma algo_metric_suc k (a0 a1 : PTm) :
-  algo_metric k (PSuc a0) (PSuc a1) ->
-  exists j, j < k /\ algo_metric j a0 a1.
+Lemma term_metric_proj k p0 p1 (a0 a1 : PTm) :
+  term_metric k (PProj p0 a0) (PProj p1 a1) ->
+  ishne a0 ->
+  ishne a1 ->
+  exists j, j < k /\ term_metric j a0 a1.
 Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
-  exists (k - 1).
-  move /lored_nsteps_suc_inv : h0.
-  move => [a0'][ha0]?. subst.
-  move /lored_nsteps_suc_inv : h1.
-  move => [b0'][hb0]?. subst. simpl in *.
-  split; first by lia.
-  rewrite /algo_metric.
-  hauto lq:on rew:off use:EJoin.suc_inj solve+:lia.
+  move => [i][j][va][vb][h0][h1][h2][h3]h4 hne0 hne1.
+  move : lored_nsteps_proj_inv h0 (hne0);repeat move/[apply].
+  move => [i0][a2][hi][?]ha02. subst.
+  move : lored_nsteps_proj_inv h1 (hne1);repeat move/[apply].
+  move => [i1][a3][hj][?]ha13. subst.
+  exists (k- 1).  hauto q:on use:ne_nf solve+:lia.
 Qed.
 
-Lemma algo_metric_bind k p0 (A0 : PTm ) B0 p1 A1 B1  :
-  algo_metric k (PBind p0 A0 B0) (PBind p1 A1 B1) ->
-  p0 = p1 /\ exists j, j < k /\ algo_metric j A0 A1 /\ algo_metric j B0 B1.
+Lemma term_metric_ind k P0 (a0 : PTm ) b0 c0 P1 a1 b1 c1 :
+  term_metric k (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1) ->
+  ishne a0 ->
+  ishne a1 ->
+  exists j, j < k /\ term_metric j P0 P1 /\ term_metric j a0 a1 /\
+         term_metric j b0 b1 /\ term_metric j c0 c1.
 Proof.
-  move => [i][j][va][vb][h0][h1][h2][h3][h4]h5.
-  move : lored_nsteps_bind_inv h0 => /[apply].
-  move => [i0][i1][a2][b2][?][?][?][ha02]hb02. subst.
-  move : lored_nsteps_bind_inv h1 => /[apply].
-  move => [j0][j1][a3][b3][?][?][?][ha13]hb13. subst.
-  move /EJoin.bind_inj : h4 => [?][hEa]hEb. subst.
-  split => //.
-  exists (k - 1). split. simpl in *; lia.
-  simpl in *.
-  split.
-  - exists i0,j0,a2,a3.
-    repeat split => //=; sfirstorder b:on solve+:lia.
-  - exists i1,j1,b2,b3. sfirstorder b:on solve+:lia.
+  move => [i][j][va][vb][h0][h1][h2][h3]h4 hne0 hne1.
+  move /lored_nsteps_ind_inv /(_ hne0) : h0.
+  move =>[iP][ia][ib][ic][P2][a2][b2][c2][?][?][?][?][?][?][?][?]?. subst.
+  move /lored_nsteps_ind_inv /(_ hne1) : h1.
+  move =>[iP0][ia0][ib0][ic0][P3][a3][b3][c3][?][?][?][?][?][?][?][?]?. subst.
+  exists (k -1). simpl in *.
+  hauto lq:on rew:off use:ne_nf b:on solve+:lia.
 Qed.
 
+
+Lemma algo_dom_r_algo_dom : forall a b, HRed.nf a -> HRed.nf b -> algo_dom_r a b -> algo_dom a b.
+Proof. hauto l:on use:algo_dom_r_inv, hreds_nf_refl. Qed.
+
+Lemma term_metric_algo_dom : forall k a b, term_metric k a b -> algo_dom_r a b.
+Proof.
+  move => [:hneL].
+  elim /Wf_nat.lt_wf_ind.
+  move => n ih a b h.
+  case /term_metric_case : (h); cycle 1.
+  move => [k'][a'][h0][h1]h2.
+  by apply : A_HRedL; eauto.
+  case /term_metric_sym /term_metric_case : (h); cycle 1.
+  move => [k'][b'][hb][/term_metric_sym h0]h1.
+  move => ha. have {}ha : HRed.nf a by sfirstorder use:hf_no_hred, hne_no_hred.
+  by apply : A_HRedR; eauto.
+  move => /[swap].
+  case => hfa; case => hfb.
+  - move : hfa hfb h.
+    case : a; case : b => //=; eauto 5 using A_Conf' with adom.
+    + hauto lq:on use:term_metric_abs db:adom.
+    + hauto lq:on use:term_metric_pair db:adom.
+    + hauto lq:on use:term_metric_bind db:adom.
+    + hauto lq:on use:term_metric_suc db:adom.
+  - abstract : hneL n ih a b h hfa hfb.
+    case : a hfa h => //=.
+    + hauto lq:on use:term_metric_abs_neu db:adom.
+    + scrush use:term_metric_pair_neu db:adom.
+    + case : b hfb => //=; eauto 5 using A_Conf' with adom.
+    + case : b hfb => //=; eauto 5 using A_Conf' with adom.
+    + case : b hfb => //=; eauto 5 using A_Conf' with adom.
+    + case : b hfb => //=; eauto 5 using A_Conf' with adom.
+    + case : b hfb => //=; eauto 5 using A_Conf' with adom.
+  - hauto q:on use:algo_dom_sym, term_metric_sym.
+  - move {hneL}.
+    case : b hfa hfb h => //=; case a => //=; eauto 5 using A_Conf' with adom.
+    + move => a0 b0 a1 b1 nfa0 nfa1.
+      move /term_metric_app /(_ nfa0  nfa1) => [j][hj][ha]hb.
+      apply A_NfNf. apply A_AppCong => //; eauto.
+      have {}nfa0 : HRed.nf a0 by sfirstorder use:hne_no_hred.
+      have {}nfb0 : HRed.nf a1 by sfirstorder use:hne_no_hred.
+      eauto using algo_dom_r_algo_dom.
+    + move => p0 A0 p1 A1 neA0 neA1.
+      have {}nfa0 : HRed.nf A0 by sfirstorder use:hne_no_hred.
+      have {}nfb0 : HRed.nf A1 by sfirstorder use:hne_no_hred.
+      hauto lq:on use:term_metric_proj, algo_dom_r_algo_dom db:adom.
+    + move => P0 a0 b0 c0 P1 a1 b1 c1 nea0 nea1.
+      have {}nfa0 : HRed.nf a0 by sfirstorder use:hne_no_hred.
+      have {}nfb0 : HRed.nf a1 by sfirstorder use:hne_no_hred.
+      hauto lq:on use:term_metric_ind, algo_dom_r_algo_dom db:adom.
+Qed.
 
 Lemma coqeq_complete' k (a b : PTm ) :
+  (forall a b, algo_dom a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b)
+
   algo_metric k a b ->
   (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\
   (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C).
