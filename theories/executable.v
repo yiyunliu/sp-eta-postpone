@@ -11,133 +11,6 @@ Set Default Proof Mode "Classic".
 Require Import ssreflect ssrbool.
 From Hammer Require Import Tactics.
 
-Inductive eq_view : PTm -> PTm -> Type :=
-| V_AbsAbs a b :
-  eq_view (PAbs a) (PAbs b)
-| V_AbsNeu a b :
-  ~~ ishf b ->
-  eq_view (PAbs a) b
-| V_NeuAbs a b :
-  ~~ ishf a ->
-  eq_view a (PAbs b)
-| V_VarVar i j :
-  eq_view (VarPTm i) (VarPTm j)
-| V_PairPair a0 b0 a1 b1 :
-  eq_view (PPair a0 b0) (PPair a1 b1)
-| V_PairNeu a0 b0 u :
-  ~~ ishf u ->
-  eq_view (PPair a0 b0) u
-| V_NeuPair u a1 b1 :
-  ~~ ishf u ->
-  eq_view u (PPair a1 b1)
-| V_ZeroZero :
-  eq_view PZero PZero
-| V_SucSuc a b :
-  eq_view (PSuc a) (PSuc b)
-| V_AppApp u0 b0 u1 b1 :
-  eq_view (PApp u0 b0) (PApp u1 b1)
-| V_ProjProj p0 u0 p1 u1 :
-  eq_view (PProj p0 u0) (PProj p1 u1)
-| V_IndInd P0 u0 b0 c0  P1 u1 b1 c1 :
-  eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
-| V_NatNat :
-  eq_view PNat PNat
-| V_BindBind p0 A0 B0 p1 A1 B1 :
-  eq_view (PBind p0 A0 B0) (PBind p1 A1 B1)
-| V_UnivUniv i j :
-  eq_view (PUniv i) (PUniv j)
-| V_Others a b :
-  tm_conf a b ->
-  eq_view a b.
-
-Equations tm_to_eq_view (a b : PTm) : eq_view a b :=
-  tm_to_eq_view (PAbs a) (PAbs b) := V_AbsAbs a b;
-  tm_to_eq_view (PAbs a) (PApp b0 b1) := V_AbsNeu a (PApp b0 b1) _;
-  tm_to_eq_view (PAbs a) (VarPTm i) := V_AbsNeu a (VarPTm i) _;
-  tm_to_eq_view (PAbs a) (PProj p b) := V_AbsNeu a (PProj p b) _;
-  tm_to_eq_view (PAbs a) (PInd P u b c) := V_AbsNeu a (PInd P u b c) _;
-  tm_to_eq_view (VarPTm i) (PAbs a) := V_NeuAbs (VarPTm i) a _;
-  tm_to_eq_view (PApp b0 b1) (PAbs b) := V_NeuAbs (PApp b0 b1) b _;
-  tm_to_eq_view (PProj p b) (PAbs a) := V_NeuAbs (PProj p b) a _;
-  tm_to_eq_view (PInd P u b c) (PAbs a) := V_NeuAbs (PInd P u b c) a _;
-  tm_to_eq_view (VarPTm i) (VarPTm j) := V_VarVar i j;
-  tm_to_eq_view (PPair a0 b0) (PPair a1 b1) := V_PairPair a0 b0 a1 b1;
-  (* tm_to_eq_view (PPair a0 b0) u := V_PairNeu a0 b0 u _; *)
-  tm_to_eq_view (PPair a0 b0) (VarPTm i) := V_PairNeu a0 b0 (VarPTm i) _;
-  tm_to_eq_view (PPair a0 b0) (PApp c0 c1) := V_PairNeu a0 b0 (PApp c0 c1) _;
-  tm_to_eq_view (PPair a0 b0) (PProj p c) := V_PairNeu a0 b0 (PProj p c) _;
-  tm_to_eq_view (PPair a0 b0) (PInd P t0 t1 t2) := V_PairNeu a0 b0 (PInd P t0 t1 t2) _;
-  (* tm_to_eq_view u (PPair a1 b1) := V_NeuPair u a1 b1 _; *)
-  tm_to_eq_view (VarPTm i) (PPair a1 b1) := V_NeuPair (VarPTm i) a1 b1 _;
-  tm_to_eq_view (PApp t0 t1) (PPair a1 b1) := V_NeuPair (PApp t0 t1) a1 b1 _;
-  tm_to_eq_view (PProj t0 t1) (PPair a1 b1) := V_NeuPair (PProj t0 t1) a1 b1 _;
-  tm_to_eq_view (PInd t0 t1 t2 t3) (PPair a1 b1) := V_NeuPair (PInd t0 t1 t2 t3) a1 b1 _;
-  tm_to_eq_view PZero PZero := V_ZeroZero;
-  tm_to_eq_view (PSuc a) (PSuc b) := V_SucSuc a b;
-  tm_to_eq_view (PApp a0 b0) (PApp a1 b1) := V_AppApp a0 b0 a1 b1;
-  tm_to_eq_view (PProj p0 b0) (PProj p1 b1) := V_ProjProj p0 b0 p1 b1;
-  tm_to_eq_view (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) := V_IndInd P0 u0 b0 c0 P1 u1 b1 c1;
-  tm_to_eq_view PNat PNat := V_NatNat;
-  tm_to_eq_view (PUniv i) (PUniv j) := V_UnivUniv i j;
-  tm_to_eq_view (PBind p0 A0 B0)  (PBind p1 A1 B1) := V_BindBind p0 A0 B0 p1 A1 B1;
-  tm_to_eq_view a b := V_Others a b _.
-
-
-(* Inductive salgo_dom : PTm -> PTm -> Prop := *)
-(* | S_UnivCong i j : *)
-(*   (* -------------------------- *) *)
-(*   salgo_dom (PUniv i) (PUniv j) *)
-
-(* | S_PiCong A0 A1 B0 B1 : *)
-(*   salgo_dom_r A1 A0 -> *)
-(*   salgo_dom_r B0 B1 -> *)
-(*   (* ---------------------------- *) *)
-(*   salgo_dom (PBind PPi A0 B0) (PBind PPi A1 B1) *)
-
-(* | S_SigCong A0 A1 B0 B1 : *)
-(*   salgo_dom_r A0 A1 -> *)
-(*   salgo_dom_r B0 B1 -> *)
-(*   (* ---------------------------- *) *)
-(*   salgo_dom (PBind PSig A0 B0) (PBind PSig A1 B1) *)
-
-(* | S_NatCong : *)
-(*   salgo_dom PNat PNat *)
-
-(* | S_NeuNeu a b : *)
-(*   ishne a -> *)
-(*   ishne b -> *)
-(*   algo_dom a b -> *)
-(*   (* ------------------- *) *)
-(*   salgo_dom *)
-
-(* | S_Conf a b : *)
-(*   HRed.nf a -> *)
-(*   HRed.nf b -> *)
-(*   tm_conf a b -> *)
-(*   salgo_dom a b *)
-
-(* with salgo_dom_r : PTm  -> PTm -> Prop := *)
-(* | S_NfNf a b : *)
-(*   salgo_dom a b -> *)
-(*   salgo_dom_r a b *)
-
-(* | S_HRedL a a' b  : *)
-(*   HRed.R a a' -> *)
-(*   salgo_dom_r a' b -> *)
-(*   (* ----------------------- *) *)
-(*   salgo_dom_r a b *)
-
-(* | S_HRedR a b b'  : *)
-(*   HRed.nf a -> *)
-(*   HRed.R b b' -> *)
-(*   salgo_dom_r a b' -> *)
-(*   (* ----------------------- *) *)
-(*   salgo_dom_r a b. *)
-
-(* Scheme salgo_ind := Induction for salgo_dom Sort Prop *)
-(*   with algor_ind := Induction for salgo_dom_r Sort Prop. *)
-
-
 Ltac2 destruct_algo () :=
   lazy_match! goal with
   | [h : algo_dom ?a ?b |- _ ] =>
@@ -161,70 +34,79 @@ Ltac solve_check_equal :=
   | _ => idtac
   end].
 
-#[derive(equations=no)]Equations check_equal (a b : PTm) (h : algo_dom a b) :
-  bool by struct h :=
-  check_equal a b h with tm_to_eq_view a b :=
-  check_equal _ _ h (V_VarVar i j) := nat_eqdec i j;
-  check_equal _ _ h (V_AbsAbs a b) := check_equal_r a b ltac:(check_equal_triv);
-  check_equal _ _ h (V_AbsNeu a b h') := check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) ltac:(check_equal_triv);
-  check_equal _ _ h (V_NeuAbs a b _) := check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b ltac:(check_equal_triv);
-  check_equal _ _ h (V_PairPair a0 b0 a1 b1) :=
-    check_equal_r a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
-  check_equal _ _ h (V_PairNeu a0 b0 u _) :=
-    check_equal_r a0 (PProj PL u) ltac:(check_equal_triv) && check_equal_r b0 (PProj PR u) ltac:(check_equal_triv);
-  check_equal _ _ h (V_NeuPair u a1 b1 _) :=
-    check_equal_r (PProj PL u) a1 ltac:(check_equal_triv) && check_equal_r (PProj PR u) b1 ltac:(check_equal_triv);
-  check_equal _ _ h V_NatNat := true;
-  check_equal _ _ h V_ZeroZero := true;
-  check_equal _ _ h (V_SucSuc a b) := check_equal_r a b ltac:(check_equal_triv);
-  check_equal _ _ h (V_ProjProj p0 a p1 b) :=
-    PTag_eqdec p0 p1 && check_equal a b ltac:(check_equal_triv);
-  check_equal _ _ h (V_AppApp a0 b0 a1 b1) :=
-    check_equal a0 a1 ltac:(check_equal_triv) && check_equal_r b0 b1 ltac:(check_equal_triv);
-  check_equal _ _ h (V_IndInd P0 u0 b0 c0 P1 u1 b1 c1) :=
-    check_equal_r P0 P1 ltac:(check_equal_triv) &&
-      check_equal u0 u1 ltac:(check_equal_triv) &&
-      check_equal_r b0 b1 ltac:(check_equal_triv) &&
-      check_equal_r c0 c1 ltac:(check_equal_triv);
-  check_equal _ _ h (V_UnivUniv i j) := nat_eqdec i j;
-  check_equal _ _ h (V_BindBind p0 A0 B0 p1 A1 B1) :=
-    BTag_eqdec p0 p1 && check_equal_r A0 A1 ltac:(check_equal_triv) && check_equal_r B0 B1 ltac:(check_equal_triv);
-  check_equal _ _ _ _ := false
+Global Set Transparent Obligations.
 
-  (* check_equal a b h := false; *)
-  with check_equal_r (a b : PTm) (h0 : algo_dom_r a b) :
-  bool by struct h0 :=
-    check_equal_r a b h with (fancy_hred a) :=
-      check_equal_r a b h (inr a') := check_equal_r (proj1_sig a') b _;
-      check_equal_r a b h (inl h')  with (fancy_hred b) :=
-        | inr b' := check_equal_r a (proj1_sig b') _;
-                 | inl h'' := check_equal a b _.
+Local Obligation Tactic := try solve [check_equal_triv | sfirstorder].
+
+Program Fixpoint check_equal (a b : PTm) (h : algo_dom a b) {struct h} : bool :=
+  match a, b with
+  | VarPTm i, VarPTm j => nat_eqdec i j
+  | PAbs a, PAbs b => check_equal_r a b _
+  | PAbs a, VarPTm _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
+  | PAbs a, PApp _ _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
+  | PAbs a, PInd _ _ _ _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
+  | PAbs a, PProj _ _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
+  | VarPTm _, PAbs b => check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b _
+  | PApp _ _, PAbs b => check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b _
+  | PProj _ _, PAbs b => check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b _
+  | PInd _ _ _ _, PAbs b => check_equal_r (PApp (ren_PTm shift a) (VarPTm var_zero)) b _
+  | PPair a0 b0, PPair a1 b1 =>
+      check_equal_r a0 a1 _ && check_equal_r b0 b1 _
+  | PPair a0 b0, VarPTm _ => check_equal_r a0 (PProj PL b) _ && check_equal_r b0 (PProj PR b) _
+  | PPair a0 b0, PProj _ _ => check_equal_r a0 (PProj PL b) _ && check_equal_r b0 (PProj PR b) _
+  | PPair a0 b0, PApp _ _ => check_equal_r a0 (PProj PL b) _ && check_equal_r b0 (PProj PR b) _
+  | PPair a0 b0, PInd _ _ _ _ => check_equal_r a0 (PProj PL b) _ && check_equal_r b0 (PProj PR b) _
+  | VarPTm _, PPair a1 b1 => check_equal_r (PProj PL a) a1 _ && check_equal_r (PProj PR a) b1 _
+  | PApp _ _, PPair a1 b1 => check_equal_r (PProj PL a) a1 _ && check_equal_r (PProj PR a) b1 _
+  | PProj _ _, PPair a1 b1 => check_equal_r (PProj PL a) a1 _ && check_equal_r (PProj PR a) b1 _
+  | PInd _ _ _ _, PPair a1 b1 => check_equal_r (PProj PL a) a1 _ && check_equal_r (PProj PR a) b1 _
+  | PNat, PNat => true
+  | PZero, PZero => true
+  | PSuc a, PSuc b => check_equal_r a b _
+  | PProj p0 a, PProj p1 b => PTag_eqdec p0 p1 && check_equal a b _
+  | PApp a0 b0, PApp a1 b1 => check_equal a0 a1 _ && check_equal_r b0 b1 _
+  | PInd P0 u0 b0 c0, PInd P1 u1 b1 c1 =>
+      check_equal_r P0 P1 _ && check_equal u0 u1 _ && check_equal_r b0 b1 _ && check_equal_r c0 c1 _
+  | PUniv i, PUniv j => nat_eqdec i j
+  | PBind p0 A0 B0, PBind p1 A1 B1 => BTag_eqdec p0 p1 && check_equal_r A0 A1 _ && check_equal_r B0 B1 _
+  | _, _ => false
+  end
+with check_equal_r (a b : PTm) (h : algo_dom_r a b) {struct h} : bool :=
+  match fancy_hred a with
+  | inr a' => check_equal_r (proj1_sig a') b _
+  | inl ha' => match fancy_hred b with
+            | inr b' => check_equal_r a (proj1_sig b') _
+            | inl hb' => check_equal a b _
+            end
+  end.
 
 Next Obligation.
-  intros.
+  simpl. intros. clear Heq_anonymous.  destruct a' as [a' ha']. simpl.
   inversion h; subst => //=.
-  exfalso. hauto l:on use:hred_complete unfold:HRed.nf.
-  exfalso. hauto l:on use:hred_complete unfold:HRed.nf.
-Defined.
-
-Next Obligation.
-  intros.
-  destruct h.
-  exfalso. sfirstorder use: algo_dom_no_hred.
-  exfalso. sfirstorder.
-  assert (  b' = b'0)by eauto using hred_deter. subst.
-  apply h.
-Defined.
-
-Next Obligation.
-  simpl. intros.
-  inversion h; subst =>//=.
   exfalso. sfirstorder use:algo_dom_no_hred.
-  move {h}.
-  assert (a' = a'0) by eauto using hred_deter, hred_sound. by subst.
-  exfalso. sfirstorder use:hne_no_hred, hf_no_hred.
+  assert (a' = a'0) by eauto using hred_deter. by subst.
+  exfalso. sfirstorder.
 Defined.
 
+Next Obligation.
+  simpl. intros. clear Heq_anonymous Heq_anonymous0.
+  destruct b' as [b' hb']. simpl.
+  inversion h; subst.
+  - exfalso.
+    sfirstorder use:algo_dom_no_hred.
+  - exfalso.
+    sfirstorder.
+  - assert (b' = b'0) by eauto using hred_deter. by subst.
+Defined.
+
+(* Need to avoid ssreflect tactics since they generate terms that make the termination checker upset *)
+Next Obligation.
+  move => /= a b hdom ha _ hb _.
+  inversion hdom; subst.
+  - assumption.
+  - exfalso; sfirstorder.
+  - exfalso; sfirstorder.
+Defined.
 
 Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
 Proof. reflexivity. Qed.
@@ -279,14 +161,14 @@ Proof.
   sfirstorder use:hred_complete, hred_sound.
 Qed.
 
+Ltac simp_check_r := with_strategy opaque [check_equal] simpl in *.
+
 Lemma check_equal_nfnf a b dom : check_equal_r a b (A_NfNf a b dom) = check_equal a b dom.
 Proof.
   have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
   have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
-  simpl.
-  rewrite /check_equal_r_functional.
+  simp_check_r.
   destruct (fancy_hred a).
-  simpl.
   destruct (fancy_hred b).
   reflexivity.
   exfalso. hauto l:on use:hred_complete.
@@ -297,11 +179,9 @@ Lemma check_equal_hredl a b a' ha doma :
   check_equal_r a b (A_HRedL a a' b ha doma) = check_equal_r a' b doma.
 Proof.
   simpl.
-  rewrite /check_equal_r_functional.
   destruct (fancy_hred a).
   - hauto q:on unfold:HRed.nf.
   - destruct s as [x ?].
-    rewrite /check_equal_r_functional.
     have ? : x = a' by eauto using hred_deter. subst.
     simpl.
     f_equal.
@@ -312,7 +192,7 @@ Lemma check_equal_hredr a b b' hu r a0 :
   check_equal_r a b (A_HRedR a b b' hu r a0) =
     check_equal_r a b' a0.
 Proof.
-  simpl. rewrite /check_equal_r_functional.
+  simpl.
   destruct (fancy_hred a).
   - simpl.
     destruct (fancy_hred b) as [|[b'' hb']].
@@ -335,31 +215,51 @@ Proof. destruct a; destruct b => //=. Qed.
 
 #[export]Hint Rewrite check_equal_abs_abs check_equal_abs_neu check_equal_neu_abs check_equal_pair_pair check_equal_pair_neu check_equal_neu_pair check_equal_bind_bind check_equal_hredl check_equal_hredr check_equal_nfnf check_equal_conf : ce_prop.
 
-Obligation Tactic := try solve [check_equal_triv | sfirstorder].
+Ltac2 destruct_salgo () :=
+  lazy_match! goal with
+  | [h : salgo_dom ?a ?b |- _ ] =>
+      if is_var a then destruct $a; ltac1:(done)  else
+        (if is_var b then destruct $b; ltac1:(done) else ())
+  end.
 
-Program Fixpoint check_sub (q : bool) (a b : PTm) (h : algo_dom a b) {struct h} :=
+Ltac check_sub_triv :=
+  intros;subst;
+  lazymatch goal with
+  (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
+  | [h : salgo_dom _ _ |- _] => try (inversion h; subst => //=; ltac2:(Control.enter destruct_algo))
+  | _ => idtac
+  end.
+
+Local Obligation Tactic := try solve [check_sub_triv | sfirstorder].
+
+Program Fixpoint check_sub (a b : PTm) (h : salgo_dom a b) {struct h} :=
   match a, b with
   | PBind PPi A0 B0, PBind PPi A1 B1 =>
-      check_sub_r (negb q) A0 A1 _ && check_sub_r q B0 B1 _
+      check_sub_r A1 A0 _ && check_sub_r B0 B1 _
   | PBind PSig A0 B0, PBind PSig A1 B1 =>
-      check_sub_r q A0 A1 _ && check_sub_r q B0 B1 _
+      check_sub_r A0 A1 _ && check_sub_r B0 B1 _
   | PUniv i, PUniv j =>
-      if q then PeanoNat.Nat.leb i j else PeanoNat.Nat.leb j i
+      PeanoNat.Nat.leb i j
   | PNat, PNat => true
-  | _ ,_ => ishne a && ishne b && check_equal a b h
+  | PApp _ _ , PApp _ _ => check_equal a b _
+  | VarPTm _, VarPTm _ => check_equal a b _
+  | PInd _ _ _ _, PInd _ _ _ _ => check_equal a b _
+  | PProj _ _, PProj _ _ => check_equal a b _
+  | _, _ => false
   end
-with check_sub_r (q : bool) (a b : PTm) (h : algo_dom_r a b) {struct h} :=
+with check_sub_r (a b : PTm) (h : salgo_dom_r a b) {struct h} :=
   match fancy_hred a with
-  | inr a' => check_sub_r q (proj1_sig a') b _
+  | inr a' => check_sub_r (proj1_sig a') b _
   | inl ha' => match fancy_hred b with
-            | inr b' => check_sub_r q a (proj1_sig b') _
-            | inl hb' => check_sub q a b _
+            | inr b' => check_sub_r a (proj1_sig b') _
+            | inl hb' => check_sub  a b _
             end
   end.
+
 Next Obligation.
   simpl. intros. clear Heq_anonymous.  destruct a' as [a' ha']. simpl.
   inversion h; subst => //=.
-  exfalso. sfirstorder use:algo_dom_no_hred.
+  exfalso. sfirstorder use:salgo_dom_no_hred.
   assert (a' = a'0) by eauto using hred_deter. by subst.
   exfalso. sfirstorder.
 Defined.
@@ -369,7 +269,7 @@ Next Obligation.
   destruct b' as [b' hb']. simpl.
   inversion h; subst.
   - exfalso.
-    sfirstorder use:algo_dom_no_hred.
+    sfirstorder use:salgo_dom_no_hred.
   - exfalso.
     sfirstorder.
   - assert (b' = b'0) by eauto using hred_deter. by subst.
@@ -377,34 +277,30 @@ Defined.
 
 (* Need to avoid ssreflect tactics since they generate terms that make the termination checker upset *)
 Next Obligation.
-  move => _ /= a b hdom ha _ hb _.
+  move => /= a b hdom ha _ hb _.
   inversion hdom; subst.
   - assumption.
   - exfalso; sfirstorder.
   - exfalso; sfirstorder.
 Defined.
 
-Lemma check_sub_pi_pi q A0 B0  A1 B1 h0 h1 :
-  check_sub q (PBind PPi A0 B0) (PBind PPi A1 B1) (A_BindCong PPi PPi A0 A1 B0 B1 h0 h1) =
-    check_sub_r (~~ q) A0 A1 h0 && check_sub_r q B0 B1 h1.
+Lemma check_sub_pi_pi A0 B0  A1 B1 h0 h1 :
+  check_sub (PBind PPi A0 B0) (PBind PPi A1 B1) (S_PiCong A0 A1 B0 B1 h0 h1) =
+    check_sub_r A1 A0 h0 && check_sub_r B0 B1 h1.
 Proof. reflexivity. Qed.
 
-Lemma check_sub_sig_sig q A0 B0  A1 B1 h0 h1 :
-  check_sub q (PBind PSig A0 B0) (PBind PSig A1 B1) (A_BindCong PSig PSig A0 A1 B0 B1 h0 h1) =
-    check_sub_r q A0 A1 h0 && check_sub_r q B0 B1 h1.
-  reflexivity. Qed.
+Lemma check_sub_sig_sig A0 B0  A1 B1 h0 h1 :
+  check_sub (PBind PSig A0 B0) (PBind PSig A1 B1) (S_SigCong A0 A1 B0 B1 h0 h1) =
+    check_sub_r A0 A1 h0 && check_sub_r B0 B1 h1.
+Proof. reflexivity. Qed.
 
 Lemma check_sub_univ_univ i j :
-  check_sub true (PUniv i) (PUniv j) (A_UnivCong i j) = PeanoNat.Nat.leb i j.
+  check_sub (PUniv i) (PUniv j) (S_UnivCong i j) = PeanoNat.Nat.leb i j.
 Proof. reflexivity. Qed.
 
-Lemma check_sub_univ_univ' i j :
-  check_sub false (PUniv i) (PUniv j) (A_UnivCong i j) = PeanoNat.Nat.leb j i.
-  reflexivity. Qed.
-
-Lemma check_sub_nfnf q a b dom : check_sub_r q a b (A_NfNf a b dom) = check_sub q a b dom.
+Lemma check_sub_nfnf a b dom : check_sub_r a b (S_NfNf a b dom) = check_sub a b dom.
 Proof.
-  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
+  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:salgo_dom_no_hred.
   have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
   simpl.
   destruct (fancy_hred b)=>//=.
@@ -415,8 +311,8 @@ Proof.
   hauto l:on use:hred_complete.
 Qed.
 
-Lemma check_sub_hredl q a b a' ha doma :
-  check_sub_r q a b (A_HRedL a a' b ha doma) = check_sub_r q a' b doma.
+Lemma check_sub_hredl a b a' ha doma :
+  check_sub_r a b (S_HRedL a a' b ha doma) = check_sub_r a' b doma.
 Proof.
   simpl.
   destruct (fancy_hred a).
@@ -428,9 +324,9 @@ Proof.
     apply PropExtensionality.proof_irrelevance.
 Qed.
 
-Lemma check_sub_hredr q a b b' hu r a0 :
-  check_sub_r q a b (A_HRedR a b b' hu r a0) =
-    check_sub_r q a b' a0.
+Lemma check_sub_hredr a b b' hu r a0 :
+  check_sub_r a b (S_HRedR a b b' hu r a0) =
+    check_sub_r a b' a0.
 Proof.
   simpl.
   destruct (fancy_hred a).
@@ -445,4 +341,4 @@ Proof.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
 
-#[export]Hint Rewrite check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ' check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.
+#[export]Hint Rewrite check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.

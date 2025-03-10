@@ -586,3 +586,12 @@ Definition fancy_hred (a : PTm) : HRed.nf a + {b | HRed.R a b}.
   right. exists p. by apply hred_sound in eq.
   left. move => b /hred_complete. congruence.
 Defined.
+
+Lemma hreds_nf_refl a b  :
+  HRed.nf a ->
+  rtc HRed.R a b ->
+  a = b.
+Proof. inversion 2; sfirstorder. Qed.
+
+Lemma algo_dom_r_algo_dom : forall a b, HRed.nf a -> HRed.nf b -> algo_dom_r a b -> algo_dom a b.
+Proof. hauto l:on use:algo_dom_r_inv, hreds_nf_refl. Qed.

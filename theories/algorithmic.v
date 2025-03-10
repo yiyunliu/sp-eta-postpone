@@ -1051,12 +1051,6 @@ Proof.
     exists (S i), a1. hauto lq:on ctrs:nsteps solve+:lia.
 Qed.
 
-Lemma hreds_nf_refl a b  :
-  HRed.nf a ->
-  rtc HRed.R a b ->
-  a = b.
-Proof. inversion 2; sfirstorder. Qed.
-
 Lemma lored_nsteps_app_cong k (a0 a1 b : PTm) :
   nsteps LoRed.R k a0 a1 ->
   ishne a0 ->
@@ -1227,10 +1221,6 @@ Proof.
   exists (k -1). simpl in *.
   hauto lq:on rew:off use:ne_nf b:on solve+:lia.
 Qed.
-
-
-Lemma algo_dom_r_algo_dom : forall a b, HRed.nf a -> HRed.nf b -> algo_dom_r a b -> algo_dom a b.
-Proof. hauto l:on use:algo_dom_r_inv, hreds_nf_refl. Qed.
 
 Lemma algo_dom_algo_dom_neu : forall a b, ishne a -> ishne b -> algo_dom a b -> algo_dom_neu a b \/ tm_conf a b.
 Proof.
