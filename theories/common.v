@@ -403,6 +403,8 @@ with salgo_dom_r : PTm -> PTm -> Prop :=
 Scheme salgo_ind := Induction for salgo_dom Sort Prop
   with salgor_ind := Induction for salgo_dom_r Sort Prop.
 
+Combined Scheme salgo_dom_mutual from salgo_ind, salgor_ind.
+
 Lemma hf_no_hred (a b : PTm) :
   ishf a ->
   HRed.R a b ->

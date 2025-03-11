@@ -180,17 +180,6 @@ Qed.
 
 Ltac simp_sub := with_strategy opaque [check_equal] simpl in *.
 
-Combined Scheme salgo_dom_mutual from salgo_ind, salgor_ind.
-
-(* Reusing algo_dom results in an inefficient proof, but i'll brute force it so i can get the result more quickly *)
-Lemma check_sub_neuneu a b i a0 : check_sub a b (S_NeuNeu a b i a0) = check_equal a b a0.
-Proof. destruct a,b => //=. Qed.
-
-Lemma check_sub_conf a b n n0 i : check_sub a b (S_Conf a b n n0 i) = false.
-Proof. destruct a,b=>//=; ecrush inv:BTag. Qed.
-
-Hint Rewrite check_sub_neuneu check_sub_conf : ce_prop.
-
 Lemma check_sub_sound :
   (forall a b (h : salgo_dom a b), check_sub a b h -> a ⋖ b) /\
     (forall a b (h : salgo_dom_r a b), check_sub_r a b h -> a ≪ b).

@@ -341,4 +341,10 @@ Proof.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
 
-#[export]Hint Rewrite check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.
+Lemma check_sub_neuneu a b i a0 : check_sub a b (S_NeuNeu a b i a0) = check_equal a b a0.
+Proof. destruct a,b => //=. Qed.
+
+Lemma check_sub_conf a b n n0 i : check_sub a b (S_Conf a b n n0 i) = false.
+Proof. destruct a,b=>//=; ecrush inv:BTag. Qed.
+
+#[export]Hint Rewrite check_sub_neuneu check_sub_conf check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.
