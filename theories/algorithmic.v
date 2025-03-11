@@ -947,6 +947,18 @@ Proof.
   hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf, Abs_Inv.
 Qed.
 
+Lemma T_ZeroUniv_Imp' Γ i :
+  Γ ⊢ PZero ∈ PUniv i -> False.
+Proof.
+  hauto lq:on use:synsub_to_usub, Sub.univ_nat_noconf, Zero_Inv.
+Qed.
+
+Lemma T_SucUniv_Imp' Γ (a : PTm) i :
+  Γ ⊢ PSuc a ∈ PUniv i -> False.
+Proof.
+  hauto lq:on use:synsub_to_usub, Sub.univ_nat_noconf, Suc_Inv.
+Qed.
+
 Lemma T_PairUniv_Imp' Γ (a b : PTm) i  :
   Γ ⊢ PPair a b ∈ PUniv i -> False.
 Proof.
@@ -1760,18 +1772,95 @@ Proof.
   hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
 Qed.
 
+Lemma subvar_inj (i j : nat) :
+    Sub.R (VarPTm i) (VarPTm j) -> i = j.
+Proof.
+  rewrite /Sub.R.
+  move => [c][d][h0][h1]h2.
+  apply REReds.var_inv in h0, h1. subst.
+  inversion h2; by subst.
+Qed.
+
+Lemma algo_dom_hf_hne (a b : PTm) :
+  algo_dom a b ->
+  (ishf a \/ ishne a) /\ (ishf b \/ ishne b).
+Proof.
+  inversion 1;subst => //=; by sfirstorder b:on.
+Qed.
+
+Lemma algo_dom_neu_neu_nonconf a b :
+  algo_dom a b ->
+  neuneu_nonconf a b ->
+  ishne a /\ ishne b.
+Proof.
+  move /algo_dom_hf_hne => h.
+  move => h1.
+  destruct a,b => //=; sfirstorder b:on.
+Qed.
+
 Lemma coqleq_complete' :
-  (forall a b, salgo_dom a b -> Sub.R a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⋖ b) /\
-  (forall a b, salgo_dom_r a b -> Sub.R a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ≪ b).
+  (forall a b, salgo_dom a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ⋖ b) /\
+  (forall a b, salgo_dom_r a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ≪ b).
 Proof.
   apply salgo_dom_mutual.
   - move => i j /Sub.univ_inj.
     hauto lq:on ctrs:CoqLEq.
-  - admit.
-  - admit.
+  - move => A0 A1 B0 B1 hA ihA hB ihB /Sub.bind_inj. move => [_][hjA]hjB Γ i.
+    move /Bind_Univ_Inv => [hA1 hB1] /Bind_Univ_Inv [hA0 hB0].
+    have {}ihA : A1 ≪ A0 by hauto l:on.
+    constructor => //.
+    have ihA' : Γ ⊢ A1 ≲ A0 by hauto l:on use:coqleq_sound_mutual.
+    suff : (cons A1 Γ) ⊢ B0 ∈ PUniv i
+      by hauto l:on.
+    eauto using ctx_eq_subst_one.
+  - move => A0 A1 B0 B1 hA ihA hB ihB /Sub.bind_inj. move => [_][hjA]hjB Γ i.
+    move /Bind_Univ_Inv => [hA1 hB1] /Bind_Univ_Inv [hA0 hB0].
+    have {}ihA : A0 ≪ A1 by hauto l:on.
+    constructor => //.
+    have ihA' : Γ ⊢ A0 ≲ A1 by hauto l:on use:coqleq_sound_mutual.
+    suff : (cons A0 Γ) ⊢ B1 ∈ PUniv i
+      by hauto l:on.
+    eauto using ctx_eq_subst_one.
   - sfirstorder.
-  - admit.
-  - admit.
+  - move => a b hconf hdom.
+    have [? ?] : ishne a /\ ishne b by sfirstorder use:algo_dom_neu_neu_nonconf.
+    move => h. apply Sub.ToJoin in h; last by tauto.
+    move => Γ i ha hb.
+    apply CLE_NeuNeu. hauto q:on use:coqeq_complete'.
+  - move => [:neunf] a b.
+    case => ha; case => hb.
+    move : ha hb.
+    + case : a => //=; try solve [intros; exfalso; eauto using T_AbsUniv_Imp', T_PairUniv_Imp', T_ZeroUniv_Imp', T_SucUniv_Imp'].
+      * case : b => //=; try solve [intros; exfalso; eauto using T_AbsUniv_Imp', T_PairUniv_Imp', T_ZeroUniv_Imp', T_SucUniv_Imp'].
+        case => + + []//=.
+        hauto lq:on rew:off use:Sub.bind_inj.
+        hauto lq:on rew:off use:Sub.bind_inj.
+        hauto lq:on use:Sub.bind_univ_noconf.
+        hauto lq:on use:Sub.nat_bind_noconf.
+      * case : b => //=; try solve [intros; exfalso; eauto using T_AbsUniv_Imp', T_PairUniv_Imp', T_ZeroUniv_Imp', T_SucUniv_Imp'].
+        hauto lq:on use:Sub.univ_bind_noconf.
+        hauto lq:on use:Sub.nat_univ_noconf.
+      * case : b => //=; try solve [intros; exfalso; eauto using T_AbsUniv_Imp', T_PairUniv_Imp', T_ZeroUniv_Imp', T_SucUniv_Imp'].
+        hauto lq:on use:Sub.bind_nat_noconf.
+        hauto lq:on use:Sub.univ_nat_noconf.
+    + move => h0 h1.
+      apply Sub.ToJoin in h1; last by tauto.
+      move => Γ i wta wtb. exfalso.
+      abstract : neunf a b ha hb h0 h1 Γ i wta wtb.
+      case : a ha h0 h1 wta => //=; eauto using T_AbsUniv_Imp', T_PairUniv_Imp', T_ZeroUniv_Imp', T_SucUniv_Imp'.
+      sfirstorder use: DJoin.hne_bind_noconf.
+      sfirstorder use: DJoin.hne_univ_noconf.
+      sfirstorder use:DJoin.hne_nat_noconf.
+    + move => h0 h1. apply Sub.ToJoin in h1; last by tauto.
+      hauto drew:off use:DJoin.symmetric, stm_conf_sym.
+    + move => h0 h1 Γ i wta wtb.
+      apply CLE_NeuNeu.
+      apply Sub.ToJoin in h1; last by tauto.
+      eapply coqeq_complete'; eauto.
+      apply algo_dom_r_algo_dom.
+      sfirstorder use:hne_no_hred.
+      sfirstorder use:hne_no_hred.
+      hauto lq:on use:sn_algo_dom, logrel.SemWt_SN, fundamental_theorem.
   - hauto l:on.
   - move => a a' b hr ha iha hj Γ A wta wtb.
     apply : CLE_HRedL; eauto.
@@ -1785,130 +1874,22 @@ Proof.
     apply : Sub.transitive; eauto.
     hauto lq:on use:fundamental_theorem, logrel.SemWt_SN.
     apply /Sub.FromJoin /DJoin.FromRRed0. by apply HRed.ToRRed.
-Admitted.
-
-
-  move : k a b.
-  elim /Wf_nat.lt_wf_ind.
-  move => n ih.
-  move => a b /[dup] h /salgo_metric_case.
-  (* Cases where a and b can take steps *)
-  case; cycle 1.
-  move : a b h.
-  qauto l:on use:HRed.preservation, CLE_HRedL, hred_hne.
-  case /algo_metric_caseR : (h); cycle 1.
-  qauto l:on use:HRed.preservation, CLE_HRedR, hred_hne.
-  (* Cases where neither a nor b can take steps *)
-  case => fb; case => fa.
-  - case : a fa h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
-    + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
-      * move => p0 A0 B0 _ p1 A1 B1 _.
-        move => h.
-        have ? : p1 = p0 by
-          hauto lq:on rew:off use:salgo_metric_sub, Sub.bind_inj.
-        subst.
-        case : p0 h => //=.
-        ** move /salgo_metric_pi.
-           move => [j [hj [hA hB]]] Γ i.
-           move /Bind_Univ_Inv => [hA1 hB1] /Bind_Univ_Inv [hA0 hB0].
-           have ihA : A0 ≪ A1 by hauto l:on.
-           econstructor; eauto using E_Refl; constructor=> //.
-           have ihA' : Γ ⊢ A0 ≲ A1 by hauto l:on use:coqleq_sound_mutual.
-           suff : (cons A0 Γ) ⊢ B1 ∈ PUniv i
-             by hauto l:on.
-           eauto using ctx_eq_subst_one.
-        ** move /salgo_metric_sig.
-           move => [j [hj [hA hB]]] Γ i.
-           move /Bind_Univ_Inv => [hA1 hB1] /Bind_Univ_Inv [hA0 hB0].
-           have ihA : A1 ≪ A0 by hauto l:on.
-           econstructor; eauto using E_Refl; constructor=> //.
-           have ihA' : Γ ⊢ A1 ≲ A0 by hauto l:on use:coqleq_sound_mutual.
-           suff : (cons A1 Γ) ⊢ B0 ∈ PUniv i
-             by hauto l:on.
-           eauto using ctx_eq_subst_one.
-      * hauto lq:on use:salgo_metric_sub, Sub.bind_univ_noconf.
-      * hauto lq:on use:salgo_metric_sub, Sub.nat_bind_noconf.
-      * move => _ > _ /salgo_metric_sub.
-        hauto lq:on rew:off use:REReds.bind_inv, REReds.zero_inv inv:Sub1.R.
-      * hauto lq:on rew:off use:REReds.bind_inv, REReds.suc_inv, salgo_metric_sub inv:Sub1.R.
-    + case : b fb => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
-      * hauto lq:on use:salgo_metric_sub, Sub.univ_bind_noconf.
-      * move => *. econstructor; eauto using rtc_refl.
-        hauto lq:on use:salgo_metric_sub, Sub.univ_inj, CLE_UnivCong.
-      * hauto lq:on rew:off use:REReds.univ_inv, REReds.nat_inv, salgo_metric_sub inv:Sub1.R.
-      * hauto lq:on rew:off use:REReds.univ_inv, REReds.zero_inv, salgo_metric_sub inv:Sub1.R.
-      * hauto lq:on rew:off use:REReds.suc_inv, REReds.univ_inv, salgo_metric_sub inv:Sub1.R.
-  (* Both cases are impossible *)
-    + case : b fb => //=.
-      * hauto lq:on use:T_AbsNat_Imp.
-      * hauto lq:on use:T_PairNat_Imp.
-      * hauto lq:on rew:off use:REReds.nat_inv, REReds.bind_inv, salgo_metric_sub inv:Sub1.R.
-      * hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv, salgo_metric_sub inv:Sub1.R.
-      * hauto l:on.
-      * hauto lq:on rew:off use:REReds.nat_inv, REReds.zero_inv, salgo_metric_sub inv:Sub1.R.
-      * hauto lq:on rew:off use:REReds.nat_inv, REReds.suc_inv, salgo_metric_sub inv:Sub1.R.
-    + move => ? ? Γ i /Zero_Inv.
-      clear.
-      move /synsub_to_usub => [_ [_ ]].
-      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv inv:Sub1.R.
-    + move => ? _ _ Γ i /Suc_Inv => [[_]].
-      move /synsub_to_usub.
-      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv inv:Sub1.R.
-  - have {}h : DJoin.R a b by
-       hauto lq:on use:salgo_metric_algo_metric, algo_metric_join.
-    case : b fb h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
-    + hauto lq:on use:DJoin.hne_bind_noconf.
-    + hauto lq:on use:DJoin.hne_univ_noconf.
-    + hauto lq:on use:DJoin.hne_nat_noconf.
-    + move => _ _ Γ i _.
-      move /Zero_Inv.
-      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
-    + move => p _ _ Γ i _ /Suc_Inv.
-      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
-  - have {}h : DJoin.R b a by
-      hauto lq:on use:salgo_metric_algo_metric, algo_metric_join, DJoin.symmetric.
-    case : a fa h => //=; try hauto depth:1 lq:on use:T_AbsUniv_Imp', T_PairUniv_Imp'.
-    + hauto lq:on use:DJoin.hne_bind_noconf.
-    + hauto lq:on use:DJoin.hne_univ_noconf.
-    + hauto lq:on use:DJoin.hne_nat_noconf.
-    + move => _ _ Γ i.
-      move /Zero_Inv.
-      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
-    + move => p _ _ Γ i /Suc_Inv.
-      hauto q:on use:REReds.nat_inv, REReds.univ_inv, synsub_to_usub inv:Sub1.R.
-  - move => Γ i ha hb.
-    econstructor; eauto using rtc_refl.
-    apply CLE_NeuNeu. move {ih}.
-    have {}h : algo_metric n a b by
-      hauto lq:on use:salgo_metric_algo_metric.
-    eapply coqeq_complete'; eauto.
+Qed.
+Lemma coqleq_complete Γ (a b : PTm) :
+  Γ ⊢ a ≲ b -> a ≪ b.
+Proof.
+  move => h.
+  have : salgo_dom_r a b /\ Sub.R a b by
+    hauto lq:on use:fundamental_theorem, logrel.SemLEq_SemWt, logrel.SemWt_SN, sn_algo_dom, algo_dom_salgo_dom.
+  hauto lq:on use:regularity, coqleq_complete'.
 Qed.
 
-(* Lemma coqleq_complete Γ (a b : PTm) : *)
-(*   Γ ⊢ a ≲ b -> a ≪ b. *)
-(* Proof. *)
-(*   move => h. *)
-(*   suff : exists k, salgo_metric k a b by hauto lq:on use:coqleq_complete', regularity. *)
-(*   eapply fundamental_theorem in h. *)
-(*   move /logrel.SemLEq_SN_Sub : h. *)
-(*   move => h. *)
-(*   have : exists va vb : PTm , *)
-(*          rtc LoRed.R a va /\ *)
-(*          rtc LoRed.R b vb /\ nf va /\ nf vb /\ ESub.R va vb *)
-(*       by hauto l:on use:Sub.standardization_lo. *)
-(*   move => [va][vb][hva][hvb][nva][nvb]hj. *)
-(*   move /relations.rtc_nsteps : hva => [i hva]. *)
-(*   move /relations.rtc_nsteps : hvb => [j hvb]. *)
-(*   exists (i + j + size_PTm va + size_PTm vb). *)
-(*   hauto lq:on solve+:lia. *)
-(* Qed. *)
-
-(* Lemma coqleq_sound : forall Γ (a b : PTm) i j, *)
-(*     Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv j -> a ≪ b -> Γ ⊢ a ≲ b. *)
-(* Proof. *)
-(*   move => Γ a b i j. *)
-(*   have [*] : i <= i + j /\ j <= i + j by lia. *)
-(*   have : Γ ⊢ a ∈ PUniv (i + j) /\ Γ ⊢ b ∈ PUniv (i + j) *)
-(*     by sfirstorder use:T_Univ_Raise. *)
-(*   sfirstorder use:coqleq_sound_mutual. *)
-(* Qed. *)
+Lemma coqleq_sound : forall Γ (a b : PTm) i j,
+    Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv j -> a ≪ b -> Γ ⊢ a ≲ b.
+Proof.
+  move => Γ a b i j.
+  have [*] : i <= i + j /\ j <= i + j by lia.
+  have : Γ ⊢ a ∈ PUniv (i + j) /\ Γ ⊢ b ∈ PUniv (i + j)
+    by sfirstorder use:T_Univ_Raise.
+  sfirstorder use:coqleq_sound_mutual.
+Qed.
