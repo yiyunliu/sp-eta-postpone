@@ -448,6 +448,14 @@ Proof.
   hauto lq:on ctrs:rtc, CoqEq_R inv:CoqEq_R.
 Qed.
 
+Lemma CE_HRedR (a b b' : PTm) :
+  HRed.R b b' ->
+  a ⇔ b' ->
+  a ⇔ b.
+Proof.
+  hauto lq:on ctrs:rtc, CoqEq_R inv:CoqEq_R.
+Qed.
+
 Lemma CE_Nf a b :
   a ↔ b -> a ⇔ b.
 Proof. hauto l:on ctrs:rtc. Qed.
@@ -1316,7 +1324,7 @@ Proof. hauto q:on use:REReds.hne_ind_inv. Qed.
 Lemma coqeq_complete' :
   (forall a b, algo_dom a b -> DJoin.R a b -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C)) /\
     (forall a b, algo_dom_r a b -> DJoin.R a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b).
-  move => [:hhPairNeu hhAbsNeu].
+  move => [:hConfNeuNf hhPairNeu hhAbsNeu].
   apply algo_dom_mutual.
   - move => a b h ih hj. split => //.
     move => Γ A. move : T_Abs_Inv; repeat move/[apply].
@@ -1516,6 +1524,59 @@ Lemma coqeq_complete' :
     move : hEInd. clear. hauto l:on use:regularity.
   - move => a b ha hb.
     move {hhPairNeu hhAbsNeu}.
+    case : hb; case : ha.
+    + move {hConfNeuNf}.
+      move => h0 h1 h2 h3. split; last by sfirstorder use:hf_not_hne.
+      move : h0 h1 h2 h3.
+      case : b; case : a => //= *; try by (exfalso; eauto 2 using T_AbsPair_Imp, T_AbsUniv_Imp, T_AbsBind_Imp, T_AbsNat_Imp, T_AbsZero_Imp, T_AbsSuc_Imp,  T_PairUniv_Imp, T_PairBind_Imp, T_PairNat_Imp, T_PairZero_Imp, T_PairSuc_Imp).
+      sfirstorder use:DJoin.bind_univ_noconf.
+      hauto q:on use:REReds.nat_inv, REReds.bind_inv.
+      hauto q:on use:REReds.zero_inv, REReds.bind_inv.
+      hauto q:on use:REReds.suc_inv, REReds.bind_inv.
+      hauto q:on use:REReds.bind_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.zero_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.suc_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.bind_inv, REReds.nat_inv.
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.zero_inv.
+      hauto lq:on rew:off use:REReds.nat_inv, REReds.suc_inv.
+      hauto lq:on rew:off use:REReds.bind_inv, REReds.zero_inv.
+      hauto lq:on rew:off use:REReds.univ_inv, REReds.zero_inv.
+      hauto lq:on rew:off use:REReds.zero_inv, REReds.nat_inv.
+      hauto lq:on rew:off use:REReds.zero_inv, REReds.suc_inv.
+      hauto lq:on rew:off use:REReds.suc_inv, REReds.bind_inv.
+      hauto lq:on rew:off use:REReds.suc_inv, REReds.univ_inv.
+      hauto lq:on rew:off use:REReds.suc_inv, REReds.nat_inv.
+      hauto lq:on rew:off use:REReds.suc_inv, REReds.zero_inv.
+    + abstract : hConfNeuNf a b.
+      move => h0 h1 h2 h3. split; last by sfirstorder use:hf_not_hne.
+      move : h0 h1 h2 h3.
+      case : b; case : a => //=; hauto q:on use:REReds.var_inv, REReds.bind_inv, REReds.hne_app_inv, REReds.hne_proj_inv, REReds.hne_ind_inv, REReds.bind_inv, REReds.nat_inv, REReds.univ_inv, REReds.zero_inv, REReds.suc_inv.
+    + rewrite tm_conf_sym.
+      move => h0 h1 h2 /DJoin.symmetric hb.
+      move : hConfNeuNf h0 h1 h2 hb; repeat move/[apply].
+      qauto l:on use:coqeq_symmetric_mutual.
+    + move => neua neub hconf hj.
+      move {hConfNeuNf}.
+      exfalso.
+      move : neua neub hconf hj.
+      case : b; case : a => //=*; exfalso; hauto q:on use:REReds.var_inv, REReds.bind_inv, REReds.hne_app_inv, REReds.hne_proj_inv, REReds.hne_ind_inv.
+  - sfirstorder.
+  - move {hConfNeuNf hhPairNeu hhAbsNeu}.
+    move => a a' b hr ha iha hj Γ A wta wtb.
+    apply : CE_HRedL; eauto.
+    apply : iha; eauto; last by sfirstorder use:HRed.preservation.
+    apply : DJoin.transitive; eauto.
+    hauto lq:on use:fundamental_theorem, logrel.SemWt_SN.
+    apply DJoin.FromRRed1. by apply HRed.ToRRed.
+  - move {hConfNeuNf hhPairNeu hhAbsNeu}.
+    move => a b b' nfa hr h ih j Γ A wta wtb.
+    apply : CE_HRedR; eauto.
+    apply : ih; eauto; last by eauto using HRed.preservation.
+    apply : DJoin.transitive; eauto.
+    hauto lq:on use:fundamental_theorem, logrel.SemWt_SN.
+    apply DJoin.FromRRed0. by apply HRed.ToRRed.
 Admitted.
 
 
