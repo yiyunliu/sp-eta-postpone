@@ -284,8 +284,8 @@ Inductive algo_dom : PTm -> PTm -> Prop :=
   algo_dom (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1)
 
 | A_Conf a b :
-  HRed.nf a ->
-  HRed.nf b ->
+  ishf a \/ ishne a ->
+  ishf b \/ ishne b ->
   tm_conf a b ->
   algo_dom a b
 
@@ -376,8 +376,8 @@ Inductive salgo_dom : PTm -> PTm -> Prop :=
   salgo_dom a b
 
 | S_Conf a b :
-  HRed.nf a ->
-  HRed.nf b ->
+  ishf a \/ ishne a ->
+  ishf b \/ ishne b ->
   stm_conf a b ->
   salgo_dom a b
 
@@ -417,7 +417,7 @@ Proof. elim : a b => //=; hauto l:on inv:HRed.R. Qed.
 
 Ltac2 destruct_salgo () :=
   lazy_match! goal with
-  | [h : is_true (ishne ?a) |- is_true (stm_conf ?a _) ] =>
+  | [_ : is_true (ishne ?a) |- is_true (stm_conf ?a _) ] =>
       if Constr.is_var a then destruct $a; ltac1:(done) else ()
   | [|- is_true (stm_conf _ _)] =>
       unfold stm_conf; ltac1:(done)

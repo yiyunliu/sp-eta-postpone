@@ -246,9 +246,6 @@ Proof.
     move => /negP h0.
     eapply check_equal_complete in h0.
     apply h0. by constructor.
-  - move => a b i0 i1 j. simp ce_prop.
-    move => _ h. inversion h; subst => //=.
-    hauto lq:on inv:CoqEq_Neu unfold:stm_conf.
   - move => a b s ihs. simp ce_prop.
     move => h0 h1. apply ihs =>//.
     have [? ?] : HRed.nf a /\ HRed.nf b by hauto l:on use:salgo_dom_no_hred.

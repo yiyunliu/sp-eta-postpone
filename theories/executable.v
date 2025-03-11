@@ -226,7 +226,7 @@ Ltac check_sub_triv :=
   intros;subst;
   lazymatch goal with
   (* | [h : algo_dom (VarPTm _) (PAbs _) |- _] => idtac *)
-  | [h : salgo_dom _ _ |- _] => try (inversion h; subst => //=; ltac2:(Control.enter destruct_algo))
+  | [_ : salgo_dom _ _ |- _] => try (inversion h; subst => //=; ltac2:(Control.enter destruct_algo))
   | _ => idtac
   end.
 
