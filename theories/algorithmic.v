@@ -5,7 +5,6 @@ Require Import ssreflect ssrbool.
 Require Import Psatz.
 From stdpp Require Import relations (rtc(..), nsteps(..)).
 Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Cdcl.Itauto.
 
 Module HRed.
   Lemma ToRRed (a b : PTm) : HRed.R a b -> RRed.R a b.
@@ -98,7 +97,7 @@ Proof.
   - move => u v hC /andP [h0 h1] /synsub_to_usub ?.
     exfalso.
     suff : SNe (PApp u v) by hauto l:on use:Sub.bind_sne_noconf.
-    eapply ne_nf_embed => //=. itauto.
+    eapply ne_nf_embed => //=. sfirstorder b:on.
   - move => p0 p1 hC  h  ?. exfalso.
     have {hC} : Γ ⊢ PPair p0 p1 ∈ PUniv i by hauto l:on use:regularity.
     hauto lq:on use:Sub.bind_univ_noconf, synsub_to_usub, Pair_Inv.
@@ -199,7 +198,7 @@ Proof.
   - move => u v hC /andP [h0 h1] /synsub_to_usub ?.
     exfalso.
     suff : SNe (PApp u v) by hauto l:on use:Sub.sne_bind_noconf.
-    eapply ne_nf_embed => //=. itauto.
+    eapply ne_nf_embed => //=. sfirstorder b:on.
   - move => p0 p1 hC  h  ?. exfalso.
     have {hC} : Γ ⊢ PPair p0 p1 ∈ PUniv i by hauto l:on use:regularity.
     hauto lq:on use:Sub.bind_univ_noconf, synsub_to_usub, Pair_Inv.

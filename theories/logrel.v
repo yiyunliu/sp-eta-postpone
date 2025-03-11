@@ -6,7 +6,7 @@ Require Import ssreflect ssrbool.
 Require Import Logic.PropExtensionality (propositional_extensionality).
 From stdpp Require Import relations (rtc(..), rtc_subrel).
 Import Psatz.
-Require Import Cdcl.Itauto.
+
 
 Definition ProdSpace (PA : PTm -> Prop)
   (PF : PTm -> (PTm -> Prop) -> Prop) b : Prop :=
@@ -355,7 +355,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R A H by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : SNe H.
-      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       move : hA hAB. clear. hauto lq:on db:noconf.
       move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
       tauto.
@@ -365,7 +365,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R H A by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : SNe H.
-      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       move : hAB hA h0. clear. hauto lq:on db:noconf.
       move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
       tauto.
@@ -375,7 +375,7 @@ Proof.
       have {hU} {}h : Sub.R (PBind p A B) H
         by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have{h0} : isbind H.
-      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by itauto.
+      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       have : isbind (PBind p A B) by scongruence.
       move : h. clear. hauto l:on db:noconf.
       case : H h1 h => //=.
@@ -394,7 +394,7 @@ Proof.
       have {hU} {}h : Sub.R H (PBind p A B)
         by move : hU hU' h; clear; hauto q:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have{h0} : isbind H.
-      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by itauto.
+      suff : ~ SNe H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       have : isbind (PBind p A B) by scongruence.
       move : h. clear. move : (PBind p A B). hauto lq:on db:noconf.
       case : H h1 h => //=.
@@ -413,7 +413,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R PNat H by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : isnat H.
-      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by sfirstorder b:on.
       have : @isnat PNat by simpl.
       move : h0 hAB. clear. qauto l:on db:noconf.
       case : H h1 hAB h0 => //=.
@@ -424,7 +424,7 @@ Proof.
       move => [H [/DJoin.FromRedSNs h [h1 h0]]].
       have {h}{}hAB : Sub.R H PNat by qauto l:on use:Sub.FromJoin, DJoin.symmetric, Sub.transitive.
       have {}h0 : isnat H.
-      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by itauto.
+      suff : ~ isbind H /\ ~ isuniv H /\ ~ SNe H by sfirstorder b:on.
       have : @isnat PNat by simpl.
       move : h0 hAB. clear. qauto l:on db:noconf.
       case : H h1 hAB h0 => //=.
@@ -1058,7 +1058,7 @@ Definition Γ_sub' Γ Δ := forall ρ, ρ_ok Δ ρ -> ρ_ok Γ ρ.
 Definition Γ_eq' Γ Δ := forall ρ, ρ_ok Δ ρ <-> ρ_ok Γ ρ.
 
 Lemma Γ_sub'_refl Γ : Γ_sub' Γ Γ.
-  rewrite /Γ_sub'. itauto. Qed.
+  rewrite /Γ_sub'. sfirstorder b:on. Qed.
 
 Lemma Γ_sub'_cons Γ Δ A B i j :
   Sub.R B A ->

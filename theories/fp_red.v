@@ -10,7 +10,7 @@ From stdpp Require Import relations (rtc (..), rtc_once, rtc_r, sn).
 From Hammer Require Import Tactics.
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import Btauto.
-Require Import Cdcl.Itauto.
+
 
 Ltac2 spec_refl () :=
   List.iter
@@ -2575,7 +2575,7 @@ Module LoReds.
     ~~ ishf a.
   Proof.
     move : hf_preservation. repeat move/[apply].
-    case : a; case : b => //=; itauto.
+    case : a; case : b => //=; sfirstorder b:on.
   Qed.
 
   #[local]Ltac solve_s_rec :=
@@ -2633,7 +2633,7 @@ Module LoReds.
     rtc LoRed.R (PSuc a0) (PSuc a1).
   Proof. solve_s. Qed.
 
-  Local Ltac triv := simpl in *; itauto.
+  Local Ltac triv := simpl in *; sfirstorder b:on.
 
   Lemma FromSN_mutual :
     (forall (a : PTm) (_ : SNe a), exists v, rtc LoRed.R a v /\ ne v) /\
@@ -3048,7 +3048,7 @@ Module DJoin.
     have {h0 h1 h2 h3} : isbind c /\ isuniv c by
       hauto l:on use:REReds.bind_preservation,
           REReds.univ_preservation.
-    case : c => //=; itauto.
+    case : c => //=; sfirstorder b:on.
   Qed.
 
   Lemma hne_univ_noconf (a b : PTm) :
@@ -3078,7 +3078,7 @@ Module DJoin.
   Proof.
     move => [c [h0 h1]] h2 h3.
     have : ishne c /\ isnat c by sfirstorder use:REReds.hne_preservation, REReds.nat_preservation.
-    clear. case : c => //=; itauto.
+    clear. case : c => //=; sfirstorder b:on.
   Qed.
 
   Lemma bind_inj p0 p1 (A0 A1 : PTm) B0 B1 :
@@ -3594,7 +3594,7 @@ Module Sub.
       hauto l:on use:REReds.bind_preservation,
             REReds.univ_preservation, Sub1.bind_preservation, Sub1.univ_preservation.
     move : h2 h3. clear.
-    case : c => //=; itauto.
+    case : c => //=; sfirstorder b:on.
   Qed.
 
   Lemma univ_bind_noconf (a b : PTm) :
@@ -3605,7 +3605,7 @@ Module Sub.
       hauto l:on use:REReds.bind_preservation,
             REReds.univ_preservation, Sub1.bind_preservation, Sub1.univ_preservation.
     move : h2 h3. clear.
-    case : c => //=; itauto.
+    case : c => //=; sfirstorder b:on.
   Qed.
 
   Lemma bind_inj p0 p1 (A0 A1 : PTm) B0 B1 :
