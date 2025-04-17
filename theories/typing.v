@@ -89,22 +89,11 @@ with Eq : list PTm -> PTm -> PTm -> PTm -> Prop :=
   (cons A0 Γ) ⊢ B0 ≡ B1 ∈ PUniv i ->
   Γ ⊢ PBind p A0 B0 ≡ PBind p A1 B1 ∈ PUniv i
 
-| E_Abs Γ (a b : PTm) A B i :
-  Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
-  (cons A Γ) ⊢ a ≡ b ∈ B ->
-  Γ ⊢ PAbs a ≡ PAbs b ∈ PBind PPi A B
-
 | E_App Γ i (b0 b1 a0 a1 : PTm) A B :
   Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
   Γ ⊢ b0 ≡ b1 ∈ PBind PPi A B ->
   Γ ⊢ a0 ≡ a1 ∈ A ->
   Γ ⊢ PApp b0 a0 ≡ PApp b1 a1 ∈ subst_PTm (scons a0 VarPTm) B
-
-| E_Pair Γ (a0 a1 b0 b1 : PTm) A B i :
-  Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
-  Γ ⊢ a0 ≡ a1 ∈ A ->
-  Γ ⊢ b0 ≡ b1 ∈ subst_PTm (scons a0 VarPTm) B ->
-  Γ ⊢ PPair a0 b0 ≡ PPair a1 b1 ∈ PBind PSig A B
 
 | E_Proj1 Γ (a b : PTm) A B :
   Γ ⊢ a ≡ b ∈ PBind PSig A B ->
@@ -164,16 +153,20 @@ with Eq : list PTm -> PTm -> PTm -> PTm -> Prop :=
   (cons P (cons PNat Γ)) ⊢ c ∈ ren_PTm shift (subst_PTm (scons (PSuc (VarPTm var_zero)) (funcomp VarPTm shift) ) P) ->
   Γ ⊢ PInd P (PSuc a) b c ≡ (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c) ∈ subst_PTm (scons (PSuc a) VarPTm) P
 
-(* Eta *)
-| E_AppEta Γ (b : PTm) A B i :
-  Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
+| E_FunExt Γ (a b : PTm) A B i :
+  Γ ⊢ PBind PPi A B ∈ PUniv i ->
+  Γ ⊢ a ∈ PBind PPi A B ->
   Γ ⊢ b ∈ PBind PPi A B ->
-  Γ ⊢ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ≡ b ∈ PBind PPi A B
+  A :: Γ ⊢ PApp (ren_PTm shift a) (VarPTm var_zero) ≡ PApp (ren_PTm shift b) (VarPTm var_zero) ∈ B ->
+  Γ ⊢ a ≡ b ∈ PBind PPi A B
 
-| E_PairEta Γ (a : PTm ) A B i :
-  Γ ⊢ PBind PSig A B ∈ (PUniv i) ->
+| E_PairExt Γ (a b : PTm) A B i :
+  Γ ⊢ PBind PSig A B ∈ PUniv i ->
   Γ ⊢ a ∈ PBind PSig A B ->
-  Γ ⊢ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B
+  Γ ⊢ b ∈ PBind PSig A B ->
+  Γ ⊢ PProj PL a ≡ PProj PL b ∈ A ->
+  Γ ⊢ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B ->
+  Γ ⊢ a ≡ b ∈ PBind PSig A B
 
 with LEq : list PTm -> PTm -> PTm -> Prop :=
 (* Structural *)
@@ -242,10 +235,3 @@ Scheme wf_ind := Induction for Wff Sort Prop
   with le_ind := Induction for LEq Sort Prop.
 
 Combined Scheme wt_mutual from wf_ind, wt_ind, eq_ind, le_ind.
-
-(* Lemma lem : *)
-(*   (forall n (Γ : fin n -> PTm n), ⊢ Γ -> ...) /\ *)
-(*   (forall n Γ (a A : PTm n), Γ ⊢ a ∈ A -> ...)  /\ *)
-(*   (forall n Γ (a b A : PTm n), Γ ⊢ a ≡ b ∈ A -> ...) /\ *)
-(*   (forall n Γ (A B : PTm n), Γ ⊢ A ≲ B -> ...). *)
-(* Proof. apply wt_mutual. ... *)
