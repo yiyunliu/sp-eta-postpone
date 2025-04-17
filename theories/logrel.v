@@ -1516,6 +1516,20 @@ Proof.
   rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
 Qed.
 
+Lemma SE_FunExt Γ (a b : PTm) A B i :
+  Γ ⊨ PBind PPi A B ∈ PUniv i ->
+  Γ ⊨ a ∈ PBind PPi A B ->
+  Γ ⊨ b ∈ PBind PPi A B ->
+  A :: Γ ⊨ PApp (ren_PTm shift a) (VarPTm var_zero) ≡ PApp (ren_PTm shift b) (VarPTm var_zero) ∈ B ->
+  Γ ⊨ a ≡ b ∈ PBind PPi A B.
+Proof.
+  move => hpi ha hb he.
+  move : SE_Abs (hpi) he. repeat move/[apply]. move => he.
+  have /SE_Symmetric : Γ ⊨ PAbs (PApp (ren_PTm shift a) (VarPTm var_zero)) ≡ a ∈ PBind PPi A B by eauto using SE_AppEta.
+  have : Γ ⊨ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ≡ b ∈ PBind PPi A B by eauto using SE_AppEta.
+  eauto using SE_Transitive.
+Qed.
+
 Lemma SE_Nat Γ (a b : PTm) :
   Γ ⊨ a ≡ b ∈ PNat ->
   Γ ⊨ PSuc a ≡ PSuc b ∈ PNat.
