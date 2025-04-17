@@ -137,12 +137,12 @@ Lemma E_ProjPair2' Γ (a b : PTm) A B i U :
   Γ ⊢ PProj PR (PPair a b) ≡ b ∈ U.
 Proof. move => ->. apply E_ProjPair2. Qed.
 
-Lemma E_AppEta' Γ (b : PTm ) A B i u :
-  u = (PApp (ren_PTm shift b) (VarPTm var_zero)) ->
-  Γ ⊢ PBind PPi A B ∈ (PUniv i) ->
-  Γ ⊢ b ∈ PBind PPi A B ->
-  Γ ⊢ PAbs u ≡ b ∈ PBind PPi A B.
-Proof. qauto l:on use:wff_mutual, E_AppEta. Qed.
+(* Lemma E_AppEta' Γ (b : PTm ) A B i u : *)
+(*   u = (PApp (ren_PTm shift b) (VarPTm var_zero)) -> *)
+(*   Γ ⊢ PBind PPi A B ∈ (PUniv i) -> *)
+(*   Γ ⊢ b ∈ PBind PPi A B -> *)
+(*   Γ ⊢ PAbs u ≡ b ∈ PBind PPi A B. *)
+(* Proof. qauto l:on use:wff_mutual, E_AppEta. Qed. *)
 
 Lemma Su_Pi_Proj2' Γ (a0 a1 A0 A1 : PTm ) B0 B1 U T :
   U = subst_PTm (scons a0 VarPTm) B0 ->
@@ -222,17 +222,7 @@ Proof.
   - hauto lq:on ctrs:Wt,LEq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, renaming_up.
-  - move => Γ a b A B i hPi ihPi ha iha Δ ξ hΔ hξ.
-    move : ihPi (hΔ) (hξ). repeat move/[apply].
-    move => /Bind_Inv [j][h0][h1]h2.
-    have ? : Δ ⊢ PBind PPi (ren_PTm ξ A) (ren_PTm (upRen_PTm_PTm ξ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
-    move {hPi}.
-    apply : E_Abs; eauto. qauto l:on ctrs:Wff use:renaming_up.
   - move => *. apply : E_App'; eauto. by asimpl.
-  - move => Γ a0 a1 b0 b1 A B i hA ihA ha iha hb ihb Δ ξ hΔ hξ.
-    apply : E_Pair; eauto.
-    move : ihb hΔ hξ. repeat move/[apply].
-    by asimpl.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
   - move => Γ P0 P1 a0 a1 b0 b1 c0 c1 i hP0 ihP0 hP ihP ha iha hb ihb hc ihc.
     move => Δ ξ hΔ hξ [:hP' hren].
@@ -302,8 +292,10 @@ Proof.
     move /(_ Ξ  (upRen_PTm_PTm (upRen_PTm_PTm ξ)) hΞ) : ihc.
     move /(_ ltac:(by eauto using renaming_up)).
     by asimpl.
-  - move => *.
-    apply : E_AppEta'; eauto. by asimpl.
+  - move => Γ a b A B i hPi ihPi ha iha hb ihb he0 ihe1 Δ ξ hΔ hξ.
+    apply : E_FunExt; eauto. move : ihe1. asimpl. apply.
+    admit.
+    by apply renaming_up.
   - qauto l:on use:E_PairEta.
   - hauto lq:on ctrs:LEq.
   - qauto l:on ctrs:LEq.
