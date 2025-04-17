@@ -1521,6 +1521,22 @@ Proof.
   rewrite /DJoin.R. hauto lq:on ctrs:rtc,RERed.R.
 Qed.
 
+Lemma SE_PairExt Γ (a b : PTm) A B i :
+  Γ ⊨ PBind PSig A B ∈ PUniv i ->
+  Γ ⊨ a ∈ PBind PSig A B ->
+  Γ ⊨ b ∈ PBind PSig A B ->
+  Γ ⊨ PProj PL a ≡ PProj PL b ∈ A ->
+  Γ ⊨ PProj PR a ≡ PProj PR b ∈ subst_PTm (scons (PProj PL a) VarPTm) B ->
+  Γ ⊨ a ≡ b ∈ PBind PSig A B.
+Proof.
+  move => h0 ha hb h1 h2.
+  suff h : Γ ⊨ a ≡ PPair (PProj PL a) (PProj PR a) ∈ PBind PSig A B /\
+           Γ ⊨ PPair (PProj PL b) (PProj PR b) ≡ b ∈ PBind PSig A B /\
+           Γ ⊨ PPair (PProj PL a) (PProj PR a) ≡ PPair (PProj PL b) (PProj PR b) ∈ PBind PSig A B
+    by decompose [and] h; eauto using SE_Transitive, SE_Symmetric.
+  eauto 20 using SE_PairEta, SE_Symmetric, SE_Pair.
+Qed.
+
 Lemma SE_FunExt Γ (a b : PTm) A B i :
   Γ ⊨ PBind PPi A B ∈ PUniv i ->
   Γ ⊨ a ∈ PBind PPi A B ->
