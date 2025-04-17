@@ -619,10 +619,6 @@ Proof.
   split; apply : InterpUniv_cumulative; eauto.
 Qed.
 
-(* Semantic context wellformedness *)
-Definition SemWff Γ := forall (i : nat) A, lookup i Γ A -> exists j, Γ ⊨ A ∈ PUniv j.
-Notation "⊨ Γ" := (SemWff Γ) (at level 70).
-
 Lemma ρ_ok_id Γ :
   ρ_ok Γ VarPTm.
 Proof.
@@ -763,6 +759,34 @@ Proof.
   move : weakening_Sem h0 h1; repeat move/[apply]. done.
 Qed.
 
+Reserved Notation "⊨ Γ"  (at level 70).
+
+Inductive SemWff : list PTm -> Prop :=
+| SemWff_nil :
+  ⊨ nil
+| SemWff_cons Γ A i :
+  ⊨ Γ ->
+  Γ ⊨ A ∈ PUniv i ->
+  (* -------------- *)
+  ⊨ (cons A Γ)
+where "⊨ Γ" := (SemWff Γ).
+
+(* Semantic context wellformedness *)
+Lemma SemWff_lookup Γ :
+  ⊨ Γ ->
+  forall (i : nat) A, lookup i Γ A -> exists j, Γ ⊨ A ∈ PUniv j.
+Proof.
+  move => h. elim : Γ / h.
+  - by inversion 1.
+  - move => Γ A i hΓ ihΓ hA  j B.
+    elim /lookup_inv => //=_.
+    + move => ? ? ? [*]. subst.
+      eauto using weakening_Sem_Univ.
+    + move => i0 Γ0 A0 B0 hl ? [*]. subst.
+      move : ihΓ hl => /[apply]. move => [j hA0].
+      eauto using weakening_Sem_Univ.
+Qed.
+
 Lemma SemWt_SN Γ (a : PTm) A :
   Γ ⊨ a ∈ A ->
   SN a /\ SN A.
@@ -784,25 +808,6 @@ Lemma SemLEq_SN_Sub Γ (a b : PTm) :
   SN a /\ SN b /\ Sub.R a b.
 Proof. hauto l:on use:SemLEq_SemWt, SemWt_SN. Qed.
 
-(* Structural laws for Semantic context wellformedness *)
-Lemma SemWff_nil : SemWff nil.
-Proof. hfcrush inv:lookup. Qed.
-
-Lemma SemWff_cons Γ (A : PTm) i :
-    ⊨ Γ ->
-    Γ ⊨ A ∈ PUniv i ->
-    (* -------------- *)
-    ⊨ (cons A Γ).
-Proof.
-  move => h h0.
-  move => j A0.  elim/lookup_inv => //=_.
-  - hauto q:on use:weakening_Sem.
-  - move => i0 Γ0 A1 B + ? [*]. subst.
-    move : h => /[apply]. move => [k hk].
-    exists k. change (PUniv k) with (ren_PTm shift (PUniv k)).
-    eauto using weakening_Sem.
-Qed.
-
 (* Semantic typing rules *)
 Lemma ST_Var' Γ (i : nat) A j :
   lookup i Γ A ->
@@ -819,7 +824,7 @@ Lemma ST_Var Γ (i : nat) A :
   ⊨ Γ ->
   lookup i Γ A ->
   Γ ⊨ VarPTm i ∈ A.
-Proof. hauto l:on use:ST_Var' unfold:SemWff. Qed.
+Proof. hauto l:on use:ST_Var', SemWff_lookup. Qed.
 
 Lemma InterpUniv_Bind_nopf p i (A : PTm) B PA :
   ⟦ A ⟧ i ↘ PA ->
