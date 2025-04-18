@@ -586,7 +586,8 @@ Proof.
     have [h2 h3] : Γ ⊢ A2 ≲ A0 /\ Γ ⊢ A2 ≲ A1 by hauto l:on use:Su_Pi_Proj1.
     apply E_Conv with (A := PBind PPi A2 B2); cycle 1.
     eauto using E_Symmetric, Su_Eq.
-    apply : E_Abs; eauto. hauto l:on use:regularity.
+    apply : E_Abs; eauto.
+
     apply iha.
     move /Su_Pi_Proj2_Var in hp0.
     apply : T_Conv; eauto.
