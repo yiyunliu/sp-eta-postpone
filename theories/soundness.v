@@ -7,7 +7,7 @@ Theorem fundamental_theorem :
   (forall Γ a A, Γ ⊢ a ∈ A -> Γ ⊨ a ∈ A)  /\
   (forall Γ a b A, Γ ⊢ a ≡ b ∈ A -> Γ ⊨ a ≡ b ∈ A) /\
   (forall Γ a b, Γ ⊢ a ≲ b -> Γ ⊨ a ≲ b).
-  apply wt_mutual; eauto with sem; [hauto l:on use:SE_Pair].
+  apply wt_mutual; eauto with sem.
   Unshelve. all : exact 0.
 Qed.
 
