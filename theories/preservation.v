@@ -1,4 +1,4 @@
-Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural fp_red.
+Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural fp_red admissible.
 From Hammer Require Import Tactics.
 Require Import ssreflect.
 Require Import Psatz.
@@ -112,6 +112,45 @@ Proof.
   eauto using T_Conv.
 Qed.
 
+Lemma T_Eta Γ A a B :
+  A :: Γ ⊢ a ∈ B ->
+  A :: Γ ⊢ PApp (PAbs (ren_PTm (upRen_PTm_PTm shift) a)) (VarPTm var_zero) ∈ B.
+Proof.
+  move => ha.
+  have hΓ' : ⊢ A :: Γ by sfirstorder use:wff_mutual.
+  have [i hA] : exists i, Γ ⊢ A ∈ PUniv i by hauto lq:on inv:Wff.
+  have hΓ : ⊢ Γ by hauto lq:on inv:Wff.
+  eapply T_App' with (B  := ren_PTm (upRen_PTm_PTm shift) B). by asimpl; rewrite subst_scons_id.
+  apply T_Abs. eapply renaming; eauto; cycle 1. apply renaming_up. apply renaming_shift.
+  econstructor; eauto. sauto l:on use:renaming.
+  apply T_Var => //.
+  by constructor.
+Qed.
+
+Lemma E_Abs Γ a b A B :
+  A :: Γ ⊢ a ≡ b ∈ B ->
+  Γ ⊢ PAbs a ≡ PAbs b ∈ PBind PPi A B.
+Proof.
+  move => h.
+  have [i hA] : exists i, Γ ⊢ A ∈ PUniv i by hauto l:on use:wff_mutual inv:Wff.
+  have [j hB] : exists j, A :: Γ ⊢ B ∈ PUniv j by hauto l:on use:regularity.
+  have hΓ : ⊢ Γ by sfirstorder use:wff_mutual.
+  have hΓ' : ⊢ A::Γ by eauto with wt.
+  set k := max i j.
+  have [? ?] : i <= k /\ j <= k by lia.
+  have {}hA : Γ ⊢ A ∈ PUniv k by hauto l:on use:T_Conv, Su_Univ.
+  have {}hB : A :: Γ ⊢ B ∈ PUniv k by hauto lq:on use:T_Conv, Su_Univ.
+  have hPi : Γ ⊢ PBind PPi A B ∈ PUniv k by eauto with wt.
+  apply : E_FunExt; eauto with wt.
+  hauto lq:on rew:off use:regularity, T_Abs.
+  hauto lq:on rew:off use:regularity, T_Abs.
+  apply : E_Transitive => /=. apply E_AppAbs.
+  hauto lq:on use:T_Eta, regularity.
+  apply /E_Symmetric /E_Transitive. apply E_AppAbs.
+  hauto lq:on use:T_Eta, regularity.
+  asimpl. rewrite !subst_scons_id. by apply E_Symmetric.
+Qed.
+
 Lemma E_ProjPair1 : forall (a b : PTm) Γ (A : PTm),
     Γ ⊢ PProj PL (PPair a b) ∈ A -> Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A.
 Proof.
@@ -123,6 +162,51 @@ Proof.
   have {hA0} {}hS : Γ ⊢ A1 ≲ A by eauto using Su_Transitive.
   apply : E_Conv; eauto.
   apply : E_ProjPair1; eauto.
+Qed.
+
+Lemma E_ProjPair2 : forall (a b : PTm) Γ (A : PTm),
+    Γ ⊢ PProj PR (PPair a b) ∈ A -> Γ ⊢ PProj PR (PPair a b) ≡ b ∈ A.
+Proof.
+  move => a b Γ A. move /Proj2_Inv.
+  move => [A0][B0][ha]h.
+  have hr := ha.
+  move /Pair_Inv : ha => [A1][B1][ha][hb]hU.
+  have [i hSig] : exists i, Γ ⊢ PBind PSig A1 B1 ∈ PUniv i by sfirstorder use:regularity.
+  have /E_Symmetric : Γ ⊢ (PProj PL (PPair a b)) ≡ a ∈ A1 by eauto using  E_ProjPair1 with wt.
+  move /Su_Sig_Proj2 : hU. repeat move/[apply]. move => hB.
+  apply : E_Conv; eauto.
+  apply : E_Conv; eauto.
+  apply : E_ProjPair2; eauto.
+Qed.
+
+Lemma E_Pair Γ a0 b0 a1 b1 A B i :
+  Γ ⊢ PBind PSig A B ∈ PUniv i ->
+  Γ ⊢ a0 ≡ a1 ∈ A ->
+  Γ ⊢ b0 ≡ b1 ∈ subst_PTm (scons a0 VarPTm) B ->
+  Γ ⊢ PPair a0 b0 ≡ PPair a1 b1 ∈ PBind PSig A B.
+Proof.
+  move => hSig ha hb.
+  have [ha0 ha1] : Γ ⊢ a0 ∈ A /\ Γ ⊢ a1 ∈ A by hauto l:on use:regularity.
+  have [hb0 hb1] : Γ ⊢ b0 ∈ subst_PTm (scons a0 VarPTm) B /\
+                     Γ ⊢ b1 ∈ subst_PTm (scons a0 VarPTm) B by hauto l:on use:regularity.
+  have hp : Γ ⊢ PPair a0 b0 ∈ PBind PSig A B by eauto with wt.
+  have hp' : Γ ⊢ PPair a1 b1 ∈ PBind PSig A B. econstructor; eauto with wt; [idtac].
+  apply : T_Conv; eauto. apply : Su_Sig_Proj2; by eauto using Su_Eq, E_Refl.
+  have ea : Γ ⊢ PProj PL (PPair a0 b0) ≡ a0 ∈ A by eauto with wt.
+  have : Γ ⊢ PProj PR (PPair a0 b0) ≡ b0 ∈ subst_PTm (scons a0 VarPTm) B by eauto with wt.
+  have : Γ ⊢ PProj PL (PPair a1 b1) ≡ a1 ∈ A by eauto using E_ProjPair1 with wt.
+  have : Γ ⊢ PProj PR (PPair a1 b1) ≡ b1 ∈ subst_PTm (scons a0 VarPTm) B.
+  apply : E_Conv; eauto using E_ProjPair2 with wt.
+  apply : Su_Sig_Proj2. apply /Su_Eq /E_Refl. eassumption.
+  apply : E_Transitive. apply E_ProjPair1. by eauto with wt.
+  by eauto using E_Symmetric.
+  move => *.
+  apply : E_PairExt; eauto using E_Symmetric, E_Transitive.
+  apply : E_Conv. by eauto using E_Symmetric, E_Transitive.
+  apply : Su_Sig_Proj2. apply /Su_Eq /E_Refl. eassumption.
+  apply : E_Transitive. by eauto. apply /E_Symmetric /E_Transitive.
+  by eauto using E_ProjPair1.
+  eauto.
 Qed.
 
 Lemma Suc_Inv Γ (a : PTm) A :
@@ -159,7 +243,7 @@ Proof.
         apply : Su_Sig_Proj2; eauto.
       move : hA0 => /[swap]. move : Su_Transitive. repeat move/[apply].
       move {hS}.
-      move => ?. apply : E_Conv; eauto. apply : E_ProjPair2; eauto.
+      move => ?. apply : E_Conv; eauto. apply : typing.E_ProjPair2; eauto.
   - hauto lq:on use:Ind_Inv, E_Conv, E_IndZero.
   - move => P a b c Γ A.
     move /Ind_Inv.
