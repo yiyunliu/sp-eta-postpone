@@ -294,9 +294,10 @@ Proof.
     by asimpl.
   - move => Γ a b A B i hPi ihPi ha iha hb ihb he0 ihe1 Δ ξ hΔ hξ.
     apply : E_FunExt; eauto. move : ihe1. asimpl. apply.
-    admit.
+    hfcrush use:Bind_Inv.
     by apply renaming_up.
-  - qauto l:on use:E_PairEta.
+  - move => Γ a b A B i hPi ihPi ha iha hb ihb hL ihL hR ihR Δ ξ hΔ hξ.
+    apply : E_PairExt; eauto. move : ihR. asimpl. by apply.
   - hauto lq:on ctrs:LEq.
   - qauto l:on ctrs:LEq.
   - hauto lq:on ctrs:Wff use:renaming_up, Su_Pi.
@@ -439,17 +440,7 @@ Proof.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on ctrs:Eq.
   - hauto lq:on rew:off use:E_Bind', Wff_Cons, morphing_up.
-  - move => Γ a b A B i hPi ihPi ha iha Δ ρ hΔ hρ.
-    move : ihPi (hΔ) (hρ). repeat move/[apply].
-    move => /Bind_Inv [j][h0][h1]h2.
-    have ? : Δ ⊢ PBind PPi (subst_PTm ρ A) (subst_PTm (up_PTm_PTm ρ) B) ∈ PUniv j by qauto l:on ctrs:Wt.
-    move {hPi}.
-    apply : E_Abs; eauto. qauto l:on ctrs:Wff use:morphing_up.
   - move => *. apply : E_App'; eauto. by asimpl.
-  - move => Γ a0 a1 b0 b1 A B i hA ihA ha iha hb ihb Δ ρ hΔ hρ.
-    apply : E_Pair; eauto.
-    move : ihb hΔ hρ. repeat move/[apply].
-    by asimpl.
   - hauto q:on ctrs:Eq.
   - move => *. apply : E_Proj2'; eauto. by asimpl.
   - move => Γ P0 P1 a0 a1 b0 b1 c0 c1 i hP0 ihP0 hP ihP ha iha hb ihb hc ihc.
@@ -516,9 +507,14 @@ Proof.
     move /(_ Ξ  (up_PTm_PTm (up_PTm_PTm ξ)) hΞ) : ihc.
     move /(_ ltac:(sauto l:on use:morphing_up)).
     asimpl. substify. by asimpl.
-  - move => *.
-    apply : E_AppEta'; eauto. by asimpl.
-  - qauto l:on use:E_PairEta.
+  - move => Γ a b A B i hPi ihPi ha iha hb ihb he0 ihe1 Δ ξ hΔ hξ.
+    move  : ihPi (hΔ) (hξ); repeat move/[apply]. move /[dup] /Bind_Inv => ihPi ?.
+    decompose [and ex] ihPi.
+    apply : E_FunExt; eauto. move : ihe1. asimpl. apply.
+    by eauto with wt.
+    by eauto using morphing_up with wt.
+  - move => Γ a b A B i hPi ihPi ha iha hb ihb hL ihL hR ihR Δ ξ hΔ hξ.
+    apply : E_PairExt; eauto. move : ihR. asimpl. by apply.
   - hauto lq:on ctrs:LEq.
   - qauto l:on ctrs:LEq.
   - hauto lq:on ctrs:Wff use:morphing_up, Su_Pi.
@@ -659,7 +655,6 @@ Proof.
     sfirstorder.
     apply : ctx_eq_subst_one; eauto using Su_Eq, E_Symmetric.
     hauto lq:on.
-  - hauto lq:on ctrs:Wt,Eq.
   - move => n i b0 b1 a0 a1 A B hP _ hb [ihb0 [ihb1 [i0 ihb2]]]
              ha [iha0 [iha1 [i1 iha2]]].
     repeat split.
@@ -669,7 +664,6 @@ Proof.
     move /E_Symmetric in ha.
     by eauto using bind_inst.
     hauto lq:on ctrs:Wt,Eq,LEq lq:on use:Bind_Inv, substing_wt.
-  - hauto lq:on use:bind_inst db:wt.
   - hauto lq:on use:Bind_Inv db:wt.
   - move => Γ i a b A B hS _ hab [iha][ihb][j]ihs.
     repeat split => //=; eauto with wt.
@@ -718,15 +712,6 @@ Proof.
     subst Ξ.
     move : morphing_wt hc; repeat move/[apply]. asimpl. by apply.
     sauto lq:on use:substing_wt.
-  - move => Γ b A B i hP _ hb [i0 ihb].
-    repeat split => //=; eauto with wt.
-    have {}hb : (cons A Γ) ⊢ ren_PTm shift b ∈ ren_PTm shift (PBind PPi A B)
-                        by hauto lq:on use:weakening_wt, Bind_Inv.
-    apply : T_Abs; eauto.
-    apply : T_App'; eauto; rewrite-/ren_PTm. asimpl. by rewrite subst_scons_id.
-    apply T_Var. sfirstorder use:wff_mutual.
-    apply here.
-  - hauto lq:on ctrs:Wt.
   - move => Γ A B C hA [i [ihA0 ihA1]] hC [j [ihC0 ihC1]].
     have ? : ⊢ Γ by sfirstorder use:wff_mutual.
     exists (max i j).
