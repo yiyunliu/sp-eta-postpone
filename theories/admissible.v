@@ -120,6 +120,14 @@ Proof.
   hauto l:on use:regularity, E_FunExt.
 Qed.
 
+Lemma renaming_comp Γ Δ Ξ ξ0 ξ1 :
+  renaming_ok Γ Δ ξ0 -> renaming_ok Δ Ξ ξ1 ->
+  renaming_ok Γ Ξ (funcomp ξ0 ξ1).
+  rewrite /renaming_ok => h0 h1 i A.
+  move => {}/h1 {}/h0.
+  by asimpl.
+Qed.
+
 Lemma E_AppEta Γ (b : PTm) A B :
   Γ ⊢ b ∈ PBind PPi A B ->
   Γ ⊢ PAbs (PApp (ren_PTm shift b) (VarPTm var_zero)) ≡ b ∈ PBind PPi A B.
@@ -151,10 +159,10 @@ Proof.
   constructor. econstructor; eauto. sauto lq:on use:renaming, renaming_shift.
   by constructor. asimpl. substify. by asimpl.
   have -> : PBind PPi (ren_PTm shift (ren_PTm shift A)) (ren_PTm (upRen_PTm_PTm shift) (ren_PTm (upRen_PTm_PTm shift) B))=  (ren_PTm (funcomp shift shift) (PBind PPi A B)) by asimpl.
-  eapply renaming; eauto. admit.
+  eapply renaming; eauto. by eauto using renaming_shift, renaming_comp.
   asimpl. renamify.
   eapply E_App' with (A := ren_PTm shift A) (B := ren_PTm (upRen_PTm_PTm shift) B). by asimpl; rewrite subst_scons_id.
   hauto q:on use:renaming, renaming_shift.
   sauto lq:on use:renaming, renaming_shift, E_Refl.
   constructor. constructor=>//. constructor.
-Admitted.
+Qed.
