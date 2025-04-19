@@ -4,51 +4,6 @@ Require Import ssreflect.
 Require Import Psatz.
 Require Import Coq.Logic.FunctionalExtensionality.
 
-Lemma Proj1_Inv Γ (a : PTm ) U :
-  Γ ⊢ PProj PL a ∈ U ->
-  exists A B, Γ ⊢ a ∈ PBind PSig A B /\ Γ ⊢ A ≲ U.
-Proof.
-  move E : (PProj PL a) => u hu.
-  move :a E. elim : Γ u U / hu => //=.
-  - move => Γ a A B ha _ a0 [*]. subst.
-    exists A, B. split => //=.
-    eapply regularity in ha.
-    move : ha => [i].
-    move /Bind_Inv => [j][h _].
-    by move /E_Refl /Su_Eq in h.
-  - hauto lq:on rew:off ctrs:LEq.
-Qed.
-
-Lemma Proj2_Inv Γ (a : PTm) U :
-  Γ ⊢ PProj PR a ∈ U ->
-  exists A B, Γ ⊢ a ∈ PBind PSig A B /\ Γ ⊢ subst_PTm (scons (PProj PL a) VarPTm) B ≲ U.
-Proof.
-  move E : (PProj PR a) => u hu.
-  move :a E. elim : Γ u U / hu => //=.
-  - move => Γ a A B ha _ a0 [*]. subst.
-    exists A, B. split => //=.
-    have ha' := ha.
-    eapply regularity in ha.
-    move : ha => [i ha].
-    move /T_Proj1 in ha'.
-    apply : bind_inst; eauto.
-    apply : E_Refl ha'.
-  - hauto lq:on rew:off ctrs:LEq.
-Qed.
-
-Lemma Pair_Inv Γ (a b : PTm ) U :
-  Γ ⊢ PPair a b ∈ U ->
-  exists A B, Γ ⊢ a ∈ A /\
-         Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B /\
-         Γ ⊢ PBind PSig A B ≲ U.
-Proof.
-  move E : (PPair a b) => u hu.
-  move : a b E. elim : Γ u U / hu => //=.
-  - move => Γ a b A B i hS _ ha _ hb _ a0 b0 [*]. subst.
-    exists A,B. repeat split => //=.
-    move /E_Refl /Su_Eq : hS. apply.
-  - hauto lq:on rew:off ctrs:LEq.
-Qed.
 
 Lemma Ind_Inv Γ P (a : PTm) b c U :
   Γ ⊢ PInd P a b c ∈ U ->
@@ -89,34 +44,6 @@ Proof.
   apply /E_Symmetric /E_Transitive. apply E_AppAbs.
   hauto lq:on use:T_Eta, regularity.
   asimpl. rewrite !subst_scons_id. by apply E_Symmetric.
-Qed.
-
-Lemma E_ProjPair1 : forall (a b : PTm) Γ (A : PTm),
-    Γ ⊢ PProj PL (PPair a b) ∈ A -> Γ ⊢ PProj PL (PPair a b) ≡ a ∈ A.
-Proof.
-  move => a b Γ A.
-  move /Proj1_Inv. move => [A0][B0][hab]hA0.
-  move /Pair_Inv : hab => [A1][B1][ha][hb]hS.
-  have [i ?]  : exists i, Γ ⊢ PBind PSig A1 B1 ∈ PUniv i by sfirstorder use:regularity_sub0.
-  move /Su_Sig_Proj1 in hS.
-  have {hA0} {}hS : Γ ⊢ A1 ≲ A by eauto using Su_Transitive.
-  apply : E_Conv; eauto.
-  apply : E_ProjPair1; eauto.
-Qed.
-
-Lemma E_ProjPair2 : forall (a b : PTm) Γ (A : PTm),
-    Γ ⊢ PProj PR (PPair a b) ∈ A -> Γ ⊢ PProj PR (PPair a b) ≡ b ∈ A.
-Proof.
-  move => a b Γ A. move /Proj2_Inv.
-  move => [A0][B0][ha]h.
-  have hr := ha.
-  move /Pair_Inv : ha => [A1][B1][ha][hb]hU.
-  have [i hSig] : exists i, Γ ⊢ PBind PSig A1 B1 ∈ PUniv i by sfirstorder use:regularity.
-  have /E_Symmetric : Γ ⊢ (PProj PL (PPair a b)) ≡ a ∈ A1 by eauto using  E_ProjPair1 with wt.
-  move /Su_Sig_Proj2 : hU. repeat move/[apply]. move => hB.
-  apply : E_Conv; eauto.
-  apply : E_Conv; eauto.
-  apply : E_ProjPair2; eauto.
 Qed.
 
 Lemma E_Pair Γ a0 b0 a1 b1 A B i :

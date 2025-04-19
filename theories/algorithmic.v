@@ -608,13 +608,12 @@ Proof.
     have /regularity_sub0 [i' hPi0] := hPi.
     have : Γ ⊢ PAbs (PApp (ren_PTm shift u) (VarPTm var_zero)) ≡ u ∈ PBind PPi A2 B2.
     apply : E_AppEta; eauto.
-    hauto l:on use:regularity.
     apply T_Conv with (A := A);eauto.
     eauto using Su_Eq.
     move => ?.
     suff : Γ ⊢ PAbs a ≡ PAbs (PApp (ren_PTm shift u) (VarPTm var_zero)) ∈ PBind PPi A2 B2
       by eauto using E_Transitive.
-    apply : E_Abs; eauto. hauto l:on use:regularity.
+    apply : E_Abs; eauto.
     apply iha.
     move /Su_Pi_Proj2_Var in hPi'.
     apply : T_Conv; eauto.
@@ -666,7 +665,7 @@ Proof.
     have hA02 : Γ ⊢ A0 ≲ A2 by sfirstorder use:Su_Sig_Proj1.
     have hu'  : Γ ⊢ u ∈ PBind PSig A2 B2 by eauto using T_Conv_E.
     move => [:ih0'].
-    apply : E_Transitive; last (apply E_Symmetric; apply : E_PairEta).
+    apply : E_Transitive; last (apply : E_PairEta).
     apply : E_Pair; eauto. hauto l:on use:regularity.
     abstract : ih0'.
     apply ih0. apply : T_Conv; eauto.
@@ -679,7 +678,6 @@ Proof.
     move /E_Symmetric in ih0'.
     move /regularity_sub0 in hA'.
     hauto l:on use:bind_inst.
-    hauto l:on use:regularity.
     eassumption.
   (* Same as before *)
   - move {hAppL}.
