@@ -1,5 +1,5 @@
 * Church Rosser, surjective pairing, and strong normalization
-[![status-badge](https://woodpecker.electriclam.com/api/badges/3/status.svg)](https://woodpecker.electriclam.com/repos/3)
+[[https://woodpecker.electriclam.com/api/badges/3/status.svg]]
 
 This repository contains a mechanized proof that the lambda calculus
 with beta and eta rules for functions and pairs is in fact confluent
