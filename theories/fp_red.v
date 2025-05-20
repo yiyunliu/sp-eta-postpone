@@ -719,6 +719,8 @@ Module RRed.
     move => */=; apply : IndSuc'; eauto. by asimpl.
   Qed.
 
+  Lemma abs_preservation a b : isabs a -> R a b -> isabs b. hauto q:on inv:R. Qed.
+
 End RRed.
 
 Module RPar.
@@ -1003,6 +1005,9 @@ Proof.
 Qed.
 
 Module RReds.
+
+  Lemma abs_preservation a b : isabs a -> rtc RRed.R a b -> isabs b.
+    induction 2; hauto lq:on use:RRed.abs_preservation. Qed.
 
   #[local]Ltac solve_s_rec :=
   move => *; eapply rtc_l; eauto;
@@ -1754,6 +1759,15 @@ Module ERed.
     R (PSuc a0) (PSuc a1).
 
   Derive Inversion inv with (forall (a b : PTm), R a b) Sort Prop.
+
+  Lemma abs_back_preservation (a b : PTm) :
+    SN a -> R a b -> isabs b -> isabs a.
+  Proof.
+    move => + h.
+    elim : a b /h => //=.
+    case => //=. move => p. move /SN_NoForbid.P_PairInv.
+    sfirstorder use:SN_NoForbid.PProj_imp.
+  Qed.
 
   Lemma ToEPar (a b : PTm) :
     ERed.R a b -> EPar.R a b.
@@ -3291,7 +3305,6 @@ Module DJoin.
     case; congruence.
   Qed.
 End DJoin.
-
 
 Module Sub1.
   Inductive R : PTm -> PTm -> Prop :=
