@@ -1322,7 +1322,7 @@ Qed.
 
 Lemma ce_neu_neu_helper a b :
   ishne a -> ishne b ->
-  (forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C) -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C).
+  (forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b) -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b).
 Proof. sauto lq:on. Qed.
 
 Lemma hne_ind_inj P0 P1 u0 u1 b0 b1 c0 c1 :
@@ -1332,7 +1332,7 @@ Lemma hne_ind_inj P0 P1 u0 u1 b0 b1 c0 c1 :
 Proof. hauto q:on use:REReds.hne_ind_inv. Qed.
 
 Lemma coqeq_complete' :
-  (forall a b, algo_dom a b -> DJoin.R a b -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b /\ exists C, Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ∈ C /\ Γ ⊢ b ∈ C)) /\
+  (forall a b, algo_dom a b -> DJoin.R a b -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b)) /\
     (forall a b, algo_dom_r a b -> DJoin.R a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b).
   move => [:hConfNeuNf hhPairNeu hhAbsNeu].
   apply algo_dom_mutual.
@@ -1452,17 +1452,18 @@ Lemma coqeq_complete' :
   - move => {hhAbsNeu hhPairNeu} i j /DJoin.var_inj ?. subst. apply ce_neu_neu_helper => // Γ A B.
     move /Var_Inv => [h [A0 [h0 h1]]].
     move /Var_Inv => [h' [A1 [h0' h1']]].
-    split. by constructor.
-    suff : A0 = A1 by hauto lq:on db:wt.
-    eauto using lookup_deter.
+    by constructor.
   - move => u0 u1 a0 a1 neu0 neu1 domu ihu doma iha. move /DJoin.hne_app_inj /(_ neu0 neu1) => [hju hja].
     apply ce_neu_neu_helper => //= Γ A B.
     move /App_Inv => [A0][B0][hb0][ha0]hS0.
     move /App_Inv => [A1][B1][hb1][ha1]hS1.
     move /(_ hju) : ihu.
     move => [_ ihb].
-    move : ihb (neu0) (neu1) hb0 hb1. repeat move/[apply].
-    move => [hb01][C][hT0][hT1][hT2]hT3.
+    move : ihb (neu0) (neu1) (hb0) (hb1). repeat move/[apply].
+    move => ihb.
+    have : exists C, Γ ⊢ C ≲ PBind PPi A0 B0 /\ Γ ⊢ C ≲ PBind PPi A1 B1
+        by hauto lq:on use:coqeq_sound_mutual.
+    move => [C][hT0]hT1.
     move /Sub_Bind_InvL : (hT0).
     move => [i][A2][B2]hE.
     have hSu20 : Γ ⊢ PBind PPi A2 B2 ≲ PBind PPi A0 B0 by
@@ -1477,26 +1478,7 @@ Lemma coqeq_complete' :
     move => iha.
     move : iha (ha0') (ha1'); repeat move/[apply].
     move => iha.
-    split. sauto lq:on.
-    exists (subst_PTm (scons a0 VarPTm) B2).
-    split.
-    apply : Su_Transitive; eauto.
-    move /E_Refl in ha0.
-    hauto l:on use:Su_Pi_Proj2.
-    have h01 : Γ ⊢ a0 ≡ a1 ∈ A2 by sfirstorder use:coqeq_sound_mutual.
-    split.
-    apply Su_Transitive with (B := subst_PTm (scons a1 VarPTm) B2).
-    move /regularity_sub0 : hSu10 => [i0].
-    hauto l:on use:bind_inst.
-    hauto lq:on rew:off use:Su_Pi_Proj2, Su_Transitive, E_Refl.
-    split.
-    by apply : T_App; eauto using T_Conv_E.
-    apply : T_Conv; eauto.
-    apply T_App with (A := A2) (B := B2); eauto.
-    apply : T_Conv_E; eauto.
-    move /E_Symmetric in h01.
-    move /regularity_sub0 : hSu20 => [i0].
-    sfirstorder use:bind_inst.
+    hauto lq:on ctrs:CoqEq_Neu.
   - move => p0 p1 a0 a1 hne0 hne1 doma iha /DJoin.hne_proj_inj /(_ hne0 hne1) [? hja]. subst.
     move : iha hja; repeat move/[apply].
     move => [_ iha]. apply ce_neu_neu_helper => // Γ A B.
@@ -1506,50 +1488,24 @@ Lemma coqeq_complete' :
     ** move => ha0 ha1.
        move /Proj1_Inv : ha0. move => [A0][B0][ha0]hSu0.
        move /Proj1_Inv : ha1. move => [A1][B1][ha1]hSu1.
-       move : ih ha0 ha1 (hne0) (hne1); repeat move/[apply].
-       move => [ha [C [hS0 [hS1 [wta0 wta1]]]]].
-       split. sauto lq:on.
+       move : ih (ha0) (ha1) (hne0) (hne1); repeat move/[apply].
+       move => ih hnea0 hnea1.
+       have [C [hS0 hS1]] : exists C, Γ ⊢ C ≲ PBind PSig A0 B0 /\ Γ ⊢ C ≲ PBind PSig A1 B1
+           by hauto lq:on use:coqeq_sound_mutual.
        move /Sub_Bind_InvL : (hS0) => [i][A2][B2]hS2.
        have hSu20 : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0
          by eauto using Su_Transitive, Su_Eq.
        have hSu21 : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1
          by eauto using Su_Transitive, Su_Eq.
-       exists A2. split; eauto using Su_Sig_Proj1, Su_Transitive.
-       repeat split => //=.
-       hauto l:on use:Su_Sig_Proj1, Su_Transitive.
-       apply T_Proj1 with (B := B2); eauto using T_Conv_E.
-       apply T_Proj1 with (B := B2); eauto using T_Conv_E.
+       hauto lq:on ctrs:CoqEq_Neu.
     ** move => ha0  ha1.
        move /Proj2_Inv : ha0. move => [A0][B0][ha0]hSu0.
        move /Proj2_Inv : ha1. move => [A1][B1][ha1]hSu1.
-       move : ih (ha0) (ha1) (hne0) (hne1); repeat move/[apply].
-       move => [ha [C [hS0 [hS1 [wta0 wta1]]]]].
-       split. sauto lq:on.
+       move : ih (ha0) (ha1) (hne0) (hne1); repeat move/[apply]. move => ih hnea0 hnea1.
+       have [C [hS0 hS1]] : exists C, Γ ⊢ C ≲ PBind PSig A0 B0 /\ Γ ⊢ C ≲ PBind PSig A1 B1
+           by hauto lq:on use:coqeq_sound_mutual.
        move /Sub_Bind_InvL : (hS0) => [i][A2][B2]hS2.
-       have hSu20 : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A0 B0
-         by eauto using Su_Transitive, Su_Eq.
-       have hSu21 : Γ ⊢ PBind PSig A2 B2 ≲ PBind PSig A1 B1
-         by eauto using Su_Transitive, Su_Eq.
-       have hA20 : Γ ⊢ A2 ≲ A0 by eauto using Su_Sig_Proj1.
-       have hA21 : Γ ⊢ A2 ≲ A1 by eauto using Su_Sig_Proj1.
-       have {}wta0 : Γ ⊢ a0 ∈ PBind PSig A2 B2 by eauto using T_Conv_E.
-       have {}wta1 : Γ ⊢ a1 ∈ PBind PSig A2 B2 by eauto using T_Conv_E.
-       have haE : Γ ⊢ PProj PL a0 ≡ PProj PL a1 ∈ A2
-         by sauto lq:on use:coqeq_sound_mutual.
-       exists (subst_PTm (scons (PProj PL a0) VarPTm) B2).
-       repeat split.
-       *** apply : Su_Transitive; eauto.
-           have : Γ ⊢ PProj PL a0 ≡ PProj PL a0 ∈ A2
-             by qauto use:regularity, E_Refl.
-           sfirstorder use:Su_Sig_Proj2.
-       *** apply : Su_Transitive; eauto.
-           sfirstorder use:Su_Sig_Proj2.
-       *** eauto using T_Proj2.
-       *** apply : T_Conv.
-           apply : T_Proj2; eauto.
-           move /E_Symmetric in haE.
-           move /regularity_sub0 in hSu21.
-           sfirstorder use:bind_inst.
+       hauto lq:on ctrs:CoqEq_Neu.
   - move {hhPairNeu hhAbsNeu}.
     move => P0 P1 u0 u1 b0 b1 c0 c1 neu0 neu1 domP ihP  domu ihu domb ihb domc ihc /hne_ind_inj.
     move => /(_ neu0 neu1)  [hjP][hju][hjb]hjc.
@@ -1586,16 +1542,7 @@ Lemma coqeq_complete' :
     apply : morphing_ren; eauto using renaming_shift. by apply morphing_id.
     apply T_Suc. apply T_Var => //=. apply here. subst T => {}wtc1.
     have {}ihc : c0 ⇔ c1 by qauto l:on.
-    move => [:ih].
-    split. abstract : ih. move : neu0 neu1 ihP iha ihb ihc. clear. sauto lq:on.
-    have hEInd : Γ ⊢ PInd P0 u0 b0 c0 ≡ PInd P1 u1 b1 c1 ∈ subst_PTm (scons u0 VarPTm) P0 by hfcrush use:coqeq_sound_mutual.
-    exists (subst_PTm (scons u0 VarPTm) P0).
-    repeat split => //=; eauto with wt.
-    apply : Su_Transitive.
-    apply : Su_Sig_Proj2; eauto. apply : Su_Sig; eauto using T_Nat' with wt.
-    apply : Su_Eq. apply E_Refl. by apply T_Nat'.
-    apply : Su_Eq. apply hPE. by eauto.
-    move : hEInd. clear. hauto l:on use:regularity.
+    hauto q:on ctrs:CoqEq_Neu.
   - move => a b ha hb.
     move {hhPairNeu hhAbsNeu}.
     case : hb; case : ha.
