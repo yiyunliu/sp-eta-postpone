@@ -9,7 +9,6 @@ Require Import Psatz.
 From stdpp Require Import relations (rtc (..), rtc_once, rtc_r, sn).
 From Hammer Require Import Tactics.
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
-Require Import Btauto.
 
 
 Ltac2 spec_refl () :=
@@ -2084,6 +2083,7 @@ End EReds.
 
 #[export]Hint Constructors ERed.R RRed.R EPar.R : red.
 
+
 Module EJoin.
   Definition R (a b : PTm) := exists c, rtc ERed.R a c /\ rtc ERed.R b c.
 
@@ -2197,6 +2197,15 @@ Module RERed.
     ERed.R a b -> RERed.R a b.
   Proof. induction 1; qauto l:on ctrs:R. Qed.
 
+  Lemma antirenaming (a : PTm) (b : PTm) (ξ : nat -> nat) :
+    R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
+  Proof.
+    move /ToBetaEta.
+    case.
+    - move /ERed.antirenaming.
+
+best use:FromEta, ERed.antirenaming.
+
   Lemma ToBetaEtaPar (a b : PTm) :
     R a b ->
     EPar.R a b \/ RRed.R a b.
@@ -2239,6 +2248,71 @@ Module RERed.
   Proof.  induction 1; sfirstorder. Qed.
 
 End RERed.
+
+Module WfRERed.
+  Definition WfRed := sn RERed.R.
+
+  Inductive TRedWf : PTm -> PTm -> Prop :=
+  | W_β a b :
+    WfRed b ->
+    TRedWf (PApp (PAbs a) b) (subst_PTm (scons b VarPTm) a)
+  | W_AppL a0 a1 b :
+    WfRed b ->
+    TRedWf a0 a1 ->
+    TRedWf (PApp a0 b) (PApp a1 b)
+  | W_ProjPairL a b  :
+    WfRed b ->
+    TRedWf (PProj PL (PPair a b)) a
+  | W_ProjPairR a b  :
+    WfRed a ->
+    TRedWf (PProj PR (PPair a b)) b
+  | W_ProjCong p a b :
+    TRedWf a b ->
+    TRedWf (PProj p a) (PProj p b)
+  | W_IndZero P b c :
+    WfRed P ->
+    WfRed b ->
+    WfRed c ->
+    TRedWf (PInd P PZero b c) b
+  | W_IndSuc P a b c :
+    WfRed P ->
+    WfRed a ->
+    WfRed b ->
+    WfRed c ->
+    TRedWf (PInd P (PSuc a) b c) (subst_PTm (scons (PInd P a b c) (scons a VarPTm)) c)
+  | W_IndCong P a0 a1 b c :
+    WfRed P ->
+    WfRed b ->
+    WfRed c ->
+    TRedWf a0 a1 ->
+    TRedWf (PInd P a0 b c) (PInd P a1 b c).
+
+  Lemma SNe_hne a :
+    SNe a -> ishne a.
+  Proof.
+    induction 1; sfirstorder.
+  Qed.
+
+  Lemma renaming ξ a :
+    WfRed a ->
+    WfRed (ren_PTm ξ a).
+  Proof.
+    move => h. move : ξ. elim : a / h => /=.
+    move => a ha iha ξ.
+    constructor => /=.
+    move => u.
+
+
+  Lemma FromSN_mutual :
+    (forall (a : PTm) (_ : SNe a), WfRed a) /\
+    (forall (a : PTm) (_ : SN a), WfRed a) /\
+    (forall (a b : PTm) (_ : TRedSN a b), TRedWf a b).
+  Proof.
+    apply sn_mutual.
+    - hauto q:on inv:RERed.R ctrs:Acc.
+    - move => a b.
+
+
 
 Module REReds.
   Lemma hne_preservation (a b : PTm) :
