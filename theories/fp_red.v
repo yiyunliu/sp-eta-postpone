@@ -2198,13 +2198,13 @@ Module RERed.
   Proof. induction 1; qauto l:on ctrs:R. Qed.
 
   Lemma antirenaming (a : PTm) (b : PTm) (ξ : nat -> nat) :
+    (forall i j : nat, ξ i = ξ j -> i = j) ->
     R (ren_PTm ξ a) b -> exists b0, R a b0 /\ ren_PTm ξ b0 = b.
   Proof.
+    move => hξ.
     move /ToBetaEta.
-    case.
-    - move /ERed.antirenaming.
-
-best use:FromEta, ERed.antirenaming.
+    hauto lq:on use:ERed.antirenaming, FromEta, RRed.antirenaming, FromBeta.
+  Qed.
 
   Lemma ToBetaEtaPar (a b : PTm) :
     R a b ->
@@ -2294,13 +2294,48 @@ Module WfRERed.
   Qed.
 
   Lemma renaming ξ a :
+    (forall i j : nat, ξ i = ξ j -> i = j) ->
     WfRed a ->
     WfRed (ren_PTm ξ a).
   Proof.
-    move => h. move : ξ. elim : a / h => /=.
-    move => a ha iha ξ.
+    move => + h.
+    move : ξ. elim : a / h => /=.
+    move => a ha iha ξ hξ.
     constructor => /=.
     move => u.
+    move /RERed.antirenaming.
+    move /(_ hξ).
+    move => [v [h0 h1]]. subst.
+    apply iha => //.
+  Qed.
+
+  Lemma redsn_hne a b :
+    ishne a -> TRedWf a b -> ishne b.
+  Proof.
+    induction 2; sfirstorder.
+  Qed.
+
+  Lemma sn_app a b :
+    ishne a -> WfRed a -> WfRed b -> WfRed (PApp a b).
+  Proof.
+    move => + h. move : b.
+    elim : a / h => /= u hu ihu.
+    move => v nev hv.
+    constructor => /= t.
+    inversion 1; subst.
+    - by simpl in *.
+    - have ? : ishne a1 by eauto using RERed.hne_preservation.
+      apply : ihu; eauto.
+    - move {ihu}.
+      move : H H3.
+      elim :v /hv => /=.
+      + move => q hq ihq.
+
+
+
+
+
+
 
 
   Lemma FromSN_mutual :
@@ -2310,7 +2345,8 @@ Module WfRERed.
   Proof.
     apply sn_mutual.
     - hauto q:on inv:RERed.R ctrs:Acc.
-    - move => a b.
+    - move => a b h0 h1 h2 h3.
+      constructor => /= u hu.
 
 
 
