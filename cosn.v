@@ -147,6 +147,17 @@ Proof.
   move => A +. apply safe_coind. sauto lqb:on.
 Qed.
 
+Lemma safe_pair_inv0 : forall A B, safe (PPair A B) -> safe A.
+Proof.
+  move => + B. apply safe_coind. sauto lqb:on.
+Qed.
+
+Lemma safe_pair_inv1 : forall A B, safe (PPair A B) -> safe B.
+Proof.
+  move => A +. apply safe_coind. sauto lqb:on.
+Qed.
+
+
 Lemma safe_suc_inv : forall a, safe (PSuc a) -> safe a.
 Proof.
   apply safe_coind. sauto lqb:on.
@@ -169,3 +180,37 @@ Lemma safe_ind_imp :  forall Q (a : PTm) b c,
 Proof.
   move => Q [] => //=; hauto lb:on use:safe_nostuck.
 Qed.
+
+Lemma safe_rred a b :
+  RRed.R a b -> safe a -> safe b.
+Proof.
+  sauto lq:on.
+Qed.
+
+Lemma safe_abs a : safe a -> safe (PAbs a).
+Proof.
+  move E :(PAbs a) => u.
+  move : u a E.
+  suff : (forall u, (exists a, PAbs a = u /\ safe a) -> safe u) by firstorder.
+  apply safe_coind. sauto lq:on.
+Qed.
+
+Inductive ERed' (a : PTm) : PTm -> Prop :=
+| E_Refl :
+  ERed' a a
+| E_Once b :
+  ERed.R a b ->
+  ERed' a b.
+
+
+Lemma safe_ered a b :
+  ERed.R a b -> safe a -> safe b.
+Proof.
+  move => h.
+  elim : a b /h.
+  - move => a. move /safe_abs_inv /safe_app_inv0. substify. apply safe_antisubstitution.
+  - sfirstorder use:safe_pair_inv0, safe_proj_inv.
+  - sfirstorder use:safe_abs, safe_abs_inv.
+  - move => a0 a1 b ha iha happ.
+    have ha0 : safe a0 by sfirstorder use:safe_app_inv0.
+    have hb : safe b by sfirstorder use:safe_app_inv1.
