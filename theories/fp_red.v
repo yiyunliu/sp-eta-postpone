@@ -1270,7 +1270,7 @@ Module Type NoForbid.
 
   Axiom P_PairInv : forall (a b : PTm), P (PPair a b) -> P a /\ P b.
   Axiom P_ProjInv : forall p (a : PTm), P (PProj p a) -> P a.
-  Axiom P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) <-> P a.
+  Axiom P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) -> P a.
 End NoForbid.
 
 Module Type NoForbid_FactSig (M : NoForbid).
@@ -1342,7 +1342,7 @@ Module SN_NoForbid <: NoForbid.
     induction h; sauto lq:on rew:off.
   Qed.
 
-  Lemma P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) <-> P  a.
+  Lemma P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) -> P  a.
   Proof. hauto lq:on use:sn_antirenaming, sn_renaming. Qed.
 
   Lemma P_ProjBind : forall p p' (A : PTm) B, ~ P (PProj p (PBind p' A B)).
