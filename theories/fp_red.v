@@ -2206,6 +2206,12 @@ Module RERed.
     hauto lq:on use:ERed.antirenaming, FromEta, RRed.antirenaming, FromBeta.
   Qed.
 
+  Lemma renaming (a : PTm) (b : PTm) (ξ : nat -> nat) :
+    R a b -> R (ren_PTm ξ a) (ren_PTm ξ b).
+  Proof.
+    hauto lq:on use:ToBetaEta, FromBeta, FromEta, ERed.renaming, RRed.renaming.
+  Qed.
+
   Lemma ToBetaEtaPar (a b : PTm) :
     R a b ->
     EPar.R a b \/ RRed.R a b.
@@ -2293,6 +2299,18 @@ Module WfRERed.
     induction 1; sfirstorder.
   Qed.
 
+  Lemma antirenaming ξ a :
+    WfRed (ren_PTm ξ a) ->
+    WfRed a.
+  Proof.
+    move E : (ren_PTm ξ a) => u hu.
+    move : a ξ E.
+    elim : u /hu => /=.
+    move => u hu ihu a ξ ?. subst.
+    constructor => /= a' ha.
+    hauto lq:on use:RERed.renaming.
+  Qed.
+
   Lemma renaming ξ a :
     (forall i j : nat, ξ i = ξ j -> i = j) ->
     WfRed a ->
@@ -2315,26 +2333,109 @@ Module WfRERed.
     induction 2; sfirstorder.
   Qed.
 
+  Lemma sn_proj p a :
+    ishne a -> WfRed a -> WfRed (PProj p a).
+  Proof.
+    move => /[swap].
+    induction 1 as [c h0 ih0] => h. constructor => u hu.
+    inversion hu; subst => /=.
+    by simpl in *.
+    apply ih0; eauto using RERed.hne_preservation.
+  Qed.
+
   Lemma sn_app a b :
     ishne a -> WfRed a -> WfRed b -> WfRed (PApp a b).
   Proof.
     move => + h. move : b.
     elim : a / h => /= u hu ihu.
-    move => v nev hv.
+    move => + neu.
+    induction 1 as [c hc ihc]. simpl in *.
     constructor => /= t.
     inversion 1; subst.
     - by simpl in *.
-    - have ? : ishne a1 by eauto using RERed.hne_preservation.
-      apply : ihu; eauto.
-    - move {ihu}.
-      move : H H3.
-      elim :v /hv => /=.
-      + move => q hq ihq.
+    - sauto lq:on use:RERed.hne_preservation.
+    - by apply ihc.
+  Qed.
 
+  Lemma sn_pair_inv a b :
+    WfRed (PPair a b) -> WfRed a /\ WfRed b.
+    move E : (PPair a b) => u hu.
+    move : a b E. elim : u / hu => /= u hu ihu a b ?. subst.
+    split.
+    - constructor => /=.
+      move => a' ha'.
+      have {}/ihu : RERed.R (PPair a b) (PPair a' b) by qauto l:on ctrs:RERed.R.
+      qauto l:on.
+    - constructor => /=.
+      move => b' hb'.
+      have {}/ihu : RERed.R (PPair a b) (PPair a b') by qauto l:on ctrs:RERed.R.
+      qauto l:on.
+  Qed.
 
+  Lemma sn_proj_inv p a  :
+    WfRed (PProj p a) -> WfRed a.
+  Proof.
+    move E : (PProj p a)  => u hu.
+    move : a E.
+    elim : u /hu => /=.
+    move => u hu ihu a ?. subst.
+    constructor => /= a' ha'.
+    have /ihu : RERed.R (PProj p a) (PProj p a') by qauto l:on ctrs:RERed.R.
+    sfirstorder.
+  Qed.
 
+  Lemma sn_app_inv a b :
+    WfRed (PApp a b) -> WfRed a /\ WfRed b.
+  Proof.
+    move E : (PApp a b) => u hu.
+    move : a b E.
+    elim : u / hu.
+    move => ? hu ihu a b ?. subst. simpl in *.
+    split;
+      constructor; qauto l:on ctrs:RERed.R, Acc.
+  Qed.
 
+  Lemma sn_pair a b :
+    WfRed a -> WfRed b -> WfRed (PPair a b).
+  Proof.
+    move : b => /[swap].
+    induction 1. induction 1.
+    constructor. simpl. move => u. inversion 1; subst.
+    - simpl in *.
+      have : sn RERed.R (PProj PL u) by hauto l:on ctrs:Acc.
+      clear.
+      sfirstorder use:sn_proj_inv.
+    - hauto lq:on ctrs:Acc.
+    - hauto lq:on ctrs:Acc.
+  Qed.
 
+  Lemma sn_abs a :
+    WfRed a -> WfRed (PAbs a).
+  Proof.
+    move => h. elim : a /h.
+    move => u hu ihu.
+    constructor.
+    move => /= q ihq.
+    inversion ihq; subst.
+    - simpl in *.
+      have : WfRed (PApp (ren_PTm shift q) (VarPTm var_zero))
+        by hauto l:on.
+      move /sn_app_inv.
+      move => [+ _].
+      move /antirenaming. sfirstorder.
+    - sfirstorder.
+  Qed.
+
+  Lemma sn_exp :
+    forall a b : PTm, TRedWf a b -> WfRed b -> WfRed a.
+  Proof.
+    move => a b h.
+    elim : a b /h.
+    - move => a b h.
+      move => hu.
+      have sna : WfRed a by admit.
+      have snabsa : WfRed (PAbs a) by eauto using sn_abs.
+      admit.
 
 
 
@@ -2345,8 +2446,14 @@ Module WfRERed.
   Proof.
     apply sn_mutual.
     - hauto q:on inv:RERed.R ctrs:Acc.
-    - move => a b h0 h1 h2 h3.
-      constructor => /= u hu.
+    - eauto using sn_app, SNe_hne.
+    - eauto using sn_proj, SNe_hne.
+    - admit.
+    - eauto using sn_pair.
+    - eauto using sn_abs.
+    - done.
+    - admit.
+    -
 
 
 
