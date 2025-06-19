@@ -21,17 +21,14 @@ Fixpoint nostuck (a : PTm) :=
   | PProj _ a => (ishf a ==> ispair a) && nostuck a
   | PZero => true
   | PSuc a => nostuck a
-  | PInd P a b c => nostuck P && (ishf a ==> iszero a || issuc a) && nostuck b && nostuck c
+  | PInd P a b c => nostuck P && (ishf a ==> iszero a || issuc a) && nostuck a && nostuck b && nostuck c
   | PNat => true
   | PUniv _ => true
   end.
 
 
 CoInductive safe a : Prop :=
-  safe_intro :
-    nostuck a ->
-    (forall b,RRed.R a b -> safe b) ->
-    safe a.
+  safe_intro {safe_nostuck : nostuck a ; safe_red :  forall b,RRed.R a b -> safe b}.
 
 Arguments safe_intro {a}.
 
@@ -43,26 +40,6 @@ Lemma safe_coind P : (forall a, P a -> nostuck a /\  (forall b, RRed.R a b -> P 
   apply safe_intro.
   apply ha0.
   move => b hb. apply ha1 in hb. apply ih. apply hb.
-Qed.
-
-Lemma safe_app_inv0  : forall a b, safe (PApp a b) -> safe a.
-Proof.
-  suff : forall a, (exists b, safe (PApp a b)) -> safe a by firstorder.
-  apply safe_coind.
-  sauto lqb:on.
-Qed.
-
-Lemma safe_app_inv1  : forall a b, safe (PApp a b) -> safe b.
-Proof.
-  suff : forall b, (exists a, safe (PApp a b)) -> safe b by firstorder.
-  apply safe_coind.
-  sauto lqb:on.
-Qed.
-
-Lemma safe_abs_inv : forall a, safe (PAbs a) -> safe a.
-Proof.
-  apply safe_coind.
-  sauto lqb:on.
 Qed.
 
 Lemma nostuck_antisubstitution : forall ρ a, nostuck (subst_PTm ρ a) -> nostuck a.
@@ -104,4 +81,91 @@ Proof.
   move => b hr. exists ρ.
   inversion ha as [ha0 ha1].
   hauto lq:on use:RRed.substing.
+Qed.
+
+Lemma safe_app_inv0  : forall a b, safe (PApp a b) -> safe a.
+Proof.
+  suff : forall a, (exists b, safe (PApp a b)) -> safe a by firstorder.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_app_inv1  : forall a b, safe (PApp a b) -> safe b.
+Proof.
+  suff : forall b, (exists a, safe (PApp a b)) -> safe b by firstorder.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_abs_inv : forall a, safe (PAbs a) -> safe a.
+Proof.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_proj_inv : forall p a, safe (PProj p a) -> safe a.
+Proof.
+  move => p. apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_ind_inv0 : forall P a b c, safe (PInd P a b c) -> safe P.
+Proof.
+  move => + a b c.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_ind_inv1 : forall P a b c, safe (PInd P a b c) -> safe a.
+Proof.
+  move => P + b c.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_ind_inv2 : forall P a b c, safe (PInd P a b c) -> safe b.
+Proof.
+  move => P a + c.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_ind_inv3 : forall P a b c, safe (PInd P a b c) -> safe c.
+Proof.
+  move => P a b +.
+  apply safe_coind.
+  sauto lqb:on.
+Qed.
+
+Lemma safe_bind_inv0 p : forall A B, safe (PBind p A B) -> safe A.
+Proof.
+  move => + B. apply safe_coind. sauto lqb:on.
+Qed.
+
+Lemma safe_bind_inv1 p : forall A B, safe (PBind p A B) -> safe B.
+Proof.
+  move => A +. apply safe_coind. sauto lqb:on.
+Qed.
+
+Lemma safe_suc_inv : forall a, safe (PSuc a) -> safe a.
+Proof.
+  apply safe_coind. sauto lqb:on.
+Qed.
+
+Lemma safe_app_imp a b : ishf a -> ~~ isabs a -> ~ safe (PApp a b).
+Proof.
+  case : a => //=; sfirstorder use:safe_nostuck.
+Qed.
+
+Lemma safe_proj_imp p a : ishf a -> ~~ ispair a -> ~ safe (PProj p a).
+Proof.
+  case : a => //=; sfirstorder use:safe_nostuck.
+Qed.
+
+Lemma safe_ind_imp :  forall Q (a : PTm) b c,
+  ishf a ->
+  ~~ iszero a ->
+  ~~ issuc a  -> ~ safe (PInd Q a b c).
+Proof.
+  move => Q [] => //=; hauto lb:on use:safe_nostuck.
 Qed.
