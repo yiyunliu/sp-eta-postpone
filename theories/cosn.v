@@ -28,11 +28,11 @@ Fixpoint nostuck (a : PTm) :=
 
 
 CoInductive safe a : Prop :=
-  safe_intro {safe_nostuck : nostuck a ; safe_red :  forall b,RRed.R a b -> safe b}.
+  safe_intro {safe_nostuck : nostuck a ; safe_red :  forall b,RERed.R a b -> safe b}.
 
 Arguments safe_intro {a}.
 
-Lemma safe_coind P : (forall a, P a -> nostuck a /\  (forall b, RRed.R a b -> P b)) ->  forall a, P a -> safe a.
+Lemma safe_coind P : (forall a, P a -> nostuck a /\  (forall b, RERed.R a b -> P b)) ->  forall a, P a -> safe a.
   move => h.
   cofix ih.
   move => a ha. apply h in ha.
@@ -80,7 +80,7 @@ Proof.
   by eauto using nostuck_antisubstitution.
   move => b hr. exists ρ.
   inversion ha as [ha0 ha1].
-  hauto lq:on use:RRed.substing.
+  hauto lq:on use:RERed.substing.
 Qed.
 
 Lemma safe_app_inv0  : forall a b, safe (PApp a b) -> safe a.
@@ -182,35 +182,84 @@ Proof.
 Qed.
 
 Lemma safe_rred a b :
-  RRed.R a b -> safe a -> safe b.
+  RERed.R a b -> safe a -> safe b.
 Proof.
   sauto lq:on.
 Qed.
 
-Lemma safe_abs a : safe a -> safe (PAbs a).
+Lemma safe_rered a b :
+  RERed.R a b -> safe a -> safe b.
 Proof.
-  move E :(PAbs a) => u.
-  move : u a E.
-  suff : (forall u, (exists a, PAbs a = u /\ safe a) -> safe u) by firstorder.
-  apply safe_coind. sauto lq:on.
+  qauto l:on inv:safe ctrs:safe.
 Qed.
 
-Inductive ERed' (a : PTm) : PTm -> Prop :=
-| E_Refl :
-  ERed' a a
-| E_Once b :
-  ERed.R a b ->
-  ERed' a b.
-
-
-Lemma safe_ered a b :
-  ERed.R a b -> safe a -> safe b.
+Lemma safe_rereds a b :
+  rtc RERed.R a b -> safe a -> safe b.
 Proof.
-  move => h.
-  elim : a b /h.
-  - move => a. move /safe_abs_inv /safe_app_inv0. substify. apply safe_antisubstitution.
-  - sfirstorder use:safe_pair_inv0, safe_proj_inv.
-  - sfirstorder use:safe_abs, safe_abs_inv.
-  - move => a0 a1 b ha iha happ.
-    have ha0 : safe a0 by sfirstorder use:safe_app_inv0.
-    have hb : safe b by sfirstorder use:safe_app_inv1.
+  induction 1; eauto using safe_rered.
+Qed.
+
+Definition tm_omega :=
+  PApp (PAbs (PApp (VarPTm 0) (VarPTm 0)))
+    (PAbs (PApp (VarPTm 0) (VarPTm 0))).
+
+Lemma safe_omega : safe tm_omega.
+Proof.
+  move E : tm_omega => u.
+  move : u E.
+  apply safe_coind.
+  move => a ?. subst.
+  split => //=.
+  move => b. inversion 1 => //=; subst; sauto q:on.
+Qed.
+
+Module Safe_NoForbid <: NoForbid.
+  Definition P := @safe.
+
+  Lemma P_EPar : forall (a b : PTm), EPar.R a b -> P a -> P b.
+  Proof.
+    move => a b /EReds.FromEPar /REReds.FromEReds.
+    apply safe_rereds.
+  Qed.
+
+  Lemma P_RRed : forall (a b : PTm), RRed.R a b -> P a -> P b.
+  Proof. move => a b /RERed.FromBeta. apply safe_rered. Qed.
+
+  Lemma PApp_imp : forall a b, ishf a -> ~~ isabs a -> ~ P (PApp a b).
+    apply safe_app_imp. Qed.
+  Lemma PProj_imp : forall p a, ishf a -> ~~ ispair a -> ~ P (PProj p a).
+    apply safe_proj_imp. Qed.
+
+  Lemma PInd_imp : forall Q (a : PTm) b c,
+      ishf a ->
+      ~~ iszero a ->
+      ~~ issuc a  -> ~ P (PInd Q a b c).
+    apply safe_ind_imp. Qed.
+
+  Lemma P_AppInv : forall (a b : PTm), P (PApp a b) -> P a /\ P b.
+    firstorder using safe_app_inv0, safe_app_inv1. Qed.
+
+  Lemma P_PairInv : forall (a b : PTm), P (PPair a b) -> P a /\ P b.
+    firstorder using safe_pair_inv0, safe_pair_inv1. Qed.
+
+  Lemma P_ProjInv : forall p (a : PTm), P (PProj p a) -> P a.
+    apply safe_proj_inv. Qed.
+
+  Lemma P_BindInv : forall p (A : PTm) B, P (PBind p A B) -> P A /\ P B.
+    firstorder using safe_bind_inv0, safe_bind_inv1. Qed.
+
+  Lemma P_SucInv : forall (a : PTm), P (PSuc a) -> P a.
+    apply safe_suc_inv. Qed.
+
+  Lemma P_AbsInv : forall (a : PTm), P (PAbs a) -> P a.
+    apply safe_abs_inv. Qed.
+
+  Lemma P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) -> P  a.
+    substify. hauto lq:on use:safe_antisubstitution. Qed.
+
+  Lemma P_IndInv : forall Q (a : PTm) b c, P (PInd Q a b c) -> P Q /\ P a /\ P b /\ P c.
+    qauto l:on use: safe_ind_inv0, safe_ind_inv1,
+          safe_ind_inv2, safe_ind_inv3.
+  Qed.
+
+End Safe_NoForbid.
