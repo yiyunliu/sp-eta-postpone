@@ -1345,12 +1345,6 @@ Module SN_NoForbid <: NoForbid.
   Lemma P_renaming : forall (ξ : nat -> nat) a , P (ren_PTm ξ a) -> P  a.
   Proof. hauto lq:on use:sn_antirenaming, sn_renaming. Qed.
 
-  Lemma P_ProjBind : forall p p' (A : PTm) B, ~ P (PProj p (PBind p' A B)).
-  Proof. sfirstorder use:PProjBind_imp. Qed.
-
-  Lemma P_AppBind : forall p (A : PTm) B b, ~ P (PApp (PBind p A B) b).
-  Proof. sfirstorder use:PAppBind_imp. Qed.
-
   Lemma P_IndInv : forall Q (a : PTm) b c, P (PInd Q a b c) -> P Q /\ P a /\ P b /\ P c.
   Proof. sfirstorder use:SN_IndInv. Qed.
 
