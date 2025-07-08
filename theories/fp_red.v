@@ -1114,43 +1114,9 @@ Module NeEPar.
     R_elim a0 a1 ->
     R_nonelim (PPair (PProj PL a0) (PProj PR a0)) a1
   (*************** Congruence ********************)
-  | AbsCong a0 a1 :
-    R_nonelim a0 a1 ->
-    R_nonelim (PAbs a0) (PAbs a1)
-  | AppCong a0 a1 b0 b1 :
-    R_elim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_nonelim (PApp a0 b0) (PApp a1 b1)
-  | PairCong a0 a1 b0 b1 :
-    R_nonelim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_nonelim (PPair a0 b0) (PPair a1 b1)
-  | ProjCong p a0 a1 :
-    R_elim a0 a1 ->
-    R_nonelim (PProj p a0) (PProj p a1)
-  | VarTm i :
-    R_nonelim (VarPTm i) (VarPTm i)
-  | Univ i :
-    R_nonelim (PUniv i) (PUniv i)
-  | BindCong p A0 A1 B0 B1 :
-    R_nonelim A0 A1 ->
-    R_nonelim B0 B1 ->
-    R_nonelim (PBind p A0 B0) (PBind p A1 B1)
-  | NatCong :
-    R_nonelim PNat PNat
-  | IndCong P0 P1 a0 a1 b0 b1 c0 c1 :
-    R_nonelim P0 P1 ->
-    R_elim a0 a1 ->
-    R_nonelim b0 b1 ->
-    R_nonelim c0 c1 ->
-    (* ----------------------- *)
-    R_nonelim (PInd P0 a0 b0 c0) (PInd P1 a1 b1 c1)
-  | ZeroCong :
-    R_nonelim PZero PZero
-  | SucCong a0 a1 :
-    R_nonelim a0 a1 ->
-    (* ------------ *)
-    R_nonelim (PSuc a0) (PSuc a1)
+  | R_inj a b :
+    R_elim a b ->
+    R_nonelim a b
   with R_elim : PTm -> PTm -> Prop :=
   | NAbsCong a0 a1 :
     R_nonelim a0 a1 ->
@@ -1217,15 +1183,6 @@ Module NeEPar.
       have {}ih := ih ha1.
       have : ne a0 by hauto lq:on inv:PTm.
       qauto lb:on.
-    - move => a0 a1 b0 b1 ha iha hb ihb /andP [h0 h1].
-      have {}ihb := ihb h1.
-      have {}iha := iha ltac:(eauto using ne_nf).
-      suff : ne a0 by hauto lb:on.
-      move : ha h0. hauto lq:on inv:R_elim.
-    - hauto lb: on drew: off.
-    - hauto lq:on rew:off inv:R_elim.
-    - sfirstorder b:on.
-    - hauto lqb:on inv:R_elim.
   Qed.
 
   Lemma R_nonelim_nothf (a b : PTm) :
@@ -1239,7 +1196,7 @@ Module NeEPar.
   Lemma R_elim_nonelim (a b : PTm) :
     R_elim a b ->
     R_nonelim a b.
-    move => h. elim : a b /h=>//=; hauto lq:on ctrs:R_nonelim.
+    hauto lq:on ctrs:R_nonelim.
   Qed.
 
   Lemma ToEPar : (forall (a b : PTm), R_elim a b -> EPar.R a b) /\
@@ -1422,14 +1379,14 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           by eauto using RReds.ProjCong.
         move : P_RReds hP. repeat move/[apply] => /=.
         sfirstorder use:PProj_imp.
-    - hauto lq:on ctrs:NeEPar.R_nonelim use:RReds.AbsCong, P_AbsInv.
+    - hauto lq:on ctrs:NeEPar.R_elim, NeEPar.R_nonelim use:RReds.AbsCong, P_AbsInv.
     - move => a0 a1 b0 b1 ha iha hb ihb.
       move => /[dup] hP /P_AppInv [hP0 hP1].
       have {iha} [a2 [iha0 iha1]]  := iha hP0.
       have {ihb} [b2 [ihb0 ihb1]]  := ihb hP1.
       case /orP : (orNb (ishf a2)) => [h|].
       + exists (PApp a2 b2). split; first by eauto using RReds.AppCong.
-        hauto lq:on ctrs:NeEPar.R_nonelim use:NeEPar.R_nonelim_nothf.
+        hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim use:NeEPar.R_nonelim_nothf.
       + case /orP : (orbN (isabs a2)).
         (* case : a2 iha0 iha1 => //=. *)
         * case : a2 iha0 iha1 => //= p h0 h1 _ _.
@@ -1439,13 +1396,13 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
              apply : rtc_r.
              apply RReds.AppCong; eauto.
              apply RRed.AppAbs'. by asimpl.
-             hauto lq:on ctrs:NeEPar.R_nonelim.
+             hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim.
           ** hauto lq:on ctrs:NeEPar.R_nonelim,NeEPar.R_elim use:RReds.AppCong.
         (* Impossible *)
         * move =>*. exfalso.
           have : P (PApp a2 b0) by sfirstorder use:RReds.AppCong, @rtc_refl, P_RReds.
           sfirstorder use:PApp_imp.
-    - hauto lq:on ctrs:NeEPar.R_nonelim use:RReds.PairCong, P_PairInv.
+    - hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim use:RReds.PairCong, P_PairInv.
     - move => p a0 a1 ha ih /[dup] hP /P_ProjInv.
       move : ih => /[apply]. move => [a2 [iha0 iha1]].
       case /orP : (orNb (ishf a2)) => [h|].
@@ -1465,12 +1422,12 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           apply : rtc_r.
           apply RReds.ProjCong; eauto.
           clear. hauto l:on inv:PTag.
-          hauto lq:on ctrs:NeEPar.R_nonelim.
+          hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim.
         * hauto lq:on ctrs:NeEPar.R_nonelim,NeEPar.R_elim use:RReds.ProjCong.
-    - hauto lq:on ctrs:rtc, NeEPar.R_nonelim.
-    - hauto l:on.
-    - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
-    - hauto lq:on ctrs:NeEPar.R_nonelim, rtc use:RReds.BindCong, P_BindInv.
+    - hauto lq:on ctrs:rtc, NeEPar.R_nonelim,NeEPar.R_elim.
+    - hauto lq:on ctrs:NeEPar.R_nonelim,NeEPar.R_elim,rtc.
+    - hauto lq:on ctrs:NeEPar.R_nonelim, rtc,NeEPar.R_elim use:RReds.BindCong, P_BindInv.
+    - hauto lq:on ctrs:NeEPar.R_nonelim, rtc ,NeEPar.R_elim use:RReds.BindCong, P_BindInv.
     - move => P0 P1 a0 a1 b0 b1 c0 c1 hP ihP ha iha hb ihb hc ihc /[dup] hInd /P_IndInv.
       move => []. move : ihP => /[apply].
       move => [P01][ihP0]ihP1.
@@ -1482,7 +1439,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
       move => [c01][ihc0]ihc1.
       case /orP : (orNb (ishf a01)) => [h|].
       + eexists. split. by eauto using RReds.IndCong.
-        hauto q:on ctrs:NeEPar.R_nonelim use:NeEPar.R_nonelim_nothf.
+        hauto q:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim use:NeEPar.R_nonelim_nothf.
       + move => h.
         case /orP : (orNb (issuc a01 || iszero a01)).
         * move /norP.
@@ -1490,11 +1447,12 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           hauto lq:on use:PInd_imp.
         * move => ha01.
           eexists. split. eauto using RReds.IndCong.
-          apply NeEPar.IndCong; eauto.
+          apply NeEPar.R_inj.
+          apply NeEPar.NIndCong; eauto.
           move : iha1 ha01. clear.
           inversion 1; subst => //=; hauto lq:on ctrs:NeEPar.R_elim.
-    - hauto l:on.
-    - hauto lq:on ctrs:NeEPar.R_nonelim use:RReds.SucCong, P_SucInv.
+    - hauto lq:on ctrs:NeEPar.R_nonelim,NeEPar.R_elim,rtc.
+    - hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim use:RReds.SucCong, P_SucInv.
   Qed.
 
   Lemma eta_postponement a b c :
@@ -1548,7 +1506,8 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
             by qauto l:on ctrs:rtc use:RReds.AppCong.
           move : P_RReds hP. repeat move/[apply].
           sfirstorder use:PApp_imp.
-        * exists (subst_PTm (scons b0 VarPTm) a1).
+        * inversion H; subst.
+          exists (subst_PTm (scons b0 VarPTm) a1).
           split.
           apply : rtc_r; last by apply RRed.AppAbs.
           hauto lq:on ctrs:rtc use:RReds.AppCong.
@@ -1589,7 +1548,8 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           apply RRed.PairCong1.
           apply RRed.ProjPair.
           apply rtc_once. apply RRed.ProjPair.
-        * exists (if p is PL then a3 else b1).
+        * inversion H; subst.
+          exists (if p is PL then a3 else b1).
           split; last by hauto lq:on use:NeEPar.ToEPar.
           apply : relations.rtc_transitive.
           eauto using RReds.ProjCong.
@@ -1619,6 +1579,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
         * eexists. split; eauto.
           apply : rtc_r.
           apply : RReds.IndCong; eauto; eauto using rtc_refl.
+          inversion H; subst.
           apply RRed.IndZero.
       + move => P2 a2 b2 c [*]. subst.
         move /η_split /(_ pa0) : ha.
@@ -1628,7 +1589,8 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
           clear. hauto q:on use:PInd_imp.
         * have :P (PInd P0 (PPair (PProj PL a3) (PProj PR a3)) b0 c0) by eauto using RReds.IndCong, rtc_refl, P_RReds.
           clear. hauto q:on use:PInd_imp.
-        * eexists. split.
+        * inversion H; subst.
+          eexists. split.
           apply : rtc_r.
           apply RReds.IndCong; eauto; eauto using rtc_refl.
           apply RRed.IndSuc.
