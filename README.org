@@ -1,44 +1,113 @@
-* Church Rosser, surjective pairing, and strong normalization
+* Mechanization of decidable type conversion with surjective pairing
 [[https://woodpecker.electriclam.com/api/badges/3/status.svg]]
 
-This repository contains a mechanized proof that the lambda calculus
-with beta and eta rules for functions and pairs is in fact confluent
-for the subset of terms that are "strongly $\beta$-normalizing".
+This repository contains a mechanized proof of decidable type
+conversion for a dependent type theory with a cumulative universe
+hierarchy, subtyping (contravariant on functions), natural numbers
+with an induction principle, aud $\eta$-laws for functions and pairs.
 
-Our notion of $\beta$-strong normalization, based on Abel's POPLMark
-Reloaded survey, is inductively defined
-and captures a strict subset of the usual notion of strong
-normalization in the sense that ill-formed terms such as $\pi_1
-\lambda x . x$ are rejected.
+Unlike existing mechanizations, our proof uses the confluence of
+untyped $\beta\eta$-reduction for the inductively defined set of
+strongly-normalizing terms by Raamsdonk and Severi's paper [[https://pure.tue.nl/ws/portalfiles/portal/1867112/199520.pdf][On
+normalisation]].
 
-* Joinability: A transitive equational relation
-The joinability relation $a \Leftrightarrow b$, which is true exactly
-when $\exists c, a \leadsto_{\beta\eta} c \wedge b
-\leadsto_{\beta\eta} c$, is transitive on the set of strongly
-normalizing terms thanks to the Church-Rosser theorem proven in this
-repository.
+We prove the correctness result syntactically using strong
+normalization of well-typed terms and $\beta\eta$-confluence. The
+logical predicate is untyped and minimal since we only need it to be
+adequate to show normalization.
 
-** Joinability and logical predicates
+** Quick start
+Inside a fresh =opam= switch, run the following commands to install
+the required dependencies.
+#+begin_src sh
+opam update
+opam install -y coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml
+eval $(opam env)
+#+end_src
 
-When building a logical predicate where adequacy ensures beta strong
-normalization, we can then show that two types $A \Leftrightarrow B$
-share the same meaning if both are semantically well-formed. The
-strong normalization constraint can be extracted from adequacy so we
-have transitivity of $A \Leftrightarrow B$ available in the proof that
-the logical predicate is functional over joinable terms.
+After the dependencies are installed, run the following command to
+validate the proof development.  The =-j2= flag allows =make= to
+validate up to 2 files in parallel. You can pass in a bigger number if
+your CPU has more available cores.
+#+begin_src sh
+make -j2
+#+end_src
 
-** Joinability and typed equality
+The termination proof can be brittle because we expect the =inversion=
+to produce the subproofs of the domain relation that make the termination checker happy.
 
-For systems with a type-directed equality, the same joinability
-relation can be used to model the equality. The fundamental theorem
-for the judgmental equality would take the following form: $\vdash a
-\equiv b \in A$ implies $\vDash a, b \in A$ and $a \Leftrightarrow b$.
+Here are the versions of the Rocq packages that are known to
+work.
+- coq 8.20.1
+- coq-stdpp 1.11.0
+- coq-hammer-tactics 1.3.2
+- coq-autosubst-ocaml 1.1
+- coq-equations 1.3.1
 
-Note that such a result does not immediately give us the decidability
-of type conversion because the algorithm of beta-eta normalization
-may identify more terms when eta is not type-preserving. However, I
-believe Coquand's algorithm can be proven correct using the method
-described in [[https://www.researchgate.net/publication/226663076_Justifying_Algorithms_for_be-Conversion][Goguen 2005]]. We have all the ingredients needed:
-- Strong normalization of beta (needed for the termination metric)
-- Church-Rosser for $\beta$-SN terms (the disciplined expansion of
-  Coquand's algorithm preserves both SN and typing)
+Note that if you don't plan to modify and regenerate the =syntax.v=
+file from =syntax.sig= using =autosubst=, you can choose not to install =coq-autosubst-ocaml=.
+However, you need to be careful not to accidentally run =make clean=,
+which will delete the auto-generated syntax files.
+
+** Properties proven in the paper
+
+*** Section 2
+- Lemma 2.1 (context regularity) :: [[file:./theories/structural.v][structural.v]], =wff_mutual=
+- Lemma 2.2 (generation) :: [[file:./theories/structural.v][structural.v]], [[file:theories/admissible.v][admissible.v]], =*_Inv=
+- Lemma 2.3 (weakening) :: [[file:./theories/structural.v][structural.v]], =renaming=
+- Lemma 2.4 (substitution) :: [[file:./theories/structural.v][structural.v]], =substitution=
+- Lemma 2.5 (subject reduction) :: [[file:theories/preservation.v][preservation.v]], =RRed_Eq=, =subject_reduction=
+- Lemma 2.6 (regularity) :: [[file:./theories/structural.v][structural.v]], =regularity=
+*** Section 3
+- Lemma 3.1 :: [[file:theories/fp_red.v][fp_red.v]], =RRed.nf_imp=
+- Lemma 3.3 :: [[file:theories/fp_red.v][fp_red.v]], =ERed.nf_preservation=
+- Lemma 3.4 :: [[file:theories/fp_red.v][fp_red.v]], =LoReds.FromSN_mutual=
+- Lemma 3.5 (no stuck terms) :: [[file:theories/fp_red.v][fp_red.v]], =SN_NoForbid.*_imp=
+- Lemma 3.6 (sn renaming) :: [[file:theories/fp_red.v][fp_red.v]], =sn_renaming=
+- Lemma 3.7 (sn antisubstitution) :: [[file:theories/fp_red.v][fp_red.v]], =sn_unmorphing=
+- Lemma 3.8 (sn inversion) :: [[file:theories/fp_red.v][fp_red.v]], =SN_NoForbid.P_*Inv=
+- Lemma 3.9 (sn preservation) :: [[file:theories/fp_red.v][fp_red.v]],  =RERed.sn_preservation=,
+  =epar_sn_preservation=, =red_sn_preservation=
+- Lemma 3.10 (nonelim and elim) :: [[file:theories/fp_red.v][fp_red.v]], =R_nonelim_nothf=, =R_elim_nonelim=
+- Lemma 3.11 (restrictive-$\eta$ and normal form) :: [[file:theories/fp_red.v][fp_red.v]], =R_elim_nf=
+- Lemma 3.12 ($\eta$-decomposition) :: [[file:theories/fp_red.v][fp_red.v]], =η_split=
+- Lemma 3.13 ($\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement=
+- Corollary 3.1 (strengthened $\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement_star'=
+- Corollary 3.2 ($\eta$-postponement for normal forms) :: [[file:theories/fp_red.v][fp_red.v]], =standardization=
+- Lemma 3.14 (confluence for $\beta$) :: [[file:theories/fp_red.v][fp_red.v]], =red_confluence=
+- Lemma 3.15 (confluence for $\eta$) :: [[file:theories/fp_red.v][fp_red.v]], =ered_confluence=
+- Theorem 3.1 (confluence for $\beta\eta$ :: [[file:theories/fp_red.v][fp_red.v]], =rered_confluence=
+- Lemma 3.16 (transitivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]], =DJoin.transitive=
+- Lemma 3.17 (injectivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]],
+  =DJoin.hne_app_inj=, =DJoin.hne_proj_inj=
+- Lemma 3.18 (transitivity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]],
+  =Sub1.transitive=
+- Lemma 3.19 (commutativity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.commutativity0=
+- Lemma 3.20 (one-step subtyping preserves sn) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.sn_preservation=
+- Corollary 3.3 (transitivity of untyped subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.transitive=
+- Lemma 3.21 (noconfusion for untyped subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_noconf=
+- Lemma 3.22 (untyped injectivity of type constructors) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_inj=
+- Lemma 3.23 (adequacy) :: [[file:theories/logrel.v][logrel.v]], =adequacy=
+- Lemma 3.24 (backward closure) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_back_clos=
+- Lemma 3.25 (logical predicate cases) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_case=
+- Lemma 3.26 (logical predicate is preserved by subtyping) ::
+  [[file:theories/logrel.v][logrel.v]], =InterpUniv_Sub0=
+- Lemma 3.4 (logical predicate is preserved by subtyping) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_Sub0=
+- Corollary 3.4 (logical predicate is functional)  :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_Functional=
+- Lemma 3.27 (logical predicate is cumulative) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_cumulative=
+- Lemma 3.28 (semantic weakening) :: [[file:theories/logrel.v][logrel.v]], =weakening_Sem=
+- Lemma 3.29 (semantic substitution) :: [[file:theories/logrel.v][logrel.v]], =morphing_SemWt=
+- Lemma 3.30 (structural rules for semantic well-formedness) :: [[file:theories/logrel.v][logrel.v]], =SemWff=
+- Theorem 3.2 (fundamental theorem) :: [[file:theories/soundness.v][soundness.v]], =fundamental_theorem=
+- Corollary 3.6 (completeness of reduce-and-compare) :: [[file:theories/soundness.v][soundness.v]], =synsub_to_usub=
+*** Section 4
+- Lemma 4.1 ($\Pi$-subtyping) :: [[file:theories/logrel.v][logrel.v]], =Sub_Bind_Inv{L,R}=
+- Lemma 4.2 (univ-subtyping) :: [[file:theories/logrel.v][logrel.v]], =Sub_Univ_Inv{L,R}=
+- Lemma 4.3 (soundness for algorithmic equality) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqeq_sound_mutual=
+- Lemma 4.4 (soundness for algorithmic subtyping) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_sound_mutual=
+- Lemma 4.5 (metric implies domain) :: [[file:theories/algorithmic.v][algorithmic.v]], =sn_term_metric=
+- Lemma 4.6 (termination of Coquand's algorithm) :: [[file:theories/executable.v][executable.v]], =check_sub=
+- Lemma 4.7 (completeness of Coquand's algorithm) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqeq_complete'=
+- Lemma 4.8 (completeness of Coquand's algorithmic subtyping) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_complete'=
+*** Section 5
+- Proposition 5.1 :: [[file:theories/cosn.v][cosn.v]]  =Safe_NoForbid=
