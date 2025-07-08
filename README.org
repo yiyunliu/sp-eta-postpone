@@ -1,6 +1,4 @@
 * Mechanization of decidable type conversion with surjective pairing
-[[https://woodpecker.electriclam.com/api/badges/3/status.svg]]
-
 This repository contains a mechanized proof of decidable type
 conversion for a dependent type theory with a cumulative universe
 hierarchy, subtyping (contravariant on functions), natural numbers
