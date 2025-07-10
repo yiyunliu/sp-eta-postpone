@@ -1820,13 +1820,23 @@ Proof.
     hauto lq:on use:fundamental_theorem, logrel.SemWt_SN.
     apply /Sub.FromJoin /DJoin.FromRRed0. by apply HRed.ToRRed.
 Qed.
+
+Lemma coqleq_complete_unty Γ (A B : PTm) i :
+  Γ ⊢ A ∈ PUniv i ->
+  Γ ⊢ B ∈ PUniv i ->
+  Sub.R A B ->
+  A ≪ B.
+Proof.
+  move => h *.
+  have : salgo_dom_r A B by
+    hauto lq:on use:fundamental_theorem, logrel.SemWt_SN, sn_algo_dom, algo_dom_salgo_dom.
+  hauto lq:on use:coqleq_complete'.
+Qed.
+
 Lemma coqleq_complete Γ (a b : PTm) :
   Γ ⊢ a ≲ b -> a ≪ b.
 Proof.
-  move => h.
-  have : salgo_dom_r a b /\ Sub.R a b by
-    hauto lq:on use:fundamental_theorem, logrel.SemLEq_SemWt, logrel.SemWt_SN, sn_algo_dom, algo_dom_salgo_dom.
-  hauto lq:on use:regularity, coqleq_complete'.
+  hauto use:coqleq_complete_unty, regularity, logrel.SemLEq_SemWt, fundamental_theorem.
 Qed.
 
 Lemma coqleq_sound : forall Γ (a b : PTm) i j,
