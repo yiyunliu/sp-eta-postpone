@@ -47,56 +47,55 @@ file from =syntax.sig= using =autosubst=, you can choose not to install =coq-aut
 However, you need to be careful not to accidentally run =make clean=,
 which will delete the auto-generated syntax files.
 
+
 ** Properties proven in the paper
+The definition of the logical relation is split into =InterpExt= and
+=InterpUniv= in [[file:theories/logrel.v][logrel.v]].
 
 *** Section 2
 - Lemma 2.1 (context regularity) :: [[file:./theories/structural.v][structural.v]], =wff_mutual=
 - Lemma 2.2 (generation) :: [[file:./theories/structural.v][structural.v]], [[file:theories/admissible.v][admissible.v]], =*_Inv=
-- Lemma 2.3 (weakening) :: [[file:./theories/structural.v][structural.v]], =renaming=
-- Lemma 2.4 (substitution) :: [[file:./theories/structural.v][structural.v]], =substitution=
-- Lemma 2.5 (subject reduction) :: [[file:theories/preservation.v][preservation.v]], =RRed_Eq=, =subject_reduction=
-- Lemma 2.6 (regularity) :: [[file:./theories/structural.v][structural.v]], =regularity=
+- Lemma 2.3 (subject reduction) :: [[file:theories/preservation.v][preservation.v]], =RRed_Eq=, =subject_reduction=
+- Lemma 2.4 (regularity) :: [[file:./theories/structural.v][structural.v]], =regularity=
 *** Section 3
 - Lemma 3.1 :: [[file:theories/fp_red.v][fp_red.v]], =RRed.nf_imp=
-- Lemma 3.3 :: [[file:theories/fp_red.v][fp_red.v]], =ERed.nf_preservation=
-- Lemma 3.4 :: [[file:theories/fp_red.v][fp_red.v]], =LoReds.FromSN_mutual=
-- Lemma 3.5 (no stuck terms) :: [[file:theories/fp_red.v][fp_red.v]], =SN_NoForbid.*_imp=
-- Lemma 3.6 (sn renaming) :: [[file:theories/fp_red.v][fp_red.v]], =sn_renaming=
-- Lemma 3.7 (sn antisubstitution) :: [[file:theories/fp_red.v][fp_red.v]], =sn_unmorphing=
-- Lemma 3.8 (sn inversion) :: [[file:theories/fp_red.v][fp_red.v]], =SN_NoForbid.P_*Inv=
-- Lemma 3.9 (sn preservation) :: [[file:theories/fp_red.v][fp_red.v]],  =RERed.sn_preservation=,
+- Lemma 3.2 :: [[file:theories/fp_red.v][fp_red.v]], =ERed.nf_preservation=
+- Lemma 3.3 :: [[file:theories/fp_red.v][fp_red.v]], =LoReds.FromSN_mutual=
+- Lemma 3.4 (no stuck terms) :: [[file:theories/fp_red.v][fp_red.v]], =SN_NoForbid.*_imp=
+- Lemma 3.5 (sn antisubstitution) :: [[file:theories/fp_red.v][fp_red.v]], =sn_unmorphing=
+- Lemma 3.6 (sn preservation) :: [[file:theories/fp_red.v][fp_red.v]],  =RERed.sn_preservation=,
   =epar_sn_preservation=, =red_sn_preservation=
-- Lemma 3.10 (nonelim and elim) :: [[file:theories/fp_red.v][fp_red.v]], =R_nonelim_nothf=, =R_elim_nonelim=
-- Lemma 3.11 (restrictive-$\eta$ and normal form) :: [[file:theories/fp_red.v][fp_red.v]], =R_elim_nf=
-- Lemma 3.12 ($\eta$-decomposition) :: [[file:theories/fp_red.v][fp_red.v]], =η_split=
-- Lemma 3.13 ($\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement=
+- Lemma 3.7 (restrictive-$\eta$ and normal form) :: [[file:theories/fp_red.v][fp_red.v]], =R_elim_nf=
+- Lemma 3.8 ($\eta$-decomposition) :: [[file:theories/fp_red.v][fp_red.v]], =η_split=
+- Lemma 3.9 ($\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement=
 - Corollary 3.1 (strengthened $\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement_star'=
 - Corollary 3.2 ($\eta$-postponement for normal forms) :: [[file:theories/fp_red.v][fp_red.v]], =standardization=
-- Lemma 3.14 (confluence for $\beta$) :: [[file:theories/fp_red.v][fp_red.v]], =red_confluence=
-- Lemma 3.15 (confluence for $\eta$) :: [[file:theories/fp_red.v][fp_red.v]], =ered_confluence=
+- Lemma 3.10 (confluence for $\beta$) :: [[file:theories/fp_red.v][fp_red.v]], =red_confluence=
+- Lemma 3.11 (confluence for $\eta$) :: [[file:theories/fp_red.v][fp_red.v]], =ered_confluence=
 - Theorem 3.1 (confluence for $\beta\eta$ :: [[file:theories/fp_red.v][fp_red.v]], =rered_confluence=
-- Lemma 3.16 (transitivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]], =DJoin.transitive=
-- Lemma 3.17 (injectivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]],
+- Lemma 3.12 (transitivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]], =DJoin.transitive=
+- Lemma 3.13 (injectivity of joinability) :: [[file:theories/fp_red.v][fp_red.v]],
   =DJoin.hne_app_inj=, =DJoin.hne_proj_inj=
-- Lemma 3.18 (transitivity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]],
+- Lemma 3.14 (transitivity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]],
   =Sub1.transitive=
-- Lemma 3.19 (commutativity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.commutativity0=
-- Lemma 3.20 (one-step subtyping preserves sn) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.sn_preservation=
+- Lemma 3.15 (commutativity of one-step subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.commutativity0=
+- Lemma 3.16 (one-step subtyping preserves sn) :: [[file:theories/fp_red.v][fp_red.v]], =Sub1.sn_preservation=
 - Corollary 3.3 (transitivity of untyped subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.transitive=
-- Lemma 3.21 (noconfusion for untyped subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_noconf=
-- Lemma 3.22 (untyped injectivity of type constructors) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_inj=
-- Lemma 3.23 (adequacy) :: [[file:theories/logrel.v][logrel.v]], =adequacy=
-- Lemma 3.24 (backward closure) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_back_clos=
-- Lemma 3.25 (logical predicate cases) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_case=
-- Lemma 3.26 (logical predicate is preserved by subtyping) ::
+- Lemma 3.17 (noconfusion for untyped subtyping) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_noconf=
+- Lemma 3.18 (untyped injectivity of type constructors) :: [[file:theories/fp_red.v][fp_red.v]], =Sub.*_inj=
+- Lemma 3.19 (adequacy) :: [[file:theories/logrel.v][logrel.v]], =adequacy=
+- Lemma 3.20 (backward closure) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_back_clos=
+- Lemma 3.21 (logical predicate cases) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_case=
+- Lemma 3.22 (logical predicate is preserved by subtyping) ::
   [[file:theories/logrel.v][logrel.v]], =InterpUniv_Sub0=
-- Lemma 3.4 (logical predicate is preserved by subtyping) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_Sub0=
 - Corollary 3.4 (logical predicate is functional)  :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_Functional=
-- Lemma 3.27 (logical predicate is cumulative) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_cumulative=
-- Lemma 3.28 (semantic weakening) :: [[file:theories/logrel.v][logrel.v]], =weakening_Sem=
-- Lemma 3.29 (semantic substitution) :: [[file:theories/logrel.v][logrel.v]], =morphing_SemWt=
-- Lemma 3.30 (structural rules for semantic well-formedness) :: [[file:theories/logrel.v][logrel.v]], =SemWff=
+- Lemma 3.23 (logical predicate is cumulative) :: [[file:theories/logrel.v][logrel.v]], =InterpUniv_cumulative=
+- Lemma 3.24 (semantic weakening) :: [[file:theories/logrel.v][logrel.v]], =weakening_Sem=
+- Lemma 3.25 (semantic substitution) :: [[file:theories/logrel.v][logrel.v]], =morphing_SemWt=
+- Lemma 3.26 (structural rules for semantic well-formedness) :: [[file:theories/logrel.v][logrel.v]], =SemWff=
 - Theorem 3.2 (fundamental theorem) :: [[file:theories/soundness.v][soundness.v]], =fundamental_theorem=
+- Corollary 3.5 (completeness of reduce-and-compare) :: Inlined into
+  proof scripts
 - Corollary 3.6 (completeness of reduce-and-compare) :: [[file:theories/soundness.v][soundness.v]], =synsub_to_usub=
 *** Section 4
 - Lemma 4.1 ($\Pi$-subtyping) :: [[file:theories/logrel.v][logrel.v]], =Sub_Bind_Inv{L,R}=
@@ -106,6 +105,10 @@ which will delete the auto-generated syntax files.
 - Lemma 4.5 (metric implies domain) :: [[file:theories/algorithmic.v][algorithmic.v]], =sn_term_metric=
 - Lemma 4.6 (termination of Coquand's algorithm) :: [[file:theories/executable.v][executable.v]], =check_sub=
 - Lemma 4.7 (completeness of Coquand's algorithm) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqeq_complete'=
-- Lemma 4.8 (completeness of Coquand's algorithmic subtyping) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_complete'=
+- Lemma 4.8 (completeness of Coquand's algorithmic subtyping) ::
+  [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_complete'=
+- Lemma 4.9 (completeness of Coquand's algorithmic subtyping) ::
+  [[file:theories/algorithmic.v][algorithmic.v]], lemmas near the end of the file
+- Theorem 4.1 :: by composing 4.9 and 4.6
 *** Section 5
 - Proposition 5.1 :: [[file:theories/cosn.v][cosn.v]]  =Safe_NoForbid=
