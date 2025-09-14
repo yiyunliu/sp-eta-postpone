@@ -21,10 +21,12 @@ export:
 theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/unscoped.v : syntax.sig
 	autosubst -f -v ge813 -s ucoq -o theories/Autosubst2/syntax.v syntax.sig
 
-.PHONY: clean FORCE export
+.PHONY: clean FORCE export deepclean
 
 clean:
 	test ! -f $(COQMAKEFILE) || ( $(MAKE) -f $(COQMAKEFILE) clean && rm $(COQMAKEFILE) )
+
+deepclean: clean
 	rm -f theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/unscoped.v
 
 FORCE:
