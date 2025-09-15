@@ -20,6 +20,8 @@ Definition BindSpace p := if p is PPi then ProdSpace else SumSpace.
 
 Reserved Notation "⟦ A ⟧ i ;; I ↘ S" (at level 70).
 
+Notation "S0 ≐ S1" := (forall (A : PTm), S0 A <-> S1 A) (at level 70, no associativity).
+
 Inductive InterpExt i (I : nat -> PTm -> Prop) : PTm -> (PTm -> Prop) -> Prop :=
 | InterpExt_Ne A :
   SNe A ->
@@ -42,6 +44,11 @@ Inductive InterpExt i (I : nat -> PTm -> Prop) : PTm -> (PTm -> Prop) -> Prop :=
   TRedSN A A0 ->
   ⟦ A0 ⟧ i ;; I ↘ PA ->
   ⟦ A ⟧ i ;; I ↘ PA
+
+| InterpExt_Conv A PA PA' :
+  ⟦ A ⟧ i ;; I ↘ PA ->
+  PA ≐ PA' ->
+  ⟦ A ⟧ i ;; I ↘ PA'
 where "⟦ A ⟧ i ;; I ↘ S" := (InterpExt i I A S).
 
 Lemma InterpExt_Univ' i  I j (PF : PTm -> Prop) :
@@ -51,17 +58,20 @@ Lemma InterpExt_Univ' i  I j (PF : PTm -> Prop) :
 Proof. hauto lq:on ctrs:InterpExt. Qed.
 
 Infix "<?" := Compare_dec.lt_dec (at level 60).
+Check Wf_nat.lt_wf.
 
-Equations InterpUnivN (i : nat) : PTm -> (PTm -> Prop) -> Prop by wf i lt :=
-  InterpUnivN i := @InterpExt i
-                     (fun j A =>
-                        match j <? i  with
-                        | left _ => exists PA, InterpUnivN j A PA
-                        | right _ => False
-                        end).
+Fixpoint InterpUniv_rec (i : nat) (ACC : Acc lt i) : PTm -> (PTm -> Prop) -> Prop :=
+  @InterpExt i (fun j A =>
+                      match j <? i with
+                      | left h => exists PA, InterpUniv_rec j (Acc_inv ACC h) A PA
+                      | right _ => False
+                      end).
+
+Definition InterpUniv (i : nat) : PTm -> (PTm -> Prop) -> Prop :=
+  InterpUniv_rec i (lt_wf i).
 
 Lemma InterpExt_lt_impl i I I' A (PA : PTm -> Prop) :
-  (forall j, j < i -> I j = I' j) ->
+  (forall j, j < i -> I j ≐ I' j) ->
   ⟦ A ⟧ i ;; I ↘ PA ->
   ⟦ A ⟧ i ;; I' ↘ PA.
 Proof.
@@ -72,27 +82,43 @@ Proof.
   - hauto q:on ctrs:InterpExt.
   - hauto q:on ctrs:InterpExt.
   - hauto lq:on ctrs:InterpExt.
+  - hauto lq:on ctrs:InterpExt.
 Qed.
 
 Lemma InterpExt_lt_eq i I I' A (PA : PTm -> Prop) :
-  (forall j, j < i -> I j = I' j) ->
-  ⟦ A ⟧ i ;; I ↘ PA =
+  (forall j, j < i -> I j ≐ I' j) ->
+  ⟦ A ⟧ i ;; I ↘ PA <->
   ⟦ A ⟧ i ;; I' ↘ PA.
 Proof.
-  move => hI. apply propositional_extensionality.
-  have : forall j, j < i -> I' j = I j by sfirstorder.
-  firstorder using InterpExt_lt_impl.
+  hfcrush use:InterpExt_lt_impl.
 Qed.
 
-Notation "⟦ A ⟧ i ↘ S" := (InterpUnivN i A S) (at level 70).
+Notation "⟦ A ⟧ i ↘ S" := (InterpUniv i A S) (at level 70, no associativity).
 
-Lemma InterpUnivN_nolt i :
-  @InterpUnivN i = @InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA).
+Lemma InterpUniv_rec_acc_irrel i ACC ACC' A S :
+  InterpUniv_rec i ACC A S <-> InterpUniv_rec i ACC' A S.
 Proof.
-  simp InterpUnivN.
-  extensionality A. extensionality PA.
+  move : i ACC ACC' A S.
+  elim /Wf_nat.lt_wf_ind.
+  move => n h [a0] [a1] A S /=.
   apply InterpExt_lt_eq.
-  hauto q:on.
+  move => j hj A0.
+  case : (j <? n) => //.
+  hauto l:on.
+Qed.
+
+Lemma InterpUniv_rec_nolt i ACC A S :
+  InterpUniv_rec i ACC A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
+Proof.
+  move : i ACC A S.
+  elim /Wf_nat.lt_wf_ind.
+  set (I := fun _ => _).
+  move => n ih.
+  case => hAcc A S /=.
+  apply InterpExt_lt_eq.
+  move => j h A0.
+  case : (j <? n) => //.
+  hauto l:on use:InterpUniv_rec_acc_irrel unfold:InterpUniv.
 Qed.
 
 #[export]Hint Rewrite @InterpUnivN_nolt : InterpUniv.
