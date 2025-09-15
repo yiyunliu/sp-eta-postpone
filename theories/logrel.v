@@ -1,7 +1,6 @@
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
 Require Import common fp_red.
 From Hammer Require Import Tactics.
-From Equations Require Import Equations.
 Require Import ssreflect ssrbool.
 Require Import Logic.PropExtensionality (propositional_extensionality).
 From stdpp Require Import relations (rtc(..), rtc_subrel).
@@ -45,6 +44,7 @@ Inductive InterpExt i (I : nat -> PTm -> Prop) : PTm -> (PTm -> Prop) -> Prop :=
   ⟦ A0 ⟧ i ;; I ↘ PA ->
   ⟦ A ⟧ i ;; I ↘ PA
 
+(** [InterpExt_Conv]'s sole purpose is to get rid of funext and propext *)
 | InterpExt_Conv A PA PA' :
   ⟦ A ⟧ i ;; I ↘ PA ->
   PA ≐ PA' ->
@@ -60,6 +60,8 @@ Proof. hauto lq:on ctrs:InterpExt. Qed.
 Infix "<?" := Compare_dec.lt_dec (at level 60).
 Check Wf_nat.lt_wf.
 
+(** Migrated from Equations to explicit recursion over Acc using Leroy's method:
+ https://inria.hal.science/hal-04356563v2/document *)
 Fixpoint InterpUniv_rec (i : nat) (ACC : Acc lt i) : PTm -> (PTm -> Prop) -> Prop :=
   @InterpExt i (fun j A =>
                       match j <? i with
@@ -68,7 +70,7 @@ Fixpoint InterpUniv_rec (i : nat) (ACC : Acc lt i) : PTm -> (PTm -> Prop) -> Pro
                       end).
 
 Definition InterpUniv (i : nat) : PTm -> (PTm -> Prop) -> Prop :=
-  InterpUniv_rec i (lt_wf i).
+  InterpUniv_rec i (Wf_nat.lt_wf i).
 
 Lemma InterpExt_lt_impl i I I' A (PA : PTm -> Prop) :
   (forall j, j < i -> I j ≐ I' j) ->
@@ -121,10 +123,17 @@ Proof.
   hauto l:on use:InterpUniv_rec_acc_irrel unfold:InterpUniv.
 Qed.
 
-#[export]Hint Rewrite @InterpUnivN_nolt : InterpUniv.
+Lemma InterpUniv_nolt i A S :
+  InterpUniv i A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
+Proof. rewrite /InterpUniv; apply InterpUniv_rec_nolt. Qed.
+
+(* Make sure that the motive used in the induction principle of InterpUniv is  *)
+Definition ind_motive_okay (P : nat -> PTm -> (PTm -> Prop) -> Prop) :=
+  forall i A S S', S ≐ S' -> P i A S <-> P i A S'.
 
 Lemma InterpUniv_ind
   : forall (P : nat -> PTm -> (PTm -> Prop) -> Prop),
+       ind_motive_okay P ->
        (forall i (A : PTm), SNe A -> P i A (fun a : PTm => exists v : PTm , rtc TRedSN a v /\ SNe v)) ->
        (forall i (p : BTag) (A : PTm ) (B : PTm ) (PA : PTm  -> Prop)
           (PF : PTm  -> (PTm  -> Prop) -> Prop),
@@ -139,44 +148,48 @@ Lemma InterpUniv_ind
        (forall i (A A0 : PTm ) (PA : PTm  -> Prop), TRedSN A A0 -> ⟦ A0 ⟧ i ↘ PA -> P i A0 PA -> P i A PA) ->
        forall i (p : PTm ) (P0 : PTm  -> Prop), ⟦ p ⟧ i ↘ P0 -> P i p P0.
 Proof.
-  move => P  hSN hBind hNat hUniv hRed.
-  elim /Wf_nat.lt_wf_ind => i ih . simp InterpUniv.
+  move => P P_ok hSN hBind hNat hUniv hRed.
+  elim /Wf_nat.lt_wf_ind => i ih . setoid_rewrite InterpUniv_nolt.
   move => A PA. move => h. set I := fun _ => _ in h.
-  elim : A PA / h; rewrite -?InterpUnivN_nolt; eauto.
+  elim : A PA / h; eauto.
+  - hauto l:on use:InterpUniv_nolt.
+  - hauto l:on use:InterpUniv_nolt.
+  - hauto lq:on unfold:ind_motive_okay.
 Qed.
-
-Derive Dependent Inversion iinv with (forall i I (A : PTm ) PA, InterpExt i I A PA) Sort Prop.
 
 Lemma InterpUniv_Ne i (A : PTm) :
   SNe A ->
   ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
-Proof. simp InterpUniv. apply InterpExt_Ne. Qed.
+Proof. apply InterpExt_Ne. Qed.
 
 Lemma InterpUniv_Bind  i p A B PA PF :
   ⟦ A ⟧ i ↘ PA ->
   (forall a, PA a -> exists PB, PF a PB) ->
   (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
   ⟦ PBind p A B ⟧ i ↘ BindSpace p PA PF.
-Proof. simp InterpUniv. apply InterpExt_Bind. Qed.
+Proof. apply InterpExt_Bind. Qed.
 
 Lemma InterpUniv_Univ i j :
   j < i -> ⟦ PUniv j ⟧ i ↘ (fun A => exists PA, ⟦ A ⟧ j ↘ PA).
 Proof.
-  simp InterpUniv. simpl.
-  apply InterpExt_Univ'. by simp InterpUniv.
+  setoid_rewrite InterpUniv_nolt. by apply InterpExt_Univ'.
 Qed.
 
 Lemma InterpUniv_Step i A A0 PA :
   TRedSN A A0 ->
   ⟦ A0 ⟧ i ↘ PA ->
   ⟦ A ⟧ i ↘ PA.
-Proof. simp InterpUniv. apply InterpExt_Step. Qed.
+Proof. apply InterpExt_Step. Qed.
 
 Lemma InterpUniv_Nat i :
   ⟦ PNat  ⟧ i ↘ SNat.
-Proof. simp InterpUniv. apply InterpExt_Nat. Qed.
+Proof. apply InterpExt_Nat. Qed.
 
-#[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ : InterpUniv.
+Lemma InterpUniv_Conv i A S S' :
+  ⟦ A  ⟧ i ↘ S -> S ≐ S' -> ⟦ A  ⟧ i ↘ S'.
+Proof. apply InterpExt_Conv. Qed.
+
+#[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ InterpUniv_Conv : InterpUniv.
 
 Lemma InterpExt_cumulative i j I (A : PTm ) PA :
   i <= j ->
@@ -192,7 +205,7 @@ Lemma InterpUniv_cumulative i (A : PTm) PA :
    ⟦ A ⟧ i ↘ PA -> forall j, i <= j ->
    ⟦ A ⟧ j ↘ PA.
 Proof.
-  hauto l:on rew:db:InterpUniv use:InterpExt_cumulative.
+  hauto l:on use:InterpExt_cumulative, InterpUniv_nolt.
 Qed.
 
 Definition CR (P : PTm -> Prop) :=
@@ -215,11 +228,19 @@ Proof.
   hauto lq:on ctrs:SNat.
 Qed.
 
+(** Artifact for not using funext  *)
+Lemma CR_okay S0 S1 :
+  S0 ≐ S1 -> CR S0 <-> CR S1.
+Proof.
+  unfold CR. sfirstorder.
+Qed.
+
 Lemma adequacy : forall i A PA,
    ⟦ A ⟧ i ↘ PA ->
   CR PA /\ SN A.
 Proof.
   apply : InterpUniv_ind.
+  - sfirstorder use:CR_okay.
   - hauto l:on use:N_Exps ctrs:SN,SNe.
   - move => i p A B PA PF hPA [ihA0 ihA1] hTot hRes ihPF.
     set PBot := (VarPTm var_zero).
@@ -243,7 +264,7 @@ Proof.
       hauto lq:on.
       qauto l:on use:SN_AppInv, SN_NoForbid.P_AbsInv.
   - sfirstorder use:CR_SNat.
-  - hauto l:on ctrs:InterpExt rew:db:InterpUniv.
+  - hauto l:on db:InterpUniv.
   - hauto l:on ctrs:SN unfold:CR.
 Qed.
 
@@ -259,6 +280,7 @@ Lemma InterpUniv_back_clos i (A : PTm ) PA :
            PA b -> PA a.
 Proof.
   move : i A PA . apply : InterpUniv_ind; eauto.
+  - hauto lq:on unfold:ind_motive_okay.
   - hauto q:on ctrs:rtc.
   - move => i p A B PA PF hPA ihPA hTot hRes ihPF a b hr.
     case : p => //=.
@@ -284,12 +306,7 @@ Lemma InterpUniv_case i (A : PTm) PA :
   ⟦ A ⟧ i ↘ PA ->
   exists H, rtc TRedSN A H /\  ⟦ H ⟧ i ↘ PA /\ (SNe H \/ isbind H \/ isuniv H \/ isnat H).
 Proof.
-  move : i A PA. apply InterpUniv_ind => //=.
-  hauto lq:on ctrs:rtc use:InterpUniv_Ne.
-  hauto l:on use:InterpUniv_Bind.
-  hauto l:on use:InterpUniv_Nat.
-  hauto l:on use:InterpUniv_Univ.
-  hauto lq:on ctrs:rtc.
+  move : i A PA. apply InterpUniv_ind => //=; sauto lq:on db:InterpUniv ctrs:rtc unfold:ind_motive_okay.
 Qed.
 
 Lemma redsn_preservation_mutual :
@@ -309,10 +326,10 @@ Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 Lemma InterpUniv_SNe_inv i (A : PTm) PA :
   SNe A ->
   ⟦ A ⟧ i ↘ PA ->
-  PA = (fun a => exists v, rtc TRedSN a v /\ SNe v).
+  (PA ≐ (fun a => exists v, rtc TRedSN a v /\ SNe v)).
 Proof.
-  simp InterpUniv.
-  hauto lq:on rew:off inv:InterpExt,SNe use:redsn_preservation_mutual.
+  move => /[swap]. move : i A PA.
+  apply : InterpUniv_ind; hauto lq:on use:redsn_preservation_mutual unfold:ind_motive_okay inv:SNe, TRedSN.
 Qed.
 
 Lemma InterpUniv_Bind_inv i p A B S :
@@ -320,29 +337,25 @@ Lemma InterpUniv_Bind_inv i p A B S :
   ⟦ A ⟧ i ↘ PA /\
   (forall a, PA a -> exists PB, PF a PB) /\
   (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
-  S = BindSpace p PA PF.
-Proof. simp InterpUniv.
-       inversion 1; try hauto inv:SNe q:on use:redsn_preservation_mutual.
-       rewrite -!InterpUnivN_nolt.
-       sauto lq:on.
+  S ≐ BindSpace p PA PF.
+Proof.
+  move E : (PBind p A B) => T h. move : p A B E.
+  elim /InterpUniv_ind : h; hauto lq:on unfold:ind_motive_okay inv:SNe, TRedSN.
 Qed.
 
 Lemma InterpUniv_Nat_inv i S :
-  ⟦ PNat  ⟧ i ↘ S -> S = SNat.
+  ⟦ PNat  ⟧ i ↘ S -> S ≐ SNat.
 Proof.
-  simp InterpUniv.
-  inversion 1; try hauto inv:SNe q:on use:redsn_preservation_mutual.
-  sauto lq:on.
+  move E : (PNat) => T hu. move : E.
+  elim /InterpUniv_ind : hu; hauto lq:on unfold:ind_motive_okay inv:SNe, TRedSN.
 Qed.
 
 Lemma InterpUniv_Univ_inv i j S :
   ⟦ PUniv j ⟧ i ↘ S ->
-  S = (fun A => exists PA, ⟦ A ⟧ j ↘ PA) /\ j < i.
+  S ≐ (fun A => exists PA, ⟦ A ⟧ j ↘ PA) /\ j < i.
 Proof.
-  simp InterpUniv. inversion 1;
-    try hauto inv:SNe use:redsn_preservation_mutual.
-  rewrite -!InterpUnivN_nolt. sfirstorder.
-  subst. hauto lq:on inv:TRedSN.
+  move E : (PUniv j) => T h. move : j E.
+  elim /InterpUniv_ind : h; hauto lq:on unfold:ind_motive_okay inv:SNe, TRedSN.
 Qed.
 
 Lemma bindspace_impl p (PA PA0 : PTm -> Prop) PF PF0 b  :
@@ -374,6 +387,7 @@ Proof.
   move => hA.
   move : i A PA hA B PB.
   apply : InterpUniv_ind.
+  - hauto lq:on unfold:ind_motive_okay.
   - move => i A hA B PB hPB. split.
     + move => hAB a ha.
       have [? ?] : SN B /\ SN A by hauto l:on use:adequacy.
@@ -383,8 +397,8 @@ Proof.
       have {}h0 : SNe H.
       suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       move : hA hAB. clear. hauto lq:on db:noconf.
-      move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
-      tauto.
+      eapply InterpUniv_SNe_inv in h0;
+        qauto l:on.
     + move => hAB a ha.
       have [? ?] : SN B /\ SN A by hauto l:on use:adequacy.
       move /InterpUniv_case : hPB.
@@ -393,8 +407,8 @@ Proof.
       have {}h0 : SNe H.
       suff : ~ isbind H /\ ~ isuniv H /\ ~ isnat H by sfirstorder b:on.
       move : hAB hA h0. clear. hauto lq:on db:noconf.
-      move : InterpUniv_SNe_inv h1 h0. repeat move/[apply]. move => ?. subst.
-      tauto.
+      eapply InterpUniv_SNe_inv in h1;
+        qauto l:on.
   - move => i p A B PA PF hPA ihPA hTot hRes ihPF U PU hU. split.
     + have hU' : SN U by hauto l:on use:adequacy.
       move /InterpUniv_case : hU => [H [/DJoin.FromRedSNs h [h1 h0]]] hU.
@@ -408,7 +422,7 @@ Proof.
       move => p0 A0 B0 h0 /Sub.bind_inj.
       move => [? [hA hB]] _. subst.
       move /InterpUniv_Bind_inv : h0.
-      move => [PA0][PF0][hPA0][hTot0][hRes0 ?]. subst.
+      move => [PA0][PF0][hPA0][hTot0][hRes0 h]. setoid_rewrite h. move {PU h}.
       move => x. apply bindspace_impl; eauto;[idtac|idtac]. hauto l:on.
       move => a PB PB' ha hPB hPB'.
       move : hRes0 hPB'. repeat move/[apply].
@@ -427,7 +441,7 @@ Proof.
       move => p0 A0 B0 h0 /Sub.bind_inj.
       move => [? [hA hB]] _. subst.
       move /InterpUniv_Bind_inv : h0.
-      move => [PA0][PF0][hPA0][hTot0][hRes0 ?]. subst.
+      move => [PA0][PF0][hPA0][hTot0][hRes0 h]. setoid_rewrite h => {PU h}.
       move => x. apply bindspace_impl; eauto;[idtac|idtac]. hauto l:on.
       move => a PB PB' ha hPB hPB'.
       eapply ihPF; eauto.
@@ -443,7 +457,7 @@ Proof.
       have : @isnat PNat by simpl.
       move : h0 hAB. clear. qauto l:on db:noconf.
       case : H h1 hAB h0 => //=.
-      move /InterpUniv_Nat_inv. scongruence.
+      hauto lq:on use:InterpUniv_Nat_inv.
     + move => hAB a ha.
       have ? : SN B by hauto l:on use:adequacy.
       move /InterpUniv_case : h.
@@ -454,7 +468,7 @@ Proof.
       have : @isnat PNat by simpl.
       move : h0 hAB. clear. qauto l:on db:noconf.
       case : H h1 hAB h0 => //=.
-      move /InterpUniv_Nat_inv. scongruence.
+      hauto lq:on use:InterpUniv_Nat_inv.
   - move => i j jlti ih B PB hPB. split.
     + have ? : SN B by hauto l:on use:adequacy.
       move /InterpUniv_case : hPB => [H [/DJoin.FromRedSNs h [h1 h0]]].
