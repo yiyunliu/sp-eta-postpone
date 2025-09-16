@@ -532,27 +532,23 @@ Lemma InterpUniv_Join i (A B : PTm) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ B ⟧ i ↘ PB ->
   DJoin.R A B ->
-  PA = PB.
+  PA ≐ PB.
 Proof.
   move => + + /[dup] /Sub.FromJoin + /DJoin.symmetric /Sub.FromJoin.
-  move : InterpUniv_Sub'; repeat move/[apply]. move => h.
-  move => h1 h2.
-  extensionality x.
-  apply propositional_extensionality.
-  firstorder.
+  move : InterpUniv_Sub'; repeat move/[apply]. hauto l:on.
 Qed.
 
 Lemma InterpUniv_Functional i  (A : PTm) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ A ⟧ i ↘ PB ->
-  PA = PB.
+  PA ≐ PB.
 Proof. hauto l:on use:InterpUniv_Join, DJoin.refl. Qed.
 
 Lemma InterpUniv_Join' i j (A B : PTm) PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ B ⟧ j ↘ PB ->
   DJoin.R A B ->
-  PA = PB.
+  PA ≐ PB.
 Proof.
   have [? ?] : i <= max i j /\ j <= max i j by lia.
   move => hPA hPB.
@@ -564,7 +560,7 @@ Qed.
 Lemma InterpUniv_Functional' i j A PA PB :
   ⟦ A ⟧ i ↘ PA ->
   ⟦ A ⟧ j ↘ PB ->
-  PA = PB.
+  PA ≐ PB.
 Proof.
   hauto l:on use:InterpUniv_Join', DJoin.refl.
 Qed.
@@ -573,28 +569,47 @@ Lemma InterpUniv_Bind_inv_nopf i p A B P (h :  ⟦PBind p A B ⟧ i ↘ P) :
   exists (PA : PTm -> Prop),
      ⟦ A ⟧ i ↘ PA /\
     (forall a, PA a -> exists PB, ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
-      P = BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB).
+      P ≐ BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB).
 Proof.
   move /InterpUniv_Bind_inv : h.
-  move => [PA][PF][hPA][hPF][hPF']?. subst.
-  exists PA. repeat split => //.
-  - sfirstorder.
-  - extensionality b.
-    case : p => /=.
-    + extensionality a.
-      extensionality PB.
-      extensionality ha.
-      apply propositional_extensionality.
-      split.
-      * move => h hPB.  apply h.
-        have {}/hPF := ha.
-        move => [PB0 hPB0].
-        have {}/hPF' := hPB0 => ?.
-        have : PB = PB0 by hauto l:on use:InterpUniv_Functional.
-        congruence.
-      * sfirstorder.
-    + rewrite /SumSpace. apply propositional_extensionality.
-      split; hauto q:on use:InterpUniv_Functional.
+  move => [PA][PF][hPA][hPF][hPF']h. setoid_rewrite h => {P h}.
+  exists PA. split => //.
+  case : p => /=.
+  - split.
+    hauto lq:on.
+    split.
+    + move =>h a PB ha.
+      have {}/hPF := ha.
+      move => [PB0 hPB0].
+      have {}/hPF' := hPB0 => ? ?.
+      have : PB ≐ PB0 by eauto using InterpUniv_Functional.
+      firstorder.
+    + sfirstorder.
+  - split.
+    hauto lq:on.
+    rewrite /SumSpace.
+    move => A0.
+    split.
+    + case; first by tauto.
+      move => [a][b][h0][h1]h2. right.
+      exists a,b.
+      repeat split => //.
+      move => PB.
+      have {}/hPF := h1.
+      move => [PB0]/[dup]?/hPF' h3 h4.
+      have h : PB ≐ PB0 by eauto using InterpUniv_Functional.
+      setoid_rewrite h.
+      firstorder.
+    + case; first by tauto.
+      move => [a][b][h0][h1]h2. right.
+      exists a,b.
+      repeat split => //.
+      move => PB.
+      have {}/hPF := h1.
+      move => [PB0]/[dup]?/hPF' h3 h4.
+      have h : PB ≐ PB0 by eauto using InterpUniv_Functional.
+      setoid_rewrite h.
+      firstorder.
 Qed.
 
 Definition ρ_ok (Γ : list PTm) (ρ : nat -> PTm) := forall i k A PA,
@@ -621,7 +636,7 @@ Proof.
     move => [PA hPA].
     exists (S i). eexists.
     split.
-    + simp InterpUniv. apply InterpExt_Univ. lia.
+    + hauto q:on db: InterpUniv.
     + simpl. eauto.
 Qed.
 
@@ -638,8 +653,8 @@ Proof.
   have {}/hb := hρ.
   move => [k][PA][hPA]hpb.
   move => [k0][PA0][hPA0]hpa.
-  have : PA = PA0 by hauto l:on use:InterpUniv_Functional'.
-  hauto lq:on.
+  have : PA ≐ PA0 by eauto using InterpUniv_Functional'.
+  firstorder.
 Qed.
 
 Lemma SemWt_SemLEq Γ (A B : PTm) i j :
@@ -652,7 +667,7 @@ Proof.
   have {}/ha := hρ.
   have {}/hb := hρ.
   move => [k][PA][/= /InterpUniv_Univ_inv [? hPA]]hpb.
-  move => [k0][PA0][/= /InterpUniv_Univ_inv [? hPA0]]hpa. subst.
+  move => [k0][PA0][/= /InterpUniv_Univ_inv [? hPA0]]hpa.
   move : hpb => [PA]hPA'.
   move : hpa => [PB]hPB'.
   exists PB, PA.
