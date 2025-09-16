@@ -1,7 +1,7 @@
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import Logic.PropExtensionality (propositional_extensionality).
 Require Import ssreflect ssrbool.
-Import Logic (inspect).
+Require Import Arith.PeanoNat (Nat.eq_dec).
 From Ltac2 Require Import Ltac2.
 Import Ltac2.Constr.
 Set Default Proof Mode "Classic".
@@ -37,9 +37,12 @@ Global Set Transparent Obligations.
 
 Local Obligation Tactic := try solve [check_equal_triv | sfirstorder].
 
+Scheme Equality for BTag.
+Scheme Equality for PTag.
+
 Program Fixpoint check_equal (a b : PTm) (h : algo_dom a b) {struct h} : bool :=
   match a, b with
-  | VarPTm i, VarPTm j => nat_eqdec i j
+  | VarPTm i, VarPTm j => Nat.eq_dec i j
   | PAbs a, PAbs b => check_equal_r a b _
   | PAbs a, VarPTm _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
   | PAbs a, PApp _ _ => check_equal_r a (PApp (ren_PTm shift b) (VarPTm var_zero)) _
@@ -62,12 +65,12 @@ Program Fixpoint check_equal (a b : PTm) (h : algo_dom a b) {struct h} : bool :=
   | PNat, PNat => true
   | PZero, PZero => true
   | PSuc a, PSuc b => check_equal_r a b _
-  | PProj p0 a, PProj p1 b => PTag_eqdec p0 p1 && check_equal a b _
+  | PProj p0 a, PProj p1 b => PTag_eq_dec p0 p1 && check_equal a b _
   | PApp a0 b0, PApp a1 b1 => check_equal a0 a1 _ && check_equal_r b0 b1 _
   | PInd P0 u0 b0 c0, PInd P1 u1 b1 c1 =>
       check_equal_r P0 P1 _ && check_equal u0 u1 _ && check_equal_r b0 b1 _ && check_equal_r c0 c1 _
-  | PUniv i, PUniv j => nat_eqdec i j
-  | PBind p0 A0 B0, PBind p1 A1 B1 => BTag_eqdec p0 p1 && check_equal_r A0 A1 _ && check_equal_r B0 B1 _
+  | PUniv i, PUniv j => Nat.eq_dec i j
+  | PBind p0 A0 B0, PBind p1 A1 B1 => BTag_eq_dec p0 p1 && check_equal_r A0 A1 _ && check_equal_r B0 B1 _
   | _, _ => false
   end
 with check_equal_r (a b : PTm) (h : algo_dom_r a b) {struct h} : bool :=
@@ -135,12 +138,12 @@ Qed.
 
 Lemma check_equal_bind_bind p0 A0 B0 p1 A1 B1 h0 h1 :
   check_equal (PBind p0 A0 B0) (PBind p1 A1 B1) (A_BindCong p0 p1 A0 A1 B0 B1 h0 h1) =
-    BTag_eqdec p0 p1 &&  check_equal_r A0 A1 h0 && check_equal_r  B0 B1 h1.
+    BTag_eq_dec p0 p1 &&  check_equal_r A0 A1 h0 && check_equal_r  B0 B1 h1.
 Proof. reflexivity. Qed.
 
 Lemma check_equal_proj_proj p0 u0 p1 u1 neu0 neu1 h :
   check_equal (PProj p0 u0) (PProj p1 u1) (A_ProjCong p0 p1 u0 u1 neu0 neu1 h) =
-    PTag_eqdec p0 p1 && check_equal u0 u1 h.
+    PTag_eq_dec p0 p1 && check_equal u0 u1 h.
 Proof. reflexivity. Qed.
 
 Lemma check_equal_app_app u0 a0 u1 a1 hu0 hu1 hdom hdom' :
@@ -205,7 +208,7 @@ Proof.
 Qed.
 
 Lemma check_equal_univ i j :
-  check_equal (PUniv i) (PUniv j) (A_UnivCong i j) = nat_eqdec i j.
+  check_equal (PUniv i) (PUniv j) (A_UnivCong i j) = Nat.eq_dec i j.
 Proof. reflexivity. Qed.
 
 Lemma check_equal_conf a b nfa nfb nfab :

@@ -2,6 +2,7 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common exec
 Require Import ssreflect ssrbool.
 From stdpp Require Import relations (rtc(..)).
 From Hammer Require Import Tactics.
+Require Import PeanoNat (Nat.eq_dec).
 
 Lemma coqeqr_no_hred a b : a ∼ b -> HRed.nf a /\ HRed.nf b.
 Proof. induction 1; sauto lq:on unfold:HRed.nf. Qed.
@@ -41,7 +42,7 @@ Proof.
     constructor. tauto.
   - move => a u i h0 ih h.
     apply CE_AbsNeu => //.
-    apply : ih. simp check_equal tm_to_eq_view in h.
+    apply : ih.
     by rewrite check_equal_abs_neu in h.
   - move => a u i h ih h0.
     apply CE_NeuAbs=>//.
@@ -93,7 +94,7 @@ Proof.
     sauto lq:on rew:off.
 Qed.
 
-Ltac ce_solv := move => *; simp ce_prop in *; hauto qb:on rew:off inv:CoqEq, CoqEq_Neu.
+Ltac ce_solv := move => *; autorewrite with ce_prop in *; hauto qb:on rew:off inv:CoqEq, CoqEq_Neu.
 
 Lemma check_equal_complete :
   (forall a b (h : algo_dom a b), ~ check_equal a b h -> ~ a ↔ b) /\
@@ -110,7 +111,7 @@ Proof.
   - ce_solv.
   - move => i j.
     rewrite check_equal_univ.
-    case : nat_eqdec => //=.
+    case : Nat.eq_dec => //=.
     ce_solv.
   - move => p0 p1 A0 A1 B0 B1 h0 ih0 h1 ih1.
     rewrite check_equal_bind_bind.
@@ -121,16 +122,16 @@ Proof.
     clear. move => ?. hauto lq:on rew:off inv:CoqEq, CoqEq_Neu.
     hauto qb:on inv:CoqEq,CoqEq_Neu.
     hauto qb:on inv:CoqEq,CoqEq_Neu.
-  - simp check_equal. done.
-  - move => i j. move => h. have {h} : ~ nat_eqdec i j by done.
-    case : nat_eqdec => //=. ce_solv.
+  - done.
+  - move => i j. move => h. have {h} : ~ Nat.eq_dec i j by done.
+    case : Nat.eq_dec => //=. ce_solv.
   - move => u0 u1 a0 a1 hu0 hu1 h0 ih0 h1 ih1.
     rewrite check_equal_app_app.
     move /negP /nandP. sauto b:on inv:CoqEq, CoqEq_Neu.
   - move => p0 p1 u0 u1 neu0 neu1 h ih.
     rewrite check_equal_proj_proj.
     move /negP /nandP. case.
-    case : PTag_eqdec => //=. sauto lq:on.
+    case : PTag_eq_dec => //=. sauto lq:on.
     sauto lqb:on.
   - move => P0 P1 u0 u1 b0 b1 c0 c1 neu0 neu1 domP ihP domu ihu domb ihb domc ihc.
     rewrite check_equal_ind_ind.
@@ -145,7 +146,7 @@ Proof.
     sauto lqb:on inv:CoqEq, CoqEq_Neu.
     sauto lqb:on inv:CoqEq, CoqEq_Neu.
   - rewrite /tm_conf.
-    move => a b n n0 i. simp ce_prop.
+    move => a b n n0 i.
     move => _. inversion 1; subst => //=.
     + destruct b => //=.
     + destruct a => //=.
@@ -160,7 +161,7 @@ Proof.
     inversion h0; subst.
     hauto l:on use:hreds_nf_refl.
   - move => a a' b h dom.
-    simp ce_prop => /[apply].
+    autorewrite with ce_prop => /[apply].
     move => + h1. inversion h1; subst.
     inversion H; subst.
     + sfirstorder use:coqeq_no_hred unfold:HRed.nf.
@@ -187,24 +188,24 @@ Proof.
   - simpl. move => i j [];
     sauto lq:on use:Reflect.Nat_leb_le.
   - move => A0 A1 B0 B1 s ihs s0 ihs0.
-    simp ce_prop.
+    autorewrite with ce_prop.
     hauto lqb:on ctrs:CoqLEq.
   - move => A0 A1 B0 B1 s ihs s0 ihs0.
-    simp ce_prop.
+    autorewrite with ce_prop.
     hauto lqb:on ctrs:CoqLEq.
   - qauto ctrs:CoqLEq.
   - move => a b i a0.
-    simp ce_prop.
+    autorewrite with ce_prop.
     move => h. apply CLE_NeuNeu.
     hauto lq:on use:check_equal_sound, coqeq_neuneu', coqeq_symmetric_mutual.
   - move => a b n n0 i.
-    by simp ce_prop.
-  - move => a b h ih. simp ce_prop. hauto l:on.
+    by autorewrite with ce_prop.
+  - move => a b h ih. autorewrite with ce_prop. hauto l:on.
   - move => a a' b hr h ih.
-    simp ce_prop.
+    autorewrite with ce_prop.
     sauto lq:on rew:off.
   - move => a b b' n r dom ihdom.
-    simp ce_prop.
+    autorewrite with ce_prop.
     move : ihdom => /[apply].
     move {dom}.
     sauto lq:on rew:off.
@@ -219,28 +220,28 @@ Proof.
     move => + h. inversion h; subst => //=.
     sfirstorder use:PeanoNat.Nat.leb_le.
     hauto lq:on inv:CoqEq_Neu.
-  - move => A0 A1 B0 B1 s ihs s' ihs'. simp ce_prop.
+  - move => A0 A1 B0 B1 s ihs s' ihs'. autorewrite with ce_prop.
     move /nandP.
     case.
     move => /negbTE {}/ihs. hauto q:on inv:CoqLEq, CoqEq_Neu.
     move => /negbTE {}/ihs'. hauto q:on inv:CoqLEq, CoqEq_Neu.
-  - move => A0 A1 B0 B1 s ihs s' ihs'. simp ce_prop.
+  - move => A0 A1 B0 B1 s ihs s' ihs'. autorewrite with ce_prop.
     move /nandP.
     case.
     move => /negbTE {}/ihs. hauto q:on inv:CoqLEq, CoqEq_Neu.
     move => /negbTE {}/ihs'. hauto q:on inv:CoqLEq, CoqEq_Neu.
-  - move => a b i hs. simp ce_prop.
+  - move => a b i hs. autorewrite with ce_prop.
     move => + h. inversion h; subst => //=.
     move => /negP h0.
     eapply check_equal_complete in h0.
     apply h0. by constructor.
-  - move => a b s ihs. simp ce_prop.
+  - move => a b s ihs. autorewrite with ce_prop.
     move => h0 h1. apply ihs =>//.
     have [? ?] : HRed.nf a /\ HRed.nf b by hauto l:on use:salgo_dom_no_hred.
     inversion h1; subst.
     hauto l:on use:hreds_nf_refl.
   - move => a a' b h dom.
-    simp ce_prop => /[apply].
+    autorewrite with ce_prop => /[apply].
     move => + h1. inversion h1; subst.
     inversion H; subst.
     + sfirstorder use:coqleq_no_hred unfold:HRed.nf.
