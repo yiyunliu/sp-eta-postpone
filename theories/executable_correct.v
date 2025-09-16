@@ -1,4 +1,3 @@
-From Equations Require Import Equations.
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common executable algorithmic.
 Require Import ssreflect ssrbool.
 From stdpp Require Import relations (rtc(..)).

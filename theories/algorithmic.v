@@ -4,7 +4,6 @@ From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
 Require Import Psatz.
 From stdpp Require Import relations (rtc(..), nsteps(..)).
-Require Import Coq.Logic.FunctionalExtensionality.
 
 Module HRed.
   Lemma ToRRed (a b : PTm) : HRed.R a b -> RRed.R a b.

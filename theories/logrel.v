@@ -57,7 +57,6 @@ Lemma InterpExt_Univ' i  I j (PF : PTm -> Prop) :
 Proof. hauto lq:on ctrs:InterpExt. Qed.
 
 Infix "<?" := Compare_dec.lt_dec (at level 60).
-Check Wf_nat.lt_wf.
 
 (** Migrated from Equations to explicit recursion over Acc using Leroy's method:
  https://inria.hal.science/hal-04356563v2/document *)

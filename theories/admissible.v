@@ -2,7 +2,6 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typi
 From Hammer Require Import Tactics.
 Require Import ssreflect.
 Require Import Psatz.
-Require Import Coq.Logic.FunctionalExtensionality.
 
 Derive Inversion wff_inv with (forall Γ, ⊢ Γ) Sort Prop.
 
