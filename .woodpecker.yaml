@@ -6,7 +6,6 @@ steps:
   - name: build
     image: coqorg/coq:8.20.1-ocaml-4.14.2-flambda
     commands:
-      - opam update
       - opam install -y coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml
       - eval $(opam env)
       - sudo chown -R 1000:1000 .
