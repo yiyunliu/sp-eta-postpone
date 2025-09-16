@@ -2,7 +2,6 @@ Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
 Require Import common fp_red.
 From Hammer Require Import Tactics.
 Require Import ssreflect ssrbool.
-Require Import Logic.PropExtensionality (propositional_extensionality).
 From stdpp Require Import relations (rtc(..), rtc_subrel).
 Import Psatz.
 
@@ -666,11 +665,13 @@ Proof.
   move => ρ hρ.
   have {}/ha := hρ.
   have {}/hb := hρ.
-  move => [k][PA][/= /InterpUniv_Univ_inv [? hPA]]hpb.
-  move => [k0][PA0][/= /InterpUniv_Univ_inv [? hPA0]]hpa.
-  move : hpb => [PA]hPA'.
-  move : hpa => [PB]hPB'.
-  exists PB, PA.
+  move => [k][PA][/= /InterpUniv_Univ_inv [h0 hPA]]hpb.
+  move => [k0][PA0][/= /InterpUniv_Univ_inv [h1 hPA0]]hpa.
+  setoid_rewrite h0 in hpb => {h0}.
+  setoid_rewrite h1 in hpa => {h1}.
+  move : hpb => [PA1]hPA'.
+  move : hpa => [PB1]hPB'.
+  exists PB1, PA1.
   split; apply : InterpUniv_cumulative; eauto.
 Qed.
 
@@ -694,8 +695,8 @@ Proof.
     hauto lq:on unfold:ρ_ok.
   - move => m A0 PA0.
     inversion 1; subst. asimpl => h.
-    have ? : PA0 = PA by eauto using InterpUniv_Functional'.
-    by subst.
+    have ? : PA0 ≐ PA by eauto using InterpUniv_Functional'.
+    firstorder.
 Qed.
 
 Lemma ρ_ok_cons' i Γ ρ a PA A  Δ :
@@ -739,6 +740,15 @@ Lemma smorphing_ok_refl Δ : smorphing_ok Δ Δ VarPTm.
   rewrite /smorphing_ok => ξ. apply.
 Qed.
 
+Lemma ρ_ok_ext ρ0 ρ1 Γ :
+  (forall x, ρ0 x = ρ1 x) ->
+  ρ_ok Γ ρ0 <-> ρ_ok Γ ρ1.
+Proof.
+  rewrite /ρ_ok => ?.
+  have : forall A, subst_PTm ρ0 A = subst_PTm ρ1 A by eauto using ext_PTm.
+  hauto l:on.
+Qed.
+
 Lemma smorphing_ren Ξ Δ Γ
   (ρ : nat -> PTm) (ξ : nat -> nat) :
   renaming_ok Ξ Δ ξ -> smorphing_ok Δ Γ ρ ->
@@ -749,11 +759,10 @@ Proof.
   move => h.
   rewrite /smorphing_ok in hρ.
   asimpl.
-  Check (funcomp τ ξ).
   set u := funcomp _ _.
-  have : u = funcomp (subst_PTm (funcomp τ ξ)) ρ.
-  subst u. extensionality i. by asimpl.
-  move => ->. by apply hρ.
+  have : forall x, u x = funcomp (subst_PTm (funcomp τ ξ)) ρ x.
+  subst u. by asimpl.
+  hauto lq:on use:ρ_ok_ext.
 Qed.
 
 Lemma smorphing_ext Δ Γ (ρ : nat -> PTm) (a : PTm) (A : PTm)  :
@@ -774,8 +783,8 @@ Proof.
     move : hτ; by repeat move/[apply].
   - move => k0 A0 PA0. asimpl. rewrite {2}/funcomp. asimpl.
     elim /lookup_inv => //=_ A1 Γ0 _ [? ?] ?. subst. asimpl.
-    move => *. suff : PA0 = PA by congruence.
-    move : h0. asimpl.
+    move => h2. suff : PA0 ≐ PA by firstorder.
+    move : h2 h0. asimpl.
     eauto using InterpUniv_Functional'.
 Qed.
 
@@ -927,12 +936,13 @@ Proof.
   exists i, PPi. split => //.
   simpl in hPPi.
   move /InterpUniv_Bind_inv_nopf : hPPi.
-  move => [PA [hPA [hTot ?]]]. subst=>/=.
+  move => [PA [hPA [hTot h]]]. rewrite h => {PPi h}. simpl.
   move => a PB ha. asimpl => hPB.
   move : ρ_ok_cons (hPA) (hρ) (ha). repeat move/[apply].
   move /hb.
   intros (m & PB0 & hPB0 & hPB0').
-  replace PB0 with PB in * by hauto l:on use:InterpUniv_Functional'.
+  have h : PB0 ≐ PB by eauto using InterpUniv_Functional'.
+  rewrite h in hPB0'.
   apply : InterpUniv_back_clos; eauto.
   apply N_β'. by asimpl.
   move : ha hPA. clear. hauto q:on use:adequacy.
@@ -947,10 +957,14 @@ Proof.
   move /(_ ρ hρ) : hf; intros (i & PPi & hPi & hf).
   move /(_ ρ hρ) : hb; intros (j & PA & hPA & hb).
   simpl in hPi.
-  move /InterpUniv_Bind_inv_nopf : hPi. intros (PA0 & hPA0 & hTot & ?). subst.
-  have ? : PA0 = PA by eauto using InterpUniv_Functional'. subst.
-  move  : hf (hb). move/[apply].
-  move : hTot hb. move/[apply].
+  move /InterpUniv_Bind_inv_nopf : hPi. intros (PA0 & hPA0 & hTot & h0).
+  rewrite h0 in hf => {PPi h0}.
+  have h : PA0 ≐ PA by eauto using InterpUniv_Functional'.
+  simpl in hf. rewrite /ProdSpace in hf.
+  setoid_rewrite h in hf.
+  setoid_rewrite h in hTot.
+  move  : hf (hb) =>/[apply].
+  move : hTot hb =>/[apply].
   asimpl. hauto lq:on.
 Qed.
 
@@ -972,7 +986,7 @@ Proof.
   exists i, PPi. split => //.
   simpl in hPPi.
   move /InterpUniv_Bind_inv_nopf : hPPi.
-  move => [PA [hPA [hTot ?]]]. subst=>/=.
+  move => [PA [hPA [hTot h]]]. setoid_rewrite h => {PPi h} /=.
   rewrite /SumSpace. right.
   exists (subst_PTm ρ a), (subst_PTm ρ b).
   split.
@@ -981,10 +995,12 @@ Proof.
     move => [m][PA0][h0]h1.
     move /hb : (hρ){hb}.
     move => [k][PB][h2]h3.
-    have ? : PA0 = PA by eauto using InterpUniv_Functional'. subst.
+    have h : PA0 ≐ PA by eauto using InterpUniv_Functional'.
+    setoid_rewrite <- h.
     split => // PB0.
     move : h2. asimpl => *.
-    have ? : PB0 = PB by eauto using InterpUniv_Functional'. by subst.
+    have ? : PB0 ≐ PB by eauto using InterpUniv_Functional'.
+    firstorder.
 Qed.
 
 Lemma N_Projs p (a b : PTm) :
@@ -997,7 +1013,7 @@ Lemma ST_Proj1 Γ (a : PTm) A B :
   Γ ⊨ PProj PL a ∈ A.
 Proof.
   move => h ρ /[dup]hρ {}/h [m][PA][/= /InterpUniv_Bind_inv_nopf h0]h1.
-  move : h0 => [S][h2][h3]?. subst.
+  move : h0 => [S][h2][h3]h. setoid_rewrite h in h1 => {PA h}.
   move : h1 => /=.
   rewrite /SumSpace.
   case.
@@ -1020,7 +1036,7 @@ Lemma ST_Proj2 Γ (a : PTm) A B :
 Proof.
   move => h ρ hρ.
   move : (hρ) => {}/h [m][PA][/= /InterpUniv_Bind_inv_nopf h0]h1.
-  move : h0 => [S][h2][h3]?. subst.
+  move : h0 => [S][h2][h3]h. setoid_rewrite h in h1 => {PA h}.
   move : h1 => /=.
   rewrite /SumSpace.
   case.
@@ -1049,10 +1065,10 @@ Proof.
       have : S (PProj PL (subst_PTm ρ a)) by hauto lq:on use:InterpUniv_back_closs.
       move => {}/h3_dup.
       move => [PB0]. asimpl => hPB0.
-      suff : PB = PB0 by congruence.
+      suff h : PB ≐ PB0 by hauto l:on db:InterpUniv.
       move : hPB. asimpl => hPB.
       suff : DJoin.R (subst_PTm (scons (PProj PL (subst_PTm ρ a)) ρ) B) (subst_PTm (scons a0 ρ) B).
-      move : InterpUniv_Join hPB0 hPB; repeat move/[apply]. done.
+      hauto lq:on use:InterpUniv_Join.
       apply DJoin.cong.
       apply DJoin.FromRedSNs.
       hauto lq:on ctrs:rtc unfold:BJoin.R.
@@ -1303,7 +1319,7 @@ Proof.
   move => [PA][hPA][hPF]?. subst.
   have {}/ha := hρ.
   move => [k][PA0][hPA0]ha.
-  have ? : PA0 = PA by hauto l:on use:InterpUniv_Functional'. subst.
+  have h : PA0 ≐ PA by eauto using InterpUniv_Functional'. setoid_rewrite h in ha.
   have {}/hPF := ha.
   move => [PB]. asimpl.
   hauto lq:on.
@@ -1365,7 +1381,8 @@ Proof.
   move => ha ρ.
   move : ha => /[apply] /=.
   move => [k][PA][h0 h1].
-  move /InterpUniv_Nat_inv : h0 => ?. subst.
+  have h : PA ≐ SNat by eauto using InterpUniv_Nat_inv.
+  setoid_rewrite h in h1.
   exists 0, SNat. split. apply InterpUniv_Nat.
   eauto using S_Suc.
 Qed.
@@ -1400,7 +1417,9 @@ Lemma ST_Ind Γ P (a : PTm) b c i :
 Proof.
   move => hA hc ha hb ρ hρ.
   move /(_ ρ hρ) : ha => [m][PA][ha0]ha1.
-  move /(_ ρ hρ) : hc => [n][PA0][/InterpUniv_Nat_inv ->].
+  move /(_ ρ hρ) : hc => [n][PA0][h].
+  have {}h : PA0 ≐ SNat by eauto using InterpUniv_Nat_inv.
+  setoid_rewrite h.
   simpl.
   (* Use localiaztion to block asimpl from simplifying pind *)
   set x := PInd _ _ _ _. asimpl. subst x. move : {a} (subst_PTm ρ a) .
@@ -1448,8 +1467,8 @@ Proof.
     move : hb hρ'' => /[apply].
     move => [k][PA1][h2]h3.
     move : h2. asimpl => ?.
-    have ? : PA1 = S0 by  eauto using InterpUniv_Functional'.
-    by subst.
+    have ? : PA1 ≐ S0 by  eauto using InterpUniv_Functional'.
+    firstorder.
   + move => a a' hr ha' [k][PA1][h0]h1.
     have : ρ_ok (cons PNat Γ) (scons a ρ)
       by apply : ρ_ok_cons; hauto l:on use:S_Red,(InterpUniv_Nat 0).
@@ -1457,8 +1476,8 @@ Proof.
     exists i, PA2. split => //.
     apply : InterpUniv_back_clos; eauto.
     apply N_IndCong; eauto.
-    suff : PA1 = PA2 by congruence.
-    move : h0 h2. move : InterpUniv_Join'; repeat move/[apply]. apply.
+    suff : PA1 ≐ PA2 by firstorder.
+    suff : DJoin.R (subst_PTm (scons a' ρ) P) (subst_PTm (scons a ρ) P ) by eauto using InterpUniv_Join'.
     apply DJoin.FromRReds.
     apply RReds.FromRPar.
     apply RPar.morphing; last by apply RPar.refl.

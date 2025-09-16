@@ -1,7 +1,4 @@
 Require Import Autosubst2.unscoped Autosubst2.syntax Autosubst2.core ssreflect ssrbool.
-From Equations Require Import Equations.
-Derive NoConfusion for nat PTag BTag PTm.
-Derive EqDec for BTag PTag PTm.
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
 Import Ltac2.Control.
