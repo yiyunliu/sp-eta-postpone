@@ -1,5 +1,4 @@
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
-Require Import Logic.PropExtensionality (propositional_extensionality).
 Require Import ssreflect ssrbool.
 Require Import Arith.PeanoNat (Nat.eq_dec).
 From Ltac2 Require Import Ltac2.
@@ -72,15 +71,25 @@ Program Fixpoint check_equal (a b : PTm) (h : algo_dom a b) {struct h} : bool :=
   | PUniv i, PUniv j => Nat.eq_dec i j
   | PBind p0 A0 B0, PBind p1 A1 B1 => BTag_eq_dec p0 p1 && check_equal_r A0 A1 _ && check_equal_r B0 B1 _
   | _, _ => false
+
   end
 with check_equal_r (a b : PTm) (h : algo_dom_r a b) {struct h} : bool :=
   match fancy_hred a with
   | inr a' => check_equal_r (proj1_sig a') b _
   | inl ha' => match fancy_hred b with
-            | inr b' => check_equal_r a (proj1_sig b') _
+               | inr b' => check_equal_r a (proj1_sig b') _
             | inl hb' => check_equal a b _
             end
   end.
+
+(* Next Obligation. *)
+(*   intros a b h eq. *)
+(*   intros [a' ha'] _ c0 c1 c2 hc hdom ? ?. subst. *)
+(*   destruct eq as [| [b' hb']]. exfalso. eapply n. apply ha'. *)
+(*   assert (a' = b') by eauto using hred_deter. subst. *)
+(*   assert (c1 = b') by eauto using hred_deter. subst. *)
+(*   reflexivity. *)
+(* Defined. *)
 
 Next Obligation.
   simpl. intros. clear Heq_anonymous.  destruct a' as [a' ha']. simpl.
@@ -89,6 +98,15 @@ Next Obligation.
   assert (a' = a'0) by eauto using hred_deter. by subst.
   exfalso. sfirstorder.
 Defined.
+
+(* Next Obligation. *)
+(*   intros a b h0 eq. *)
+(*   move => ha' _ eq' [b0 hb0] _ c0 c1 c2 h2 h3 dom ? ? hj. subst. *)
+(*   destruct eq as [| hr]; last by sfirstorder unfold:HRed.nf. *)
+(*   have ? : c2 = b0 by eauto using hred_deter. subst. *)
+(*   hauto lq:on. *)
+(* Defined. *)
+
 
 Next Obligation.
   simpl. intros. clear Heq_anonymous Heq_anonymous0.
@@ -109,6 +127,110 @@ Next Obligation.
   - exfalso; sfirstorder.
   - exfalso; sfirstorder.
 Defined.
+
+Ltac2 find_last_dom () :=
+  intros;
+  let (h, _, _) := List.find (fun (_,_,ty) =>
+                                lazy_match! ty with
+                                | algo_dom _ _ => true
+                                | _ => false
+                                end)
+                     (List.rev (Control.hyps ())) in
+  h.
+
+Derive Dependent Inversion algo_dom_inv with (forall a b, algo_dom a b) Sort Prop.
+Derive Dependent Inversion algo_dom_r_inv with (forall a b, algo_dom_r a b) Sort Prop.
+
+Ltac2 apply_dom_inv () :=
+  let last_dom := Control.hyp (find_last_dom ()) in
+  apply algo_dom_inv with (H := $last_dom).
+
+Ltac solve_check_equal_irrel := ltac2:(apply_dom_inv ()) => //=; hfcrush.
+
+Lemma hred_none a : HRed.nf a -> hred a = None.
+Proof.
+  destruct (hred a) eqn:eq;
+  sfirstorder use:hred_complete, hred_sound.
+Qed.
+
+Ltac simp_check_r := with_strategy opaque [check_equal] simpl in *.
+
+Lemma check_equal_nfnf a b dom : check_equal_r a b (A_NfNf a b dom) = check_equal a b dom.
+Proof.
+  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
+  have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
+  simp_check_r.
+  destruct (fancy_hred a).
+  destruct (fancy_hred b).
+  reflexivity.
+  exfalso. hauto l:on use:hred_complete.
+  exfalso. hauto l:on use:hred_complete.
+Qed.
+
+Lemma check_equal_irrel :
+  (forall a b (dom : algo_dom a b), forall dom', check_equal a b dom = check_equal a b dom') /\
+    (forall a b (dom : algo_dom_r a b), forall dom', check_equal_r a b dom =  check_equal_r a b dom').
+Proof.
+  apply algo_dom_mutual.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - solve_check_equal_irrel.
+  - move => a b dom ihdom dom'.
+    apply algo_dom_r_inv with (H := dom').
+    + move => _ ? ? h *. subst.
+      rewrite !check_equal_nfnf.
+      apply ihdom.
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+  - move => a a' b r dom ihdom dom'.
+    apply algo_dom_r_inv with (H := dom') => _.
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+    + move => a0 a'0 b0 r0 dom'' *. subst.
+      have ? : a'0 = a' by eauto using hred_deter. subst.
+      simpl.
+      case : (fancy_hred a); first by hauto lq:on unfold:HRed.nf.
+      case => x p. simpl. have ? : x = a' by eauto using hred_deter. subst.
+      eauto.
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+  - move => a a' b r hr dom ihdom dom'.
+    apply algo_dom_r_inv with (H := dom').
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+    + hauto lq:on use:algo_dom_no_hred unfold:HRed.nf.
+    + case : (fancy_hred a); last by hauto lq:on unfold:HRed.nf.
+      move => h0 h1 a0 b0 b' n r0 a1 ? ?. subst.
+      have ? : b' = b by eauto using hred_deter. subst.
+      simpl.
+      case : (fancy_hred a); last by hauto lq:on unfold:HRed.nf.
+      move => nf'.
+      case : (fancy_hred a'); first by hauto lq:on unfold:HRed.nf.
+      move => [b' h].
+      have ? : b' = b  by eauto using hred_deter. subst.
+      hauto lq:on.
+Qed.
+
+Lemma check_equal_hredl a b a' ha doma :
+  check_equal_r a b (A_HRedL a a' b ha doma) = check_equal_r a' b doma.
+Proof.
+  simpl.
+  destruct (fancy_hred a).
+  - hauto q:on unfold:HRed.nf.
+  - destruct s as [x ?].
+    have ? : x = a' by eauto using hred_deter. subst.
+    eapply check_equal_irrel.
+Qed.
 
 Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
 Proof. reflexivity. Qed.
@@ -157,39 +279,6 @@ Lemma check_equal_ind_ind P0 u0 b0 c0 P1 u1 b1 c1 neu0 neu1 domP domu domb domc 
     check_equal_r P0 P1 domP && check_equal u0 u1 domu && check_equal_r b0 b1 domb && check_equal_r c0 c1 domc.
 Proof. reflexivity. Qed.
 
-Lemma hred_none a : HRed.nf a -> hred a = None.
-Proof.
-  destruct (hred a) eqn:eq;
-  sfirstorder use:hred_complete, hred_sound.
-Qed.
-
-Ltac simp_check_r := with_strategy opaque [check_equal] simpl in *.
-
-Lemma check_equal_nfnf a b dom : check_equal_r a b (A_NfNf a b dom) = check_equal a b dom.
-Proof.
-  have [h0 h1] : HRed.nf a /\ HRed.nf b by hauto l:on use:algo_dom_no_hred.
-  have [h3 h4] : hred a = None /\ hred b = None by sfirstorder use:hf_no_hred, hne_no_hred, hred_none.
-  simp_check_r.
-  destruct (fancy_hred a).
-  destruct (fancy_hred b).
-  reflexivity.
-  exfalso. hauto l:on use:hred_complete.
-  exfalso. hauto l:on use:hred_complete.
-Qed.
-
-Lemma check_equal_hredl a b a' ha doma :
-  check_equal_r a b (A_HRedL a a' b ha doma) = check_equal_r a' b doma.
-Proof.
-  simpl.
-  destruct (fancy_hred a).
-  - hauto q:on unfold:HRed.nf.
-  - destruct s as [x ?].
-    have ? : x = a' by eauto using hred_deter. subst.
-    simpl.
-    f_equal.
-    apply PropExtensionality.proof_irrelevance.
-Qed.
-
 Lemma check_equal_hredr a b b' hu r a0 :
   check_equal_r a b (A_HRedR a b b' hu r a0) =
     check_equal_r a b' a0.
@@ -201,8 +290,7 @@ Proof.
     + hauto lq:on unfold:HRed.nf.
     + simpl.
       have ? : (b'' = b') by eauto using hred_deter. subst.
-      f_equal.
-      apply PropExtensionality.proof_irrelevance.
+      apply check_equal_irrel.
   - exfalso.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
@@ -313,6 +401,77 @@ Proof.
   hauto l:on use:hred_complete.
 Qed.
 
+Ltac2 find_last_sdom () :=
+  intros;
+  let (h, _, _) := List.find (fun (_,_,ty) =>
+                                lazy_match! ty with
+                                | salgo_dom _ _ => true
+                                | _ => false
+                                end)
+                     (List.rev (Control.hyps ())) in h.
+
+Derive Dependent Inversion salgo_dom_inv with (forall a b, salgo_dom a b) Sort Prop.
+Derive Dependent Inversion salgo_dom_r_inv with (forall a b, salgo_dom_r a b) Sort Prop.
+
+Ltac2 apply_sdom_inv () :=
+  let last_dom := Control.hyp (find_last_sdom ()) in
+  apply salgo_dom_inv with (H := $last_dom).
+
+Ltac solve_check_sub_irrel := ltac2:(apply_sdom_inv ()) => //=; hfcrush.
+
+
+Lemma check_sub_neuneu a b i a0 : check_sub a b (S_NeuNeu a b i a0) = check_equal a b a0.
+Proof. destruct a,b => //=. Qed.
+
+Lemma check_sub_conf a b n n0 i : check_sub a b (S_Conf a b n n0 i) = false.
+Proof. destruct a,b=>//=; ecrush inv:BTag. Qed.
+
+Lemma check_sub_irrel :
+  (forall a b (dom : salgo_dom a b), forall dom', check_sub a b dom = check_sub a b dom') /\
+    (forall a b (dom : salgo_dom_r a b), forall dom', check_sub_r a b dom =  check_sub_r a b dom').
+Proof.
+  apply salgo_dom_mutual.
+  - solve_check_sub_irrel.
+  - solve_check_sub_irrel.
+  - solve_check_sub_irrel.
+  - solve_check_sub_irrel.
+  - ltac2:(apply_sdom_inv ()); try qauto.
+    + intros. rewrite !check_sub_neuneu. apply check_equal_irrel.
+    + hfcrush.
+  - solve_check_sub_irrel.
+  - move => a b dom ihdom dom'.
+    apply salgo_dom_r_inv with (H := dom').
+    + move => _ ? ? h *. subst.
+      rewrite !check_sub_nfnf.
+      apply ihdom.
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+  - move => a a' b r dom ihdom dom'.
+    apply salgo_dom_r_inv with (H := dom') => _.
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+    + move => a0 a'0 b0 r0 dom'' *. subst.
+      have ? : a'0 = a' by eauto using hred_deter. subst.
+      simpl.
+      case : (fancy_hred a); first by hauto lq:on unfold:HRed.nf.
+      case => x p. simpl. have ? : x = a' by eauto using hred_deter. subst.
+      eauto.
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+  - move => a a' b r hr dom ihdom dom'.
+    apply salgo_dom_r_inv with (H := dom').
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+    + hauto lq:on use:salgo_dom_no_hred unfold:HRed.nf.
+    + case : (fancy_hred a); last by hauto lq:on unfold:HRed.nf.
+      move => h0 h1 a0 b0 b' n r0 a1 ? ?. subst.
+      have ? : b' = b by eauto using hred_deter. subst.
+      simpl.
+      case : (fancy_hred a); last by hauto lq:on unfold:HRed.nf.
+      move => nf'.
+      case : (fancy_hred a'); first by hauto lq:on unfold:HRed.nf.
+      move => [b' h].
+      have ? : b' = b  by eauto using hred_deter. subst.
+      hauto lq:on.
+Qed.
+
 Lemma check_sub_hredl a b a' ha doma :
   check_sub_r a b (S_HRedL a a' b ha doma) = check_sub_r a' b doma.
 Proof.
@@ -322,8 +481,7 @@ Proof.
   - destruct s as [x ?].
     have ? : x = a' by eauto using hred_deter. subst.
     simpl.
-    f_equal.
-    apply PropExtensionality.proof_irrelevance.
+    apply check_sub_irrel.
 Qed.
 
 Lemma check_sub_hredr a b b' hu r a0 :
@@ -337,16 +495,9 @@ Proof.
     + hauto lq:on unfold:HRed.nf.
     + simpl.
       have ? : (b'' = b') by eauto using hred_deter. subst.
-      f_equal.
-      apply PropExtensionality.proof_irrelevance.
+      apply check_sub_irrel.
   - exfalso.
     sfirstorder use:hne_no_hred, hf_no_hred.
 Qed.
-
-Lemma check_sub_neuneu a b i a0 : check_sub a b (S_NeuNeu a b i a0) = check_equal a b a0.
-Proof. destruct a,b => //=. Qed.
-
-Lemma check_sub_conf a b n n0 i : check_sub a b (S_Conf a b n n0 i) = false.
-Proof. destruct a,b=>//=; ecrush inv:BTag. Qed.
 
 #[export]Hint Rewrite check_sub_neuneu check_sub_conf check_sub_hredl check_sub_hredr check_sub_nfnf check_sub_univ_univ check_sub_pi_pi check_sub_sig_sig : ce_prop.
