@@ -25,13 +25,6 @@ Ltac check_equal_triv :=
   | _ => idtac
   end.
 
-Ltac solve_check_equal :=
-  try solve [intros *;
-  match goal with
-  | [|- _ = _] => sauto
-  | _ => idtac
-  end].
-
 Global Set Transparent Obligations.
 
 Local Obligation Tactic := try solve [sfirstorder | check_equal_triv ].
