@@ -11,7 +11,7 @@ From Hammer Require Import Tactics.
 
 Ltac2 destruct_algo () :=
   lazy_match! goal with
-  | [h : algo_dom ?a ?b |- _ ] =>
+  | [_ : algo_dom ?a ?b |- _ ] =>
       if is_var a then destruct $a; ltac1:(done)  else
         (if is_var b then destruct $b; ltac1:(done) else ())
   end.
@@ -34,7 +34,7 @@ Ltac solve_check_equal :=
 
 Global Set Transparent Obligations.
 
-Local Obligation Tactic := try solve [check_equal_triv | sfirstorder].
+Local Obligation Tactic := try solve [sfirstorder | check_equal_triv ].
 
 Scheme Equality for BTag.
 Scheme Equality for PTag.
@@ -82,15 +82,6 @@ with check_equal_r (a b : PTm) (h : algo_dom_r a b) {struct h} : bool :=
             end
   end.
 
-(* Next Obligation. *)
-(*   intros a b h eq. *)
-(*   intros [a' ha'] _ c0 c1 c2 hc hdom ? ?. subst. *)
-(*   destruct eq as [| [b' hb']]. exfalso. eapply n. apply ha'. *)
-(*   assert (a' = b') by eauto using hred_deter. subst. *)
-(*   assert (c1 = b') by eauto using hred_deter. subst. *)
-(*   reflexivity. *)
-(* Defined. *)
-
 Next Obligation.
   simpl. intros. clear Heq_anonymous.  destruct a' as [a' ha']. simpl.
   inversion h; subst => //=.
@@ -98,15 +89,6 @@ Next Obligation.
   assert (a' = a'0) by eauto using hred_deter. by subst.
   exfalso. sfirstorder.
 Defined.
-
-(* Next Obligation. *)
-(*   intros a b h0 eq. *)
-(*   move => ha' _ eq' [b0 hb0] _ c0 c1 c2 h2 h3 dom ? ? hj. subst. *)
-(*   destruct eq as [| hr]; last by sfirstorder unfold:HRed.nf. *)
-(*   have ? : c2 = b0 by eauto using hred_deter. subst. *)
-(*   hauto lq:on. *)
-(* Defined. *)
-
 
 Next Obligation.
   simpl. intros. clear Heq_anonymous Heq_anonymous0.
@@ -119,8 +101,8 @@ Next Obligation.
   - assert (b' = b'0) by eauto using hred_deter. by subst.
 Defined.
 
-(* Need to avoid ssreflect tactics since they generate terms that make the termination checker upset *)
-Next Obligation.
+(** Need to avoid ssreflect tactics since they generate terms that make the termination checker upset *)
+Final Obligation.
   move => /= a b hdom ha _ hb _.
   inversion hdom; subst.
   - assumption.
@@ -307,7 +289,7 @@ Proof. destruct a; destruct b => //=. Qed.
 
 Ltac2 destruct_salgo () :=
   lazy_match! goal with
-  | [h : salgo_dom ?a ?b |- _ ] =>
+  | [_ : salgo_dom ?a ?b |- _ ] =>
       if is_var a then destruct $a; ltac1:(done)  else
         (if is_var b then destruct $b; ltac1:(done) else ())
   end.
