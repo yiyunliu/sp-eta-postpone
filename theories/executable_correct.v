@@ -185,7 +185,7 @@ Lemma check_sub_sound :
     (forall a b (h : salgo_dom_r a b), check_sub_r a b h -> a ≪ b).
 Proof.
   apply salgo_dom_mutual; try done.
-  - simpl. move => i j [];
+  - simpl. move => i j;
     sauto lq:on use:Reflect.Nat_leb_le.
   - move => A0 A1 B0 B1 s ihs s0 ihs0.
     autorewrite with ce_prop.
