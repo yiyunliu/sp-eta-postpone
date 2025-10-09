@@ -47,6 +47,23 @@ file from =syntax.sig= using =autosubst=, you can choose not to install =coq-aut
 However, you need to be careful not to accidentally run =make clean=,
 which will delete the auto-generated syntax files.
 
+** Definitions
+
+*** Grammar
+The grammar specification in higher-order abstract syntax (HOAS) can
+be found in [[file:./syntax.sig][syntax.sig]]. We use the autosubst-ocaml tool to turn the
+syntax file into the Rocq file [[./theories/Autosubst2/syntax.v][syntax.v]], which contains not only the
+de Bruijn grammar but also definitions of renaming and
+substitution functions and their associated lemmas.
+
+- The [[file:html/DecSyn.Autosubst2.syntax.html#Core.PTm][PTm]] data type corresponds to the grammar specification in
+  Fig. 1.
+
+*** Reduction relations and naming schemes
+Due to the many reduction relations used in our proof, we organize
+each reduction relation inside its own module.
+
+
 
 ** Properties proven in the paper
 The definition of the logical relation is split into =InterpExt= and
