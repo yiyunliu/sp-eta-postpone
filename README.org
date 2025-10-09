@@ -49,21 +49,85 @@ which will delete the auto-generated syntax files.
 
 ** Definitions
 
-*** Grammar
+*** Grammar (Fig. 1)
+- Terms: [[file:html/DecSyn.Autosubst2.syntax.html#Core.PTm][PTm]]
+- Typing context: defined directly as =list PTm=
+
 The grammar specification in higher-order abstract syntax (HOAS) can
 be found in [[file:./syntax.sig][syntax.sig]]. We use the autosubst-ocaml tool to turn the
 syntax file into the Rocq file [[./theories/Autosubst2/syntax.v][syntax.v]], which contains not only the
 de Bruijn grammar but also definitions of renaming and
 substitution functions and their associated lemmas.
 
-- The [[file:html/DecSyn.Autosubst2.syntax.html#Core.PTm][PTm]] data type corresponds to the grammar specification in
-  Fig. 1.
+*** Typing specification (Fig. 2, 3)
+- Typing: [[./html/DecSyn.typing.html#Wt][Wt]] ($\Gamma \vdash a \in A$)
+- Equality: [[./html/DecSyn.typing.html#Eq][Eq]] ($\Gamma \vdash a \equiv b \in A$)
+- Subtyping: [[./html/DecSyn.typing.html#LEq][LEq]] ($\Gamma \vdash A \lessim B$)
+- Context well-formedness: [[./html/DecSyn.typing.html#Wff][Wff]] ($\vdash \Gamma$)
 
-*** Reduction relations and naming schemes
+
+
+*** Untyped relations and naming schemes
 Due to the many reduction relations used in our proof, we organize
-each reduction relation inside its own module.
+each untyped reduction, equality, and subtyping relation inside its
+own module, where the relation itself is simply named =R=. Thus, to
+avoid ambiguity, those modules are never meant to be imported and the
+relation should always be referred to in its qualified form.  For
+example, the $\beta$-reduction relation is defined as the inductive
+type [[./html/DecSyn.fp_red.html#RRed.R][R]] in the module [[./html/DecSyn.fp_red.html#RRed][RRed]]. Outside the module, the $\beta$-reduction
+relation is referred to by its fully qualified name =RRed.R=.
 
+Given a module containing a reduction relation named =Red=,
+the module =Reds= contains the properties about its reflexive and
+transitive closure. Instead of defining the transitive and reflexive
+closure of =Red.R= as =RReds.R=, we directly refer to it as =rtc
+RRed.R=, where =rtc= is a relation operator that outputs the reflexive
+and transitive closure of its input.
 
+Some relations are standard and therefore not included in the text for
+concision, but we include them here for completeness.
+
+**** Normal form predicates (Fig. 5)
+- canonical forms (canf): [[./html/DecSyn.common.html#ishf][ishf]]
+- weak-head neutral forms (whne): [[./html/DecSyn.common.html#ishne][ishne]]
+- weak-head normal forms (whnf): inlined as the union of =ishf= and =ishne=
+
+Note that we sometimes use [[./html/DecSyn.common.html#HRed.nf][HRed.nf]] in place of the above definition of
+whnf, where the former means the term would no longer reduce with
+weak-head reduction. These two definitions coincide for precisely the
+set of terms that are non-stuck.
+
+**** Reductions
+- $\beta$-reduction: [[./html/DecSyn.fp_red.html#RRed][RRed]]
+- $\eta$-reduction: [[./html/DecSyn.fp_red.html#ERed][ERed]]
+- parallel $\beta$-reduction: [[./html/DecSyn.fp_red.html#RPar][RPar]]
+- parallel $\eta$-reduction: [[./html/DecSyn.fp_red.html#EPar][EPar]]
+- parallel $\beta\eta$-reduction: [[./html/DecSyn.fp_red.html#RERed][RERed]]
+- leftmost-outermost $\beta$-reduction: [[./html/DecSyn.fp_red.html#LoRed][LoRed]]
+- weak-head $\beta-reduction: [[./html/DecSyn.common.html#HRed][HRed]]
+- restrictive parallel $\eta$-reductions (Fig. 6): [[./html/DecSyn.fp_red.html#NeEPar][NeEPar]]
+**** Strong normalization (Sec. 3.2)
+- Strong normal forms: [[./html/DecSyn.fp_red.html#SN][SN]]
+- Strong neutral forms: [[./html/DecSyn.fp_red.html#SNe][SNe]]
+- Strong weak head reduction: [[./html/DecSyn.fp_red.html#TRedSN][TRedSN]]
+**** Joinability and Subtyping
+- Joinability (w.r.t $\beta\eta$-reduction, Def. 3.1): [[./html/DecSyn.fp_red.html#DJoin][DJoin]]
+- Joinability (w.r.t $\beta$-reduction): [[./html/DecSyn.fp_red.html#BJoin][BJoin]]
+- Joinability (w.r.t $\eta$-reduction): [[./html/DecSyn.fp_red.html#EJoin][EJoin]]
+
+- One-step subtyping (Page 12): [[./html/DecSyn.fp_red.html#Sub1][Sub1]]
+- Untyped subtyping (Def. 3.2): [[./html/DecSyn.fp_red.html#Sub][Sub]]
+- Untyped subtyping (w.r.t $\eta$-reduction): [[./html/DecSyn.fp_red.html#ESub][ESub]]
+
+Note that [[./html/DecSyn.fp_red.html#ESub][ESub]] holds when two terms can be related by one-step
+subtyping after $\eta$-reduction. It is not mentioned in the paper but
+is convenient to have around in the mechanization for automation purposes.
+**** Coquand's algorithm
+Coquand's algorithm is one of the exceptions of the above naming
+scheme, and the actual formal definition is slightly different from
+the text presentation.
+
+- Algorithmic equality ($a \leftrightarrow b$):
 
 ** Properties proven in the paper
 The definition of the logical relation is split into =InterpExt= and

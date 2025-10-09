@@ -59,9 +59,6 @@ Proof.
   move => p ihp ξ []//=. hauto lq:on inv:PTm, nat ctrs:- use:up_injective.
 Qed.
 
-Inductive HF : Set :=
-| H_Pair | H_Abs | H_Univ | H_Bind (p : BTag) | H_Nat | H_Suc | H_Zero | H_Bot.
-
 Definition ishf (a : PTm) :=
   match a with
   | PPair _ _ => true
@@ -72,18 +69,6 @@ Definition ishf (a : PTm) :=
   | PSuc _ => true
   | PZero => true
   | _ => false
-  end.
-
-Definition toHF (a : PTm) :=
-  match a with
-  | PPair _ _ => H_Pair
-  | PAbs _ => H_Abs
-  | PUniv _ => H_Univ
-  | PBind p _ _ => H_Bind p
-  | PNat => H_Nat
-  | PSuc _ => H_Suc
-  | PZero => H_Zero
-  | _ => H_Bot
   end.
 
 Fixpoint ishne (a : PTm) :=
