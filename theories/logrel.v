@@ -84,6 +84,8 @@ Module Type LogRel.
        (forall i j : nat, j < i ->  (forall A PA, ⟦ A ⟧ j ↘ PA -> P j A PA) -> P i (PUniv j) (fun A => exists PA, ⟦ A ⟧ j ↘ PA)) ->
        (forall i (A A0 : PTm ) (PA : PTm  -> Prop), TRedSN A A0 -> ⟦ A0 ⟧ i ↘ PA -> P i A0 PA -> P i A PA) ->
        forall i (p : PTm ) (P0 : PTm  -> Prop), ⟦ p ⟧ i ↘ P0 -> P i p P0.
+  #[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ InterpUniv_Conv InterpUniv_Nat : InterpUniv.
+
 End LogRel.
 
 Module Type LogRelFacts (M : LogRel).
@@ -152,6 +154,96 @@ Module Type LogRelFacts (M : LogRel).
     ⟦ PBind p A B ⟧ i ↘ (BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB)).
 
 End LogRelFacts.
+
+Module LogRelFactsImpl (M : LogRel) : LogRelFacts M.
+
+  Import M.
+
+  Lemma cumulative i (A : PTm) PA :
+    ⟦ A ⟧ i ↘ PA -> forall j, i <= j ->  ⟦ A ⟧ j ↘ PA.
+  Proof.
+    move : i A PA. apply : InterpUniv_ind;
+      hauto l:on solve+:(by lia) db:InterpUniv unfold:ind_motive_okay.
+  Qed.
+
+  Lemma N_Exps (a b : PTm) :
+    rtc TRedSN a b ->
+    SN b ->
+    SN a.
+  Proof.
+    induction 1; eauto using N_Exp.
+  Qed.
+
+  (** Artifact for not using funext  *)
+  Lemma CR_okay S0 S1 :
+    S0 ≐ S1 -> CR S0 <-> CR S1.
+  Proof.
+    unfold CR. sfirstorder.
+  Qed.
+
+  Lemma CR_SNat : CR SNat.
+  Proof.
+    rewrite /CR.
+    split.
+    induction 1; hauto q:on ctrs:SN,SNe.
+    hauto lq:on ctrs:SNat.
+  Qed.
+
+  Lemma adequacy : forall i A PA,
+   ⟦ A ⟧ i ↘ PA ->
+   CR PA /\ SN A.
+  Proof.
+    apply : InterpUniv_ind.
+    - sfirstorder use:CR_okay.
+    - hauto l:on use:N_Exps ctrs:SN,SNe.
+    - move => i p A B PA PF hPA [ihA0 ihA1] hTot hRes ihPF.
+      set PBot := (VarPTm var_zero).
+      have hb : PA PBot by hauto q:on ctrs:SNe.
+      have hb' : SN PBot by hauto q:on ctrs:SN, SNe.
+      rewrite /CR.
+      repeat split.
+      + case : p =>//=.
+        * rewrite /ProdSpace.
+          qauto use:SN_AppInv unfold:CR.
+        * hauto q:on unfold:SumSpace use:N_SNe, N_Pair,N_Exps.
+      + move => a ha.
+        case : p=>/=.
+        * rewrite /ProdSpace => a0 *.
+          suff : SNe (PApp a a0) by sfirstorder.
+          hauto q:on use:N_App.
+        * sfirstorder.
+      + apply N_Bind=>//=.
+        have : SN (PApp (PAbs B) PBot).
+        apply : N_Exp; eauto using N_β.
+        hauto lq:on.
+        qauto l:on use:SN_AppInv, SN_NoForbid.P_AbsInv.
+    - sfirstorder use:CR_SNat.
+    - hauto l:on db:InterpUniv.
+    - hauto l:on ctrs:SN unfold:CR.
+  Qed.
+
+  Lemma back_clos i (A : PTm ) PA :
+    ⟦ A ⟧ i ↘ PA ->
+    forall a b, TRedSN a b ->
+           PA b -> PA a.
+  Proof.
+    move : i A PA . apply : InterpUniv_ind; eauto.
+    - hauto lq:on unfold:ind_motive_okay.
+    - hauto q:on ctrs:rtc.
+    - move => i p A B PA PF hPA ihPA hTot hRes ihPF a b hr.
+      case : p => //=.
+      + rewrite /ProdSpace.
+        move => hba a0 PB ha hPB.
+        suff : TRedSN  (PApp a a0) (PApp b a0) by hauto lq:on.
+        apply N_AppL => //=.
+        hauto q:on use:adequacy.
+      + hauto lq:on ctrs:rtc unfold:SumSpace.
+    - hauto lq:on ctrs:SNat.
+    - hauto l:on use:InterpUniv_Step.
+  Qed.
+
+
+End LogRelFactsImpl.
 
 Module LogRelImpl : LogRel.
   Reserved Notation "⟦ A ⟧ i ;; I ↘ S" (at level 70).
@@ -321,9 +413,6 @@ Module LogRelImpl : LogRel.
 End LogRelImpl.
 
 
-
-#[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ InterpUniv_Conv : InterpUniv.
-
 Lemma InterpExt_cumulative i j I (A : PTm ) PA :
   i <= j ->
    ⟦ A ⟧ i ;; I ↘ PA ->
@@ -340,29 +429,6 @@ Lemma InterpUniv_cumulative i (A : PTm) PA :
    ⟦ A ⟧ j ↘ PA.
 Proof.
   hauto l:on use:InterpExt_cumulative, InterpUniv_nolt.
-Qed.
-
-Lemma N_Exps (a b : PTm) :
-  rtc TRedSN a b ->
-  SN b ->
-  SN a.
-Proof.
-  induction 1; eauto using N_Exp.
-Qed.
-
-Lemma CR_SNat : CR SNat.
-Proof.
-  rewrite /CR.
-  split.
-  induction 1; hauto q:on ctrs:SN,SNe.
-  hauto lq:on ctrs:SNat.
-Qed.
-
-(** Artifact for not using funext  *)
-Lemma CR_okay S0 S1 :
-  S0 ≐ S1 -> CR S0 <-> CR S1.
-Proof.
-  unfold CR. sfirstorder.
 Qed.
 
 Lemma adequacy : forall i A PA,
