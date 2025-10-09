@@ -3,6 +3,14 @@ This repository contains the Rocq mechanization of the results from the paper
 "Algorithmic Conversion with Surjective Pairing: A Syntactic and
 Untyped Approach".
 
+While the documentation is written in =org= mode, it is recommended
+that you use the generated =README.html= file so you can access the
+hyperlinks into the generated coqdoc files to navigate the development
+in your web browser. Firefox seems to struggle to render some of the
+larger coqdocjs files. If you experience any performance issues,
+consider opening the html file with Chromium/Chrome.
+
+
 ** Quick start
 Inside a fresh =opam= switch, run the following commands to install
 the required dependencies.
@@ -157,7 +165,7 @@ signature, the properties about the logical predicate (found in
 [[./html/DecSyn.logrel.html#LogRelFactsImpl][LogRelFactsImpl]]) can be implemented purely in terms of the clean
 interface specified in [[./html/DecSyn.logrel.html#LogRel][LogRel]].
 
-- logical predicate ($\llbracket A \rrbracket \downrightarrow S$):
+- logical predicate ($\llbracket A \rrbracket \searrow S$):
   InterpUniv ([[./html/DecSyn.logrel.html#LogRel.InterpUniv][signature]], [[./html/DecSyn.logrel.html#LogRelImpl.InterpUniv][implementation]])
   + induction principle ([[./html/DecSyn.logrel.html#LogRel.InterpUniv_ind][signature]], [[./html/DecSyn.logrel.html#LogRelImpl.InterpUniv_ind][implementation]])
   + introduction rules (omitted, defined in the same module)

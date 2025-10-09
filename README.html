@@ -1,0 +1,583 @@
+<h1 id="decidable-type-conversion-with-surjective-pairing">Decidable
+type conversion with surjective pairing</h1>
+<p>This repository contains the Rocq mechanization of the results from
+the paper "Algorithmic Conversion with Surjective Pairing: A Syntactic
+and Untyped Approach".</p>
+<p>While the documentation is written in <code
+class="verbatim">org</code> mode, it is recommended that you use the
+generated <code class="verbatim">README.html</code> file so you can
+access the hyperlinks into the generated coqdoc files to navigate the
+development in your web browser. Firefox seems to struggle to render
+some of the larger coqdocjs files. If you experience any performance
+issues, consider opening the html file with Chromium/Chrome.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>Inside a fresh <code class="verbatim">opam</code> switch, run the
+following commands to install the required dependencies.</p>
+<div class="sourceCode" id="cb1" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> update</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> install <span class="at">-y</span> coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="va">$(</span><span class="ex">opam</span> env<span class="va">)</span></span></code></pre></div>
+<p>After the dependencies are installed, run the following command to
+validate the proof development. The <code class="verbatim">-j2</code>
+flag allows <code class="verbatim">make</code> to validate up to 2 files
+in parallel. According to our testing, going beyond <code
+class="verbatim">-j2</code> does not reduce the compilation time
+significantly.</p>
+<div class="sourceCode" id="cb2" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">-j2</span></span></code></pre></div>
+<p>The termination proof can be brittle because we expect the <code
+class="verbatim">inversion</code> to produce the subproofs of the domain
+relation that make the termination checker happy.</p>
+<p>Here are the versions of the Rocq packages that are known to
+work.</p>
+<ul>
+<li>coq 8.20.1</li>
+<li>coq-stdpp 1.11.0</li>
+<li>coq-hammer-tactics 1.3.2</li>
+<li>coq-autosubst-ocaml 1.1</li>
+</ul>
+<p>Note that if you don't plan to modify and regenerate the <code
+class="verbatim">syntax.v</code> file from <code
+class="verbatim">syntax.sig</code> using <code
+class="verbatim">autosubst</code>, you can choose not to install <code
+class="verbatim">coq-autosubst-ocaml</code>. However, you need to be
+careful not to accidentally run <code
+class="verbatim">make deepclean</code>, which will delete the
+auto-generated syntax files. Instead, run <code class="verbatim">make
+clean</code> if you want to keep the auto-generated files.</p>
+<h2 id="definitions">Definitions</h2>
+<h3 id="grammar-fig.-1">Grammar (Fig. 1)</h3>
+<ul>
+<li>Terms: <a
+href="html/DecSyn.Autosubst2.syntax.html#Core.PTm">PTm</a></li>
+<li>Typing context: defined directly as <code
+class="verbatim">list PTm</code></li>
+</ul>
+<p>The grammar specification in higher-order abstract syntax (HOAS) can
+be found in <a href="./syntax.sig">syntax.sig</a>. We use the
+autosubst-ocaml tool to turn the syntax file into the Rocq file <a
+href="./theories/Autosubst2/syntax.v">syntax.v</a>, which contains not
+only the de Bruijn grammar but also definitions of renaming and
+substitution functions and their associated lemmas.</p>
+<h3 id="typing-specification-fig.-2-3">Typing specification (Fig. 2,
+3)</h3>
+<ul>
+<li>Typing: <a href="./html/DecSyn.typing.html#Wt">Wt</a> (<span
+class="math inline"><em>Γ</em> ⊢ <em>a</em> ∈ <em>A</em></span>)</li>
+<li>Equality: <a href="./html/DecSyn.typing.html#Eq">Eq</a> (<span
+class="math inline"><em>Γ</em> ⊢ <em>a</em> ≡ <em>b</em> ∈ <em>A</em></span>)</li>
+<li>Subtyping: <a href="./html/DecSyn.typing.html#LEq">LEq</a> (<span
+class="math inline"><em>Γ</em> ⊢ <em>A</em> ≲ <em>B</em></span>)</li>
+<li>Context well-formedness: <a
+href="./html/DecSyn.typing.html#Wff">Wff</a> (<span
+class="math inline"> ⊢ <em>Γ</em></span>)</li>
+</ul>
+<h3 id="untyped-relations-and-naming-schemes">Untyped relations and
+naming schemes</h3>
+<p>Due to the many reduction relations used in our proof, we organize
+each untyped reduction, equality, and subtyping relation inside its own
+module, where the relation itself is simply named <code
+class="verbatim">R</code>. Thus, to avoid ambiguity, those modules are
+never meant to be imported and the relation should always be referred to
+in its qualified form. For example, the <span
+class="math inline"><em>β</em></span>-reduction relation is defined as
+the inductive type <a href="./html/DecSyn.fp_red.html#RRed.R">R</a> in
+the module <a href="./html/DecSyn.fp_red.html#RRed">RRed</a>. Outside
+the module, the <span class="math inline"><em>β</em></span>-reduction
+relation is referred to by its fully qualified name <code
+class="verbatim">RRed.R</code>.</p>
+<p>Given a module containing a reduction relation named <code
+class="verbatim">Red</code>, the module <code
+class="verbatim">Reds</code> contains the properties about its reflexive
+and transitive closure. Instead of defining the transitive and reflexive
+closure of <code class="verbatim">Red.R</code> as <code
+class="verbatim">RReds.R</code>, we directly refer to it as <code
+class="verbatim">rtc
+RRed.R</code>, where <code class="verbatim">rtc</code> is a relation
+operator that outputs the reflexive and transitive closure of its
+input.</p>
+<p>Some relations are standard and therefore not included in the text
+for concision, but we include them here for completeness.</p>
+<ol>
+<li><p>Normal form predicates (Fig. 5)</p>
+<ul>
+<li>canonical forms (canf): <a
+href="./html/DecSyn.common.html#ishf">ishf</a></li>
+<li>weak-head neutral forms (whne): <a
+href="./html/DecSyn.common.html#ishne">ishne</a></li>
+<li>weak-head normal forms (whnf): inlined as the union of <code
+class="verbatim">ishf</code> and <code
+class="verbatim">ishne</code></li>
+</ul>
+<p>Note that we sometimes use <a
+href="./html/DecSyn.common.html#HRed.nf">HRed.nf</a> in place of the
+above definition of whnf, where the former means the term would no
+longer reduce with weak-head reduction. These two definitions coincide
+for precisely the set of terms that are non-stuck.</p></li>
+<li><p>Reductions</p>
+<ul>
+<li><span class="math inline"><em>β</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#RRed">RRed</a></li>
+<li><span class="math inline"><em>η</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#ERed">ERed</a></li>
+<li>parallel <span class="math inline"><em>β</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#RPar">RPar</a></li>
+<li>parallel <span class="math inline"><em>η</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#EPar">EPar</a></li>
+<li>parallel <span
+class="math inline"><em>β</em><em>η</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#RERed">RERed</a></li>
+<li>leftmost-outermost <span
+class="math inline"><em>β</em></span>-reduction: <a
+href="./html/DecSyn.fp_red.html#LoRed">LoRed</a></li>
+<li>weak-head <span class="math inline"><em>β</em></span>-reduction: <a
+href="./html/DecSyn.common.html#HRed">HRed</a></li>
+<li>restrictive parallel <span
+class="math inline"><em>η</em></span>-reductions (Fig. 6): <a
+href="./html/DecSyn.fp_red.html#NeEPar">NeEPar</a></li>
+</ul></li>
+<li><p>Strong normalization (Sec. 3.2)</p>
+<ul>
+<li>Strong normal forms: <a
+href="./html/DecSyn.fp_red.html#SN">SN</a></li>
+<li>Strong neutral forms: <a
+href="./html/DecSyn.fp_red.html#SNe">SNe</a></li>
+<li>Strong weak head reduction: <a
+href="./html/DecSyn.fp_red.html#TRedSN">TRedSN</a></li>
+</ul></li>
+<li><p>Joinability and Subtyping</p>
+<ul>
+<li><p>Joinability (w.r.t <span
+class="math inline"><em>β</em><em>η</em></span>-reduction, Def. 3.1): <a
+href="./html/DecSyn.fp_red.html#DJoin">DJoin</a></p></li>
+<li><p>Joinability (w.r.t <span
+class="math inline"><em>β</em></span>-reduction): <a
+href="./html/DecSyn.fp_red.html#BJoin">BJoin</a></p></li>
+<li><p>Joinability (w.r.t <span
+class="math inline"><em>η</em></span>-reduction): <a
+href="./html/DecSyn.fp_red.html#EJoin">EJoin</a></p></li>
+<li><p>One-step subtyping (Page 12): <a
+href="./html/DecSyn.fp_red.html#Sub1">Sub1</a></p></li>
+<li><p>Untyped subtyping (Def. 3.2): <a
+href="./html/DecSyn.fp_red.html#Sub">Sub</a></p></li>
+<li><p>Untyped subtyping (w.r.t <span
+class="math inline"><em>η</em></span>-reduction): <a
+href="./html/DecSyn.fp_red.html#ESub">ESub</a></p></li>
+</ul>
+<p>Note that <a href="./html/DecSyn.fp_red.html#ESub">ESub</a> holds
+when two terms can be related by one-step subtyping after <span
+class="math inline"><em>η</em></span>-reduction. It is not mentioned in
+the paper but is convenient to have around in the mechanization for
+automation purposes.</p></li>
+<li><p>Coquand's algorithm (Sec. 4.1)</p>
+<p>Coquand's algorithm is one of the exceptions of the above naming
+scheme, and the actual formal definition is slightly different from the
+text presentation. Notably, the algorithmic equality for head normal
+forms is split into two relations, one that handles the case where both
+terms are neutral, and one that handles the cases where at least one
+term is not neutral.</p>
+<ul>
+<li>Algorithmic equality (<span
+class="math inline"><em>a</em> ↔︎ <em>b</em></span> in the text): <a
+href="./html/DecSyn.algorithmic.html#CoqEq_R">CoqEq<sub>R</sub></a>
+(<span class="math inline"><em>a</em> ⇔ <em>b</em></span> in the
+mechanization)</li>
+<li>Algorithmic equality for head normal forms (<span
+class="math inline"><em>f</em><sub>0</sub> ∼ <em>f</em><sub>1</sub></span>
+in the text):
+<ul>
+<li>When both inputs are neutral: <a
+href="./html/DecSyn.algorithmic.html#CoqEq_Neu">CoqEq<sub>Neu</sub></a>
+(<span class="math inline"><em>a</em> ∼ <em>b</em></span> in the
+mechanization)</li>
+<li>Otherwise: <a href="./html/DecSyn.algorithmic.html#CoqEq">CoqEq</a>
+(<span class="math inline"><em>a</em> ↔︎ <em>b</em></span> in the
+mechanization)</li>
+</ul></li>
+</ul>
+<p>The relations are all formulated on arbitrary terms. The neutral and
+normal form restrictions in <span
+class="math inline"><em>f</em><sub>0</sub> ∼ <em>f</em><sub>1</sub></span>
+are proven a posteriori as lemmas in the mechanization (e.g. <a
+href="./html/DecSyn.executable_correct.html#coqeq_no_hred">coqeq<sub>nohred</sub></a>).</p>
+<p>Subtyping works similarly, though there is no need to split the
+relation as the neutral case is handled by equalities.</p>
+<ul>
+<li>Algorithmic subtyping (<span
+class="math inline"><em>A</em> ≪ <em>B</em></span>): <a
+href="./html/DecSyn.algorithmic.html#CoqLEq_R">CoqLEq<sub>R</sub></a></li>
+<li>Algorithmic subtyping for head normal forms (<span
+class="math inline"><em>f</em><sub>0</sub> ≲ <em>f</em><sub>1</sub></span>):
+<a href="./html/DecSyn.algorithmic.html#CoqLEq">CoqLEq</a></li>
+</ul></li>
+</ol>
+<h3 id="the-untyped-logical-predicate-sec-3.7">The untyped logical
+predicate (Sec 3.7)</h3>
+<p>As mentioned in the text, the definition of the logical predicate
+cannot be written in Rocq directly as it consists of an inductive
+definition nested in a fixpoint definition over universe levels.</p>
+<p>The technique we adopt to encode the logical relation is described in
+detail in the <a
+href="https://www.seas.upenn.edu/~sweirich/papers/liu-mltt-consistency.pdf">write-up</a>
+by Liu and Weirich. To make the code more readable, we specify a module
+type <a href="./html/DecSyn.logrel.html#LogRel">LogRel</a> that includes
+the introduction and induction principles that fully characterizes the
+logical predicate. The module <a
+href="./html/DecSyn.logrel.html#LogRelImpl">LogRelImpl</a> shows how the
+logical predicate is actually defined through the inductive definition
+<a href="./html/DecSyn.logrel.html#LogRelImpl.InterpExt">InterpExt</a>
+and the fixpoint <a
+href="./html/DecSyn.logrel.html#LogRel.InterpUniv">InterpUniv</a>, the
+latter of which the logical predicate satisfying the abstract properties
+we actually need.</p>
+<p>By encapsulating the Rocq-specific workarounds behind the module
+signature, the properties about the logical predicate (found in <a
+href="./html/DecSyn.logrel.html#LogRelFactsImpl">LogRelFactsImpl</a>)
+can be implemented purely in terms of the clean interface specified in
+<a href="./html/DecSyn.logrel.html#LogRel">LogRel</a>.</p>
+<ul>
+<li>logical predicate (<span
+class="math inline">⟦<em>A</em>⟧ ↘ <em>S</em></span>): InterpUniv (<a
+href="./html/DecSyn.logrel.html#LogRel.InterpUniv">signature</a>, <a
+href="./html/DecSyn.logrel.html#LogRelImpl.InterpUniv">implementation</a>)
+<ul>
+<li>induction principle (<a
+href="./html/DecSyn.logrel.html#LogRel.InterpUniv_ind">signature</a>, <a
+href="./html/DecSyn.logrel.html#LogRelImpl.InterpUniv_ind">implementation</a>)</li>
+<li>introduction rules (omitted, defined in the same module)</li>
+</ul></li>
+</ul>
+<p>To avoid introducing propositional and functional extensionality
+axioms, we add rule <a
+href="./html/DecSyn.logrel.html#LogRel.InterpUniv_Conv">InterpUniv<sub>Conv</sub></a>
+to our mechanization to ensure that the logical predicate operates on
+predicates that are extensionally equivalent (denoted by <span
+class="math inline">≐</span> in the mechanization). These artifacts
+introduced by avoiding the axioms are noted in the development and can
+be safely ignored.</p>
+<h3 id="executable-conversion-algorithm-sec.-4">Executable conversion
+algorithm (Sec. 4)</h3>
+<p>The relational definition of algorithmic conversion is not
+immediately executable. The decidability result (Theorem 4.1) is
+justified by defining a total function that returns true precisely when
+two of its input are convertible.</p>
+<p>Here, we give links to the definition of the algorithm and the
+Bove-Capretta domains to handle termination checking.</p>
+<ul>
+<li>Executable algorithmic
+<ul>
+<li>subtyping: <a
+href="./html/DecSyn.executable.html#check_sub_r">check<sub>subr</sub></a></li>
+<li>equality: <a
+href="./html/DecSyn.executable.html#check_equal_r">check<sub>equalr</sub></a></li>
+</ul></li>
+<li>Bove-Capretta domains for
+<ul>
+<li>subtyping: <a
+href="./html/DecSyn.common.html#salgo_dom_r">salgo<sub>domr</sub></a></li>
+<li>equality: <a
+href="./html/DecSyn.common.html#algo_dom_r">algo<sub>domr</sub></a></li>
+</ul></li>
+</ul>
+<p>The completeness and soundness of the computable functions with
+respect to their relational counterparts are not explicitly included in
+the paper, but they are linked in the mechanization by the following
+lemmas.</p>
+<ul>
+<li>subtyping: <a
+href="./html/DecSyn.executable_correct.html#check_sub_sound">check<sub>subsound</sub></a>,
+<a
+href="./html/DecSyn.executable_correct.html#check_sub_complete">check<sub>subcomplete</sub></a></li>
+<li>equality: <a
+href="./html/DecSyn.executable_correct.html#check_eq_sound">check<sub>eqsound</sub></a>,
+<a
+href="./html/DecSyn.executable_correct.html#check_eq_complete">check<sub>eqcomplete</sub></a></li>
+</ul>
+<p>The termination of algorithmic conversion is implied by the above
+completeness and soundness results.</p>
+<h2 id="properties-proven-in-the-paper">Properties proven in the
+paper</h2>
+<p>The definition of the logical relation is split into <code
+class="verbatim">InterpExt</code> and <code
+class="verbatim">InterpUniv</code> in <a
+href="theories/logrel.v">logrel.v</a>.</p>
+<h3 id="section-2">Section 2</h3>
+<dl>
+<dt>Lemma 2.1 (context regularity)</dt>
+<dd>
+<a href="./theories/structural.v">structural.v</a>, <code
+class="verbatim">wff_mutual</code>
+</dd>
+<dt>Lemma 2.2 (generation)</dt>
+<dd>
+<a href="./theories/structural.v">structural.v</a>, <a
+href="theories/admissible.v">admissible.v</a>, <code
+class="verbatim">*_Inv</code>
+</dd>
+<dt>Lemma 2.3 (subject reduction)</dt>
+<dd>
+<a href="theories/preservation.v">preservation.v</a>, <code
+class="verbatim">RRed_Eq</code>, <code
+class="verbatim">subject_reduction</code>
+</dd>
+<dt>Lemma 2.4 (regularity)</dt>
+<dd>
+<a href="./theories/structural.v">structural.v</a>, <code
+class="verbatim">regularity</code>
+</dd>
+</dl>
+<h3 id="section-3">Section 3</h3>
+<dl>
+<dt>Lemma 3.1</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">RRed.nf_imp</code>
+</dd>
+<dt>Lemma 3.2</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">ERed.nf_preservation</code>
+</dd>
+<dt>Lemma 3.3</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">LoReds.FromSN_mutual</code>
+</dd>
+<dt>Lemma 3.4 (no stuck terms)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">SN_NoForbid.*_imp</code>
+</dd>
+<dt>Lemma 3.5 (sn antisubstitution)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">sn_unmorphing</code>
+</dd>
+<dt>Lemma 3.6 (sn preservation)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">RERed.sn_preservation</code>, <code
+class="verbatim">epar_sn_preservation</code>, <code
+class="verbatim">red_sn_preservation</code>
+</dd>
+<dt>Lemma 3.7 (restrictive-<span class="math inline"><em>η</em></span>
+and normal form)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">R_elim_nf</code>
+</dd>
+<dt>Lemma 3.8 (<span
+class="math inline"><em>η</em></span>-decomposition)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">η_split</code>
+</dd>
+<dt>Lemma 3.9 (<span
+class="math inline"><em>η</em></span>-postponement)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">eta_postponement</code>
+</dd>
+<dt>Corollary 3.1 (strengthened <span
+class="math inline"><em>η</em></span>-postponement)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">eta_postponement_star'</code>
+</dd>
+<dt>Corollary 3.2 (<span
+class="math inline"><em>η</em></span>-postponement for normal
+forms)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">standardization</code>
+</dd>
+<dt>Lemma 3.10 (confluence for <span
+class="math inline"><em>β</em></span>)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">red_confluence</code>
+</dd>
+<dt>Lemma 3.11 (confluence for <span
+class="math inline"><em>η</em></span>)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">ered_confluence</code>
+</dd>
+<dt>Theorem 3.1 (confluence for <span
+class="math inline"><em>β</em><em>η</em></span></dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">rered_confluence</code>
+</dd>
+<dt>Lemma 3.12 (transitivity of joinability)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">DJoin.transitive</code>
+</dd>
+<dt>Lemma 3.13 (injectivity of joinability)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">DJoin.hne_app_inj</code>, <code
+class="verbatim">DJoin.hne_proj_inj</code>
+</dd>
+<dt>Lemma 3.14 (transitivity of one-step subtyping)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub1.transitive</code>
+</dd>
+<dt>Lemma 3.15 (commutativity of one-step subtyping)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub1.commutativity0</code>
+</dd>
+<dt>Lemma 3.16 (one-step subtyping preserves sn)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub1.sn_preservation</code>
+</dd>
+<dt>Corollary 3.3 (transitivity of untyped subtyping)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub.transitive</code>
+</dd>
+<dt>Lemma 3.17 (noconfusion for untyped subtyping)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub.*_noconf</code>
+</dd>
+<dt>Lemma 3.18 (untyped injectivity of type constructors)</dt>
+<dd>
+<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
+class="verbatim">Sub.*_inj</code>
+</dd>
+<dt>Lemma 3.19 (adequacy)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">adequacy</code>
+</dd>
+<dt>Lemma 3.20 (backward closure)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">InterpUniv_back_clos</code>
+</dd>
+<dt>Lemma 3.21 (logical predicate cases)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">InterpUniv_case</code>
+</dd>
+<dt>Lemma 3.22 (logical predicate is preserved by subtyping)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">InterpUniv_Sub0</code>
+</dd>
+<dt>Corollary 3.4 (logical predicate is functional)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">InterpUniv_Functional</code>
+</dd>
+<dt>Lemma 3.23 (logical predicate is cumulative)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">InterpUniv_cumulative</code>
+</dd>
+<dt>Lemma 3.24 (semantic weakening)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">weakening_Sem</code>
+</dd>
+<dt>Lemma 3.25 (semantic substitution)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">morphing_SemWt</code>
+</dd>
+<dt>Lemma 3.26 (structural rules for semantic well-formedness)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">SemWff</code>
+</dd>
+<dt>Theorem 3.2 (fundamental theorem)</dt>
+<dd>
+<a href="theories/soundness.v">soundness.v</a>, <code
+class="verbatim">fundamental_theorem</code>
+</dd>
+<dt>Corollary 3.5 (completeness of reduce-and-compare)</dt>
+<dd>
+Inlined into proof scripts
+</dd>
+<dt>Corollary 3.6 (completeness of reduce-and-compare)</dt>
+<dd>
+<a href="theories/soundness.v">soundness.v</a>, <code
+class="verbatim">synsub_to_usub</code>
+</dd>
+</dl>
+<h3 id="section-4">Section 4</h3>
+<dl>
+<dt>Lemma 4.1 (<span
+class="math inline"><em>Π</em></span>-subtyping)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">Sub_Bind_Inv{L,R}</code>
+</dd>
+<dt>Lemma 4.2 (univ-subtyping)</dt>
+<dd>
+<a href="theories/logrel.v">logrel.v</a>, <code
+class="verbatim">Sub_Univ_Inv{L,R}</code>
+</dd>
+<dt>Lemma 4.3 (soundness for algorithmic equality)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, <code
+class="verbatim">coqeq_sound_mutual</code>
+</dd>
+<dt>Lemma 4.4 (soundness for algorithmic subtyping)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, <code
+class="verbatim">coqleq_sound_mutual</code>
+</dd>
+<dt>Lemma 4.5 (metric implies domain)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, <code
+class="verbatim">sn_term_metric</code>
+</dd>
+<dt>Lemma 4.6 (termination of Coquand's algorithm)</dt>
+<dd>
+<a href="theories/executable.v">executable.v</a>, <code
+class="verbatim">check_sub</code>
+</dd>
+<dt>Lemma 4.7 (completeness of Coquand's algorithm)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, <code
+class="verbatim">coqeq_complete'</code>
+</dd>
+<dt>Lemma 4.8 (completeness of Coquand's algorithmic subtyping)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, <code
+class="verbatim">coqleq_complete'</code>
+</dd>
+<dt>Lemma 4.9 (completeness of Coquand's algorithmic subtyping)</dt>
+<dd>
+<a href="theories/algorithmic.v">algorithmic.v</a>, lemmas near the end
+of the file
+</dd>
+<dt>Theorem 4.1</dt>
+<dd>
+by composing 4.9 and 4.6
+</dd>
+</dl>
+<h3 id="section-5">Section 5</h3>
+<dl>
+<dt>Proposition 5.1</dt>
+<dd>
+<a href="theories/cosn.v">cosn.v</a> <code
+class="verbatim">Safe_NoForbid</code>
+</dd>
+</dl>
+<h2 id="validating-axiom-usage">Validating axiom usage</h2>
+<p>We claim that our development is axiom-free. To validate that claim,
+one can use the <code class="verbatim">Print Assumptions</code> command
+on the theorems and confirm that no axioms are displayed.</p>
+<p>An alternative method is to run <code class="verbatim">coqchk</code>,
+which can be done by running <code
+class="verbatim">make validate</code>. However, <code
+class="verbatim">coqchk</code> doesn't work that well with module types
+and will report axioms that we didn't actually use in the
+development.</p>
