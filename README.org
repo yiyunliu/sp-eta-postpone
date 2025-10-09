@@ -62,7 +62,7 @@ substitution functions and their associated lemmas.
 *** Typing specification (Fig. 2, 3)
 - Typing: [[./html/DecSyn.typing.html#Wt][Wt]] ($\Gamma \vdash a \in A$)
 - Equality: [[./html/DecSyn.typing.html#Eq][Eq]] ($\Gamma \vdash a \equiv b \in A$)
-- Subtyping: [[./html/DecSyn.typing.html#LEq][LEq]] ($\Gamma \vdash A \lessim B$)
+- Subtyping: [[./html/DecSyn.typing.html#LEq][LEq]] ($\Gamma \vdash A \lesssim B$)
 - Context well-formedness: [[./html/DecSyn.typing.html#Wff][Wff]] ($\vdash \Gamma$)
 
 
@@ -104,7 +104,7 @@ set of terms that are non-stuck.
 - parallel $\eta$-reduction: [[./html/DecSyn.fp_red.html#EPar][EPar]]
 - parallel $\beta\eta$-reduction: [[./html/DecSyn.fp_red.html#RERed][RERed]]
 - leftmost-outermost $\beta$-reduction: [[./html/DecSyn.fp_red.html#LoRed][LoRed]]
-- weak-head $\beta-reduction: [[./html/DecSyn.common.html#HRed][HRed]]
+- weak-head $\beta$-reduction: [[./html/DecSyn.common.html#HRed][HRed]]
 - restrictive parallel $\eta$-reductions (Fig. 6): [[./html/DecSyn.fp_red.html#NeEPar][NeEPar]]
 **** Strong normalization (Sec. 3.2)
 - Strong normal forms: [[./html/DecSyn.fp_red.html#SN][SN]]
@@ -122,12 +122,36 @@ set of terms that are non-stuck.
 Note that [[./html/DecSyn.fp_red.html#ESub][ESub]] holds when two terms can be related by one-step
 subtyping after $\eta$-reduction. It is not mentioned in the paper but
 is convenient to have around in the mechanization for automation purposes.
-**** Coquand's algorithm
+**** Coquand's algorithm (Sec. 4.1)
 Coquand's algorithm is one of the exceptions of the above naming
 scheme, and the actual formal definition is slightly different from
-the text presentation.
+the text presentation. Notably, the algorithmic equality for head
+normal forms is split into two relations, one that handles the case
+where both terms are neutral, and one that handles the cases where at
+least one term is not neutral.
 
-- Algorithmic equality ($a \leftrightarrow b$):
+
+- Algorithmic equality ($a \leftrightarrow b$ in the text): [[./html/DecSyn.algorithmic.html#CoqEq_R][CoqEq_R]] ($a
+  \Leftrightarrow b$ in the mechanization)
+- Algorithmic equality for head normal forms ($f_0 \sim f_1$ in the
+  text):
+  + When both inputs are neutral: [[./html/DecSyn.algorithmic.html#CoqEq_Neu][CoqEq_Neu]] ($a \sim b$ in the mechanization)
+  + Otherwise: [[./html/DecSyn.algorithmic.html#CoqEq][CoqEq]] ($a \leftrightarrow b$ in the mechanization)
+
+The relations are all formulated on arbitrary terms.  The neutral and
+normal form restrictions in $f_0 \sim f_1$ are proven a posteriori as
+lemmas in the mechanization (e.g. [[./html/DecSyn.executable_correct.html#coqeq_no_hred][coqeq_no_hred]]).
+
+
+Subtyping works similarly, though there is no need to split the
+relation as the neutral case is handled by equalities.
+
+- Algorithmic subtyping ($A \ll B$): [[./html/DecSyn.algorithmic.html#CoqLEq_R][CoqLEq_R]]
+- Algorithmic subtyping for head normal forms ($f_0 \lesssim f_1$): [[./html/DecSyn.algorithmic.html#CoqLEq][CoqLEq]]
+
+*** The untyped logical predicate (Sec 3.7)
+As mentioned in the text, the definition of the logical predicate
+is not directly encodable in Rocq.
 
 ** Properties proven in the paper
 The definition of the logical relation is split into =InterpExt= and
