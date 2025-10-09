@@ -14,122 +14,61 @@ Definition SumSpace (PA : PTm -> Prop)
   (PF : PTm -> (PTm -> Prop) -> Prop) t : Prop :=
   (exists v, rtc TRedSN t v /\ SNe v) \/ exists a b, rtc TRedSN t (PPair a b) /\ PA a /\ (forall PB, PF a PB -> PB b).
 
-Definition BindSpace p := if p is PPi then ProdSpace else SumSpace.
+Definition CR (P : PTm -> Prop) :=
+  (forall a, P a -> SN a) /\
+    (forall a, SNe a -> P a).
 
-Reserved Notation "⟦ A ⟧ i ;; I ↘ S" (at level 70).
+Definition BindSpace p := if p is PPi then ProdSpace else SumSpace.
 
 Notation "S0 ≐ S1" := (forall (A : PTm), S0 A <-> S1 A) (at level 70, no associativity).
 
-Inductive InterpExt i (I : nat -> PTm -> Prop) : PTm -> (PTm -> Prop) -> Prop :=
-| InterpExt_Ne A :
-  SNe A ->
-  ⟦ A ⟧ i ;; I ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v)
-
-| InterpExt_Bind p A B PA PF :
-  ⟦ A ⟧ i ;; I ↘ PA ->
-  (forall a, PA a -> exists PB, PF a PB) ->
-  (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ;; I ↘ PB) ->
-  ⟦ PBind p A B ⟧ i ;; I ↘ BindSpace p PA PF
-
-| InterpExt_Nat :
-  ⟦ PNat ⟧ i ;; I ↘ SNat
-
-| InterpExt_Univ j :
-  j < i ->
-  ⟦ PUniv j ⟧ i ;; I ↘ (I j)
-
-| InterpExt_Step A A0 PA :
-  TRedSN A A0 ->
-  ⟦ A0 ⟧ i ;; I ↘ PA ->
-  ⟦ A ⟧ i ;; I ↘ PA
-
-(** [InterpExt_Conv]'s sole purpose is to get rid of funext and propext *)
-| InterpExt_Conv A PA PA' :
-  ⟦ A ⟧ i ;; I ↘ PA ->
-  PA ≐ PA' ->
-  ⟦ A ⟧ i ;; I ↘ PA'
-where "⟦ A ⟧ i ;; I ↘ S" := (InterpExt i I A S).
-
-Lemma InterpExt_Univ' i  I j (PF : PTm -> Prop) :
-  PF = I j ->
-  j < i ->
-  ⟦ PUniv j ⟧ i ;; I ↘ PF.
-Proof. hauto lq:on ctrs:InterpExt. Qed.
-
-Infix "<?" := Compare_dec.lt_dec (at level 60).
-
-(** Migrated from Equations to explicit recursion over Acc using Leroy's method:
- https://inria.hal.science/hal-04356563v2/document *)
-Fixpoint InterpUniv_rec (i : nat) (ACC : Acc lt i) : PTm -> (PTm -> Prop) -> Prop :=
-  @InterpExt i (fun j A =>
-                      match j <? i with
-                      | left h => exists PA, InterpUniv_rec j (Acc_inv ACC h) A PA
-                      | right _ => False
-                      end).
-
-Definition InterpUniv (i : nat) : PTm -> (PTm -> Prop) -> Prop :=
-  InterpUniv_rec i (Wf_nat.lt_wf i).
-
-Lemma InterpExt_lt_impl i I I' A (PA : PTm -> Prop) :
-  (forall j, j < i -> I j ≐ I' j) ->
-  ⟦ A ⟧ i ;; I ↘ PA ->
-  ⟦ A ⟧ i ;; I' ↘ PA.
+Lemma redsn_preservation_mutual :
+  (forall (a : PTm) (s : SNe a), forall b, TRedSN a b -> False) /\
+    (forall (a : PTm) (s : SN a), forall b, TRedSN a b -> SN b) /\
+  (forall (a b : PTm) (_ : TRedSN a b), forall c, TRedSN a c -> b = c).
 Proof.
-  move => hI h.
-  elim : A PA /h.
-  - hauto q:on ctrs:InterpExt.
-  - hauto lq:on rew:off ctrs:InterpExt.
-  - hauto q:on ctrs:InterpExt.
-  - hauto q:on ctrs:InterpExt.
-  - hauto lq:on ctrs:InterpExt.
-  - hauto lq:on ctrs:InterpExt.
+  apply sn_mutual; sauto lq:on rew:off.
 Qed.
 
-Lemma InterpExt_lt_eq i I I' A (PA : PTm -> Prop) :
-  (forall j, j < i -> I j ≐ I' j) ->
-  ⟦ A ⟧ i ;; I ↘ PA <->
-  ⟦ A ⟧ i ;; I' ↘ PA.
-Proof.
-  hfcrush use:InterpExt_lt_impl.
-Qed.
+Lemma redsns_preservation : forall a b, SN a -> rtc TRedSN a b -> SN b.
+Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 
-Notation "⟦ A ⟧ i ↘ S" := (InterpUniv i A S) (at level 70, no associativity).
-
-Lemma InterpUniv_rec_acc_irrel i ACC ACC' A S :
-  InterpUniv_rec i ACC A S <-> InterpUniv_rec i ACC' A S.
-Proof.
-  move : i ACC ACC' A S.
-  elim /Wf_nat.lt_wf_ind.
-  move => n h [a0] [a1] A S /=.
-  apply InterpExt_lt_eq.
-  move => j hj A0.
-  case : (j <? n) => //.
-  hauto l:on.
-Qed.
-
-Lemma InterpUniv_rec_nolt i ACC A S :
-  InterpUniv_rec i ACC A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
-Proof.
-  move : i ACC A S.
-  elim /Wf_nat.lt_wf_ind.
-  set (I := fun _ => _).
-  move => n ih.
-  case => hAcc A S /=.
-  apply InterpExt_lt_eq.
-  move => j h A0.
-  case : (j <? n) => //.
-  hauto l:on use:InterpUniv_rec_acc_irrel unfold:InterpUniv.
-Qed.
-
-Lemma InterpUniv_nolt i A S :
-  InterpUniv i A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
-Proof. rewrite /InterpUniv; apply InterpUniv_rec_nolt. Qed.
+#[export]Hint Resolve Sub.sne_bind_noconf Sub.sne_univ_noconf Sub.bind_univ_noconf
+  Sub.bind_sne_noconf Sub.univ_sne_noconf Sub.univ_bind_noconf Sub.nat_bind_noconf Sub.bind_nat_noconf Sub.sne_nat_noconf Sub.nat_sne_noconf Sub.univ_nat_noconf Sub.nat_univ_noconf: noconf.
 
 (* Make sure that the motive used in the induction principle of InterpUniv is  *)
 Definition ind_motive_okay (P : nat -> PTm -> (PTm -> Prop) -> Prop) :=
   forall i A S S', S ≐ S' -> P i A S <-> P i A S'.
 
-Lemma InterpUniv_ind
+Module Type LogRel.
+  Parameter InterpUniv : nat -> PTm -> (PTm -> Prop) -> Prop.
+  Notation "⟦ A ⟧ i ↘ S" := (InterpUniv i A S) (at level 70, no associativity).
+
+  Axiom InterpUniv_Ne : forall i (A : PTm),
+    SNe A ->
+    ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
+
+  Axiom InterpUniv_Bind : forall i p A B PA PF,
+    ⟦ A ⟧ i ↘ PA ->
+    (forall a, PA a -> exists PB, PF a PB) ->
+    (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+    ⟦ PBind p A B ⟧ i ↘ BindSpace p PA PF.
+
+  Axiom InterpUniv_Univ : forall i j,
+    j < i -> ⟦ PUniv j ⟧ i ↘ (fun A => exists PA, ⟦ A ⟧ j ↘ PA).
+
+  Axiom InterpUniv_Step : forall i A A0 PA,
+    TRedSN A A0 ->
+    ⟦ A0 ⟧ i ↘ PA ->
+    ⟦ A ⟧ i ↘ PA.
+
+  Axiom InterpUniv_Nat : forall i,
+    ⟦ PNat  ⟧ i ↘ SNat.
+
+  Axiom InterpUniv_Conv : forall i A S S',
+    ⟦ A  ⟧ i ↘ S -> S ≐ S' -> ⟦ A  ⟧ i ↘ S'.
+
+  Axiom InterpUniv_ind
   : forall (P : nat -> PTm -> (PTm -> Prop) -> Prop),
        ind_motive_okay P ->
        (forall i (A : PTm), SNe A -> P i A (fun a : PTm => exists v : PTm , rtc TRedSN a v /\ SNe v)) ->
@@ -145,47 +84,243 @@ Lemma InterpUniv_ind
        (forall i j : nat, j < i ->  (forall A PA, ⟦ A ⟧ j ↘ PA -> P j A PA) -> P i (PUniv j) (fun A => exists PA, ⟦ A ⟧ j ↘ PA)) ->
        (forall i (A A0 : PTm ) (PA : PTm  -> Prop), TRedSN A A0 -> ⟦ A0 ⟧ i ↘ PA -> P i A0 PA -> P i A PA) ->
        forall i (p : PTm ) (P0 : PTm  -> Prop), ⟦ p ⟧ i ↘ P0 -> P i p P0.
-Proof.
-  move => P P_ok hSN hBind hNat hUniv hRed.
-  elim /Wf_nat.lt_wf_ind => i ih . setoid_rewrite InterpUniv_nolt.
-  move => A PA. move => h. set I := fun _ => _ in h.
-  elim : A PA / h; eauto.
-  - hauto l:on use:InterpUniv_nolt.
-  - hauto l:on use:InterpUniv_nolt.
-  - hauto lq:on unfold:ind_motive_okay.
-Qed.
+End LogRel.
 
-Lemma InterpUniv_Ne i (A : PTm) :
-  SNe A ->
-  ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
-Proof. apply InterpExt_Ne. Qed.
+Module Type LogRelFacts (M : LogRel).
+  Import M.
 
-Lemma InterpUniv_Bind  i p A B PA PF :
-  ⟦ A ⟧ i ↘ PA ->
-  (forall a, PA a -> exists PB, PF a PB) ->
-  (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
-  ⟦ PBind p A B ⟧ i ↘ BindSpace p PA PF.
-Proof. apply InterpExt_Bind. Qed.
+  Axiom cumulative : forall i (A : PTm) PA,
+      ⟦ A ⟧ i ↘ PA -> forall j, i <= j ->
+                             ⟦ A ⟧ j ↘ PA.
 
-Lemma InterpUniv_Univ i j :
-  j < i -> ⟦ PUniv j ⟧ i ↘ (fun A => exists PA, ⟦ A ⟧ j ↘ PA).
-Proof.
-  setoid_rewrite InterpUniv_nolt. by apply InterpExt_Univ'.
-Qed.
+  Axiom adequacy : forall i A PA,
+      ⟦ A ⟧ i ↘ PA ->
+      CR PA /\ SN A.
 
-Lemma InterpUniv_Step i A A0 PA :
-  TRedSN A A0 ->
-  ⟦ A0 ⟧ i ↘ PA ->
-  ⟦ A ⟧ i ↘ PA.
-Proof. apply InterpExt_Step. Qed.
+  Axiom back_clos : forall i (A : PTm ) PA,
+    ⟦ A ⟧ i ↘ PA ->
+    forall a b, TRedSN a b ->
+            PA b -> PA a.
 
-Lemma InterpUniv_Nat i :
-  ⟦ PNat  ⟧ i ↘ SNat.
-Proof. apply InterpExt_Nat. Qed.
+  Axiom back_closs : forall i (A : PTm) PA,
+    ⟦ A ⟧ i ↘ PA ->
+    forall a b, rtc TRedSN a b ->
+           PA b -> PA a.
 
-Lemma InterpUniv_Conv i A S S' :
-  ⟦ A  ⟧ i ↘ S -> S ≐ S' -> ⟦ A  ⟧ i ↘ S'.
-Proof. apply InterpExt_Conv. Qed.
+  Axiom case : forall  i (A : PTm) PA,
+    ⟦ A ⟧ i ↘ PA ->
+    exists H, rtc TRedSN A H /\  ⟦ H ⟧ i ↘ PA /\ (SNe H \/ isbind H \/ isuniv H \/ isnat H).
+
+  Axiom SNe_inv : forall i (A : PTm) PA,
+    SNe A ->
+    ⟦ A ⟧ i ↘ PA ->
+    (PA ≐ (fun a => exists v, rtc TRedSN a v /\ SNe v)).
+
+  Axiom Bind_inv : forall i p A B S,
+    ⟦ PBind p A B ⟧ i ↘ S -> exists PA PF,
+        ⟦ A ⟧ i ↘ PA /\
+          (forall a, PA a -> exists PB, PF a PB) /\
+          (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
+          S ≐ BindSpace p PA PF.
+
+  Axiom Nat_inv : forall i S,
+    ⟦ PNat  ⟧ i ↘ S -> S ≐ SNat.
+
+  Axiom Univ_inv : forall i j S,
+    ⟦ PUniv j ⟧ i ↘ S ->
+    S ≐ (fun A => exists PA, ⟦ A ⟧ j ↘ PA) /\ j < i.
+
+  Axiom sub : forall i j (A B : PTm) PA PB,
+    ⟦ A ⟧ i ↘ PA ->
+    ⟦ B ⟧ j ↘ PB ->
+    Sub.R A B -> forall x, PA x -> PB x.
+
+  Axiom functional : forall i j A PA PB,
+      ⟦ A ⟧ i ↘ PA ->
+      ⟦ A ⟧ j ↘ PB ->
+      PA ≐ PB.
+
+  Axiom Bind_inv_nopf : forall i p A B P, ⟦PBind p A B ⟧ i ↘ P ->
+    exists (PA : PTm -> Prop),
+      ⟦ A ⟧ i ↘ PA /\
+        (forall a, PA a -> exists PB, ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) /\
+        P ≐ BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB).
+
+  Axiom Bind_nopf : forall p i (A : PTm) B PA,
+    ⟦ A ⟧ i ↘ PA ->
+    (forall a, PA a -> exists PB, ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+    ⟦ PBind p A B ⟧ i ↘ (BindSpace p PA (fun a PB => ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB)).
+
+End LogRelFacts.
+
+Module LogRelImpl : LogRel.
+  Reserved Notation "⟦ A ⟧ i ;; I ↘ S" (at level 70).
+
+  Inductive InterpExt i (I : nat -> PTm -> Prop) : PTm -> (PTm -> Prop) -> Prop :=
+  | InterpExt_Ne A :
+    SNe A ->
+    ⟦ A ⟧ i ;; I ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v)
+
+  | InterpExt_Bind p A B PA PF :
+    ⟦ A ⟧ i ;; I ↘ PA ->
+    (forall a, PA a -> exists PB, PF a PB) ->
+    (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ;; I ↘ PB) ->
+    ⟦ PBind p A B ⟧ i ;; I ↘ BindSpace p PA PF
+
+  | InterpExt_Nat :
+    ⟦ PNat ⟧ i ;; I ↘ SNat
+
+  | InterpExt_Univ j :
+    j < i ->
+    ⟦ PUniv j ⟧ i ;; I ↘ (I j)
+
+  | InterpExt_Step A A0 PA :
+    TRedSN A A0 ->
+    ⟦ A0 ⟧ i ;; I ↘ PA ->
+    ⟦ A ⟧ i ;; I ↘ PA
+
+  (** [InterpExt_Conv]'s sole purpose is to get rid of funext and propext *)
+  | InterpExt_Conv A PA PA' :
+    ⟦ A ⟧ i ;; I ↘ PA ->
+    PA ≐ PA' ->
+    ⟦ A ⟧ i ;; I ↘ PA'
+  where "⟦ A ⟧ i ;; I ↘ S" := (InterpExt i I A S).
+
+  Lemma InterpExt_Univ' i  I j (PF : PTm -> Prop) :
+    PF = I j ->
+    j < i ->
+    ⟦ PUniv j ⟧ i ;; I ↘ PF.
+  Proof. hauto lq:on ctrs:InterpExt. Qed.
+
+  Infix "<?" := Compare_dec.lt_dec (at level 60).
+
+  (** Migrated from Equations to explicit recursion over Acc using Leroy's method:
+ https://inria.hal.science/hal-04356563v2/document *)
+  Fixpoint InterpUniv_rec (i : nat) (ACC : Acc lt i) : PTm -> (PTm -> Prop) -> Prop :=
+    @InterpExt i (fun j A =>
+                    match j <? i with
+                    | left h => exists PA, InterpUniv_rec j (Acc_inv ACC h) A PA
+                    | right _ => False
+                    end).
+
+  Definition InterpUniv (i : nat) : PTm -> (PTm -> Prop) -> Prop :=
+    InterpUniv_rec i (Wf_nat.lt_wf i).
+
+  Lemma InterpExt_lt_impl i I I' A (PA : PTm -> Prop) :
+    (forall j, j < i -> I j ≐ I' j) ->
+    ⟦ A ⟧ i ;; I ↘ PA ->
+    ⟦ A ⟧ i ;; I' ↘ PA.
+  Proof.
+    move => hI h.
+    elim : A PA /h.
+    - hauto q:on ctrs:InterpExt.
+    - hauto lq:on rew:off ctrs:InterpExt.
+    - hauto q:on ctrs:InterpExt.
+    - hauto q:on ctrs:InterpExt.
+    - hauto lq:on ctrs:InterpExt.
+    - hauto lq:on ctrs:InterpExt.
+  Qed.
+
+  Lemma InterpExt_lt_eq i I I' A (PA : PTm -> Prop) :
+    (forall j, j < i -> I j ≐ I' j) ->
+    ⟦ A ⟧ i ;; I ↘ PA <->
+      ⟦ A ⟧ i ;; I' ↘ PA.
+  Proof.
+    hfcrush use:InterpExt_lt_impl.
+  Qed.
+
+  Notation "⟦ A ⟧ i ↘ S" := (InterpUniv i A S) (at level 70, no associativity).
+
+  Lemma InterpUniv_rec_acc_irrel i ACC ACC' A S :
+    InterpUniv_rec i ACC A S <-> InterpUniv_rec i ACC' A S.
+  Proof.
+    move : i ACC ACC' A S.
+    elim /Wf_nat.lt_wf_ind.
+    move => n h [a0] [a1] A S /=.
+    apply InterpExt_lt_eq.
+    move => j hj A0.
+    case : (j <? n) => //.
+    hauto l:on.
+  Qed.
+
+  Lemma InterpUniv_rec_nolt i ACC A S :
+    InterpUniv_rec i ACC A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
+  Proof.
+    move : i ACC A S.
+    elim /Wf_nat.lt_wf_ind.
+    set (I := fun _ => _).
+    move => n ih.
+    case => hAcc A S /=.
+    apply InterpExt_lt_eq.
+    move => j h A0.
+    case : (j <? n) => //.
+    hauto l:on use:InterpUniv_rec_acc_irrel unfold:InterpUniv.
+  Qed.
+
+  Lemma InterpUniv_nolt i A S :
+    InterpUniv i A S <-> InterpExt i (fun j (A : PTm ) => exists PA, ⟦ A ⟧ j ↘ PA) A S.
+  Proof. rewrite /InterpUniv; apply InterpUniv_rec_nolt. Qed.
+
+  Lemma InterpUniv_ind
+    : forall (P : nat -> PTm -> (PTm -> Prop) -> Prop),
+      ind_motive_okay P ->
+      (forall i (A : PTm), SNe A -> P i A (fun a : PTm => exists v : PTm , rtc TRedSN a v /\ SNe v)) ->
+      (forall i (p : BTag) (A : PTm ) (B : PTm ) (PA : PTm  -> Prop)
+          (PF : PTm  -> (PTm  -> Prop) -> Prop),
+          ⟦ A ⟧ i ↘ PA ->
+          P i A PA ->
+          (forall a : PTm , PA a -> exists PB : PTm  -> Prop, PF a PB) ->
+          (forall (a : PTm ) (PB : PTm  -> Prop), PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+          (forall (a : PTm ) (PB : PTm  -> Prop), PF a PB -> P i (subst_PTm (scons a VarPTm) B) PB) ->
+          P i (PBind p A B) (BindSpace p PA PF)) ->
+      (forall i, P i PNat SNat) ->
+      (forall i j : nat, j < i ->  (forall A PA, ⟦ A ⟧ j ↘ PA -> P j A PA) -> P i (PUniv j) (fun A => exists PA, ⟦ A ⟧ j ↘ PA)) ->
+      (forall i (A A0 : PTm ) (PA : PTm  -> Prop), TRedSN A A0 -> ⟦ A0 ⟧ i ↘ PA -> P i A0 PA -> P i A PA) ->
+      forall i (p : PTm ) (P0 : PTm  -> Prop), ⟦ p ⟧ i ↘ P0 -> P i p P0.
+  Proof.
+    move => P P_ok hSN hBind hNat hUniv hRed.
+    elim /Wf_nat.lt_wf_ind => i ih . setoid_rewrite InterpUniv_nolt.
+    move => A PA. move => h. set I := fun _ => _ in h.
+    elim : A PA / h; eauto.
+    - hauto l:on use:InterpUniv_nolt.
+    - hauto l:on use:InterpUniv_nolt.
+    - hauto lq:on unfold:ind_motive_okay.
+  Qed.
+
+  Lemma InterpUniv_Ne i (A : PTm) :
+    SNe A ->
+    ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
+  Proof. apply InterpExt_Ne. Qed.
+
+  Lemma InterpUniv_Bind  i p A B PA PF :
+    ⟦ A ⟧ i ↘ PA ->
+    (forall a, PA a -> exists PB, PF a PB) ->
+    (forall a PB, PF a PB -> ⟦ subst_PTm (scons a VarPTm) B ⟧ i ↘ PB) ->
+    ⟦ PBind p A B ⟧ i ↘ BindSpace p PA PF.
+  Proof. apply InterpExt_Bind. Qed.
+
+  Lemma InterpUniv_Univ i j :
+    j < i -> ⟦ PUniv j ⟧ i ↘ (fun A => exists PA, ⟦ A ⟧ j ↘ PA).
+  Proof.
+    setoid_rewrite InterpUniv_nolt. by apply InterpExt_Univ'.
+  Qed.
+
+  Lemma InterpUniv_Step i A A0 PA :
+    TRedSN A A0 ->
+    ⟦ A0 ⟧ i ↘ PA ->
+    ⟦ A ⟧ i ↘ PA.
+  Proof. apply InterpExt_Step. Qed.
+
+  Lemma InterpUniv_Nat i :
+    ⟦ PNat  ⟧ i ↘ SNat.
+  Proof. apply InterpExt_Nat. Qed.
+
+  Lemma InterpUniv_Conv i A S S' :
+    ⟦ A  ⟧ i ↘ S -> S ≐ S' -> ⟦ A  ⟧ i ↘ S'.
+  Proof. apply InterpExt_Conv. Qed.
+End LogRelImpl.
+
+
 
 #[export]Hint Resolve InterpUniv_Bind InterpUniv_Step InterpUniv_Ne InterpUniv_Univ InterpUniv_Conv : InterpUniv.
 
@@ -199,16 +334,13 @@ Proof.
     hauto l:on ctrs:InterpExt solve+:(by lia).
 Qed.
 
+
 Lemma InterpUniv_cumulative i (A : PTm) PA :
    ⟦ A ⟧ i ↘ PA -> forall j, i <= j ->
    ⟦ A ⟧ j ↘ PA.
 Proof.
   hauto l:on use:InterpExt_cumulative, InterpUniv_nolt.
 Qed.
-
-Definition CR (P : PTm -> Prop) :=
-  (forall a, P a -> SN a) /\
-    (forall a, SNe a -> P a).
 
 Lemma N_Exps (a b : PTm) :
   rtc TRedSN a b ->
@@ -307,19 +439,6 @@ Proof.
   move : i A PA. apply InterpUniv_ind => //=; sauto lq:on db:InterpUniv ctrs:rtc unfold:ind_motive_okay.
 Qed.
 
-Lemma redsn_preservation_mutual :
-  (forall (a : PTm) (s : SNe a), forall b, TRedSN a b -> False) /\
-    (forall (a : PTm) (s : SN a), forall b, TRedSN a b -> SN b) /\
-  (forall (a b : PTm) (_ : TRedSN a b), forall c, TRedSN a c -> b = c).
-Proof.
-  apply sn_mutual; sauto lq:on rew:off.
-Qed.
-
-Lemma redsns_preservation : forall a b, SN a -> rtc TRedSN a b -> SN b.
-Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
-
-#[export]Hint Resolve Sub.sne_bind_noconf Sub.sne_univ_noconf Sub.bind_univ_noconf
-  Sub.bind_sne_noconf Sub.univ_sne_noconf Sub.univ_bind_noconf Sub.nat_bind_noconf Sub.bind_nat_noconf Sub.sne_nat_noconf Sub.nat_sne_noconf Sub.univ_nat_noconf Sub.nat_univ_noconf: noconf.
 
 Lemma InterpUniv_SNe_inv i (A : PTm) PA :
   SNe A ->
