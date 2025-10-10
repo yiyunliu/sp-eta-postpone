@@ -9,7 +9,6 @@ export COQDOCFLAGS
 COQDOCJS_LN?=false
 -include coqdocjs/Makefile.doc
 
-
 coqdoc: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE) html
 ifeq ($(COQDOCJS_LN),true)
@@ -20,6 +19,11 @@ endif
 
 theories: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE)
+
+
+README.html: README.org pandoc.css
+	pandoc -s --metadata title='Algorithmic conversion with surjective pairing' --css pandoc.css README.org --output README.html
+
 
 validate: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE) validate

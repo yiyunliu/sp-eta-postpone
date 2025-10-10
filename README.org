@@ -1,4 +1,3 @@
-* Decidable type conversion with surjective pairing
 This repository contains the Rocq mechanization of the results from the paper
 "Algorithmic Conversion with Surjective Pairing: A Syntactic and
 Untyped Approach".
@@ -85,14 +84,22 @@ Some relations are standard and therefore not included in the text for
 concision, but we include them here for completeness.
 
 **** Normal form predicates (Fig. 5)
+- normal forms (nf): [[./html/DecSyn.fp_red.html#nf][nf]]
+- neutral forms (nf): [[./html/DecSyn.fp_red.html#ne][ne]]
 - canonical forms (canf): [[./html/DecSyn.common.html#ishf][ishf]]
 - weak-head neutral forms (whne): [[./html/DecSyn.common.html#ishne][ishne]]
-- weak-head normal forms (whnf): inlined as the union of =ishf= and =ishne=
+- weak-head normal forms (whnf): inlined as the union of =ishf= and
+  =ishne=
 
 Note that we sometimes use [[./html/DecSyn.common.html#HRed.nf][HRed.nf]] in place of the above definition of
 whnf, where the former means the term would no longer reduce with
 weak-head reduction. These two definitions coincide for precisely the
 set of terms that are non-stuck.
+
+Also, instead of defining [[./html/DecSyn.fp_red.html#nf][nf]] and [[./html/DecSyn.fp_red.html#ne][ne]] as inductive predicates, we define
+them as mutually recursive fixpoints. For the definition to be
+accepted by the termination checker, the injection from ne to nf is
+proven a posteriori as the lemma [[./html/DecSyn.fp_red.html#ne_nf][ne_nf]].
 
 **** Reductions
 - $\beta$-reduction: [[./html/DecSyn.fp_red.html#RRed][RRed]]
@@ -223,8 +230,8 @@ The definition of the logical relation is split into =InterpExt= and
   =epar_sn_preservation=, =red_sn_preservation=
 - Lemma 3.7 (restrictive-$\eta$ and normal form) :: [[file:theories/fp_red.v][fp_red.v]], =R_elim_nf=
 - Lemma 3.8 ($\eta$-decomposition) :: [[file:theories/fp_red.v][fp_red.v]], =η_split=
-- Lemma 3.9 ($\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement=
-- Corollary 3.1 (strengthened $\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =eta_postponement_star'=
+- Lemma 3.9 ($\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =η_postponement=
+- Corollary 3.1 (strengthened $\eta$-postponement) :: [[file:theories/fp_red.v][fp_red.v]], =η_postponement_star'=
 - Corollary 3.2 ($\eta$-postponement for normal forms) :: [[file:theories/fp_red.v][fp_red.v]], =standardization=
 - Lemma 3.10 (confluence for $\beta$) :: [[file:theories/fp_red.v][fp_red.v]], =red_confluence=
 - Lemma 3.11 (confluence for $\eta$) :: [[file:theories/fp_red.v][fp_red.v]], =ered_confluence=
