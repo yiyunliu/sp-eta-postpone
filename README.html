@@ -405,68 +405,100 @@ href="./html/DecSyn.executable_correct.html#check_eq_complete">check<sub>eqcompl
 completeness and soundness results.</p>
 <h2 id="properties-proven-in-the-paper">Properties proven in the
 paper</h2>
-<p>The definition of the logical relation is split into <code
-class="verbatim">InterpExt</code> and <code
-class="verbatim">InterpUniv</code> in <a
-href="theories/logrel.v">logrel.v</a>.</p>
 <h3 id="section-2">Section 2</h3>
 <dl>
 <dt>Lemma 2.1 (context regularity)</dt>
 <dd>
-<a href="./theories/structural.v">structural.v</a>, <code
-class="verbatim">wff_mutual</code>
+<a
+href="./html/DecSyn.structural.html#wff_mutual">wff<sub>mutual</sub></a>
 </dd>
-<dt>Lemma 2.2 (generation)</dt>
+<dt>Lemma 2.2 (inversion)</dt>
 <dd>
-<a href="./theories/structural.v">structural.v</a>, <a
-href="theories/admissible.v">admissible.v</a>, <code
-class="verbatim">*_Inv</code>
+<a href="./html/DecSyn.structural.html#Bind_Inv">Bind<sub>Inv</sub></a>,
+<a href="./html/DecSyn.structural.html#Var_Inv">Var<sub>Inv</sub></a>,
+<a href="./html/DecSyn.admissible.html#App_Inv">App<sub>Inv</sub></a>,
+<a href="./html/DecSyn.admissible.html#Abs_Inv">Abs<sub>Inv</sub></a>,
+<a
+href="./html/DecSyn.admissible.html#Proj1_Inv">Proj1<sub>Inv</sub></a>,
+<a
+href="./html/DecSyn.admissible.html#Proj2_Inv">Proj2<sub>Inv</sub></a>,
+<a href="./html/DecSyn.admissible.html#Pair_Inv">Pair<sub>Inv</sub></a>
 </dd>
 <dt>Lemma 2.3 (subject reduction)</dt>
 <dd>
-<a href="theories/preservation.v">preservation.v</a>, <code
-class="verbatim">RRed_Eq</code>, <code
-class="verbatim">subject_reduction</code>
+<a
+href="./html/DecSyn.preservation.html#subject_reduction">subject<sub>reduction</sub></a>
 </dd>
-<dt>Lemma 2.4 (regularity)</dt>
+<dt>Lemma 2.4 (type correctness)</dt>
 <dd>
-<a href="./theories/structural.v">structural.v</a>, <code
-class="verbatim">regularity</code>
+<a href="./html/DecSyn.structural.html#regularity">regularity</a>
 </dd>
 </dl>
 <h3 id="section-3">Section 3</h3>
 <dl>
 <dt>Lemma 3.1</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">RRed.nf_imp</code>
+<a
+href="./html/DecSyn.fp_red.html#RRed.nf_imp">RRed.nf<sub>imp</sub></a>
 </dd>
 <dt>Lemma 3.2</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">ERed.nf_preservation</code>
+<a
+href="./html/DecSyn.fp_red.html#ERed.nf_preservation">ERed.nf<sub>preservation</sub></a>
 </dd>
 <dt>Lemma 3.3</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">LoReds.FromSN_mutual</code>
+<a
+href="./html/DecSyn.fp_red.html#LoReds.FromSN_mutual">LoReds.FromSN<sub>mutual</sub></a>
 </dd>
 <dt>Lemma 3.4 (no stuck terms)</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">SN_NoForbid.*_imp</code>
+<a
+href="./html/DecSyn.fp_red.html#SN_NoForbid.PApp_imp">SN<sub>NoForbid</sub>.PApp<sub>imp</sub></a>,
+<a
+href="./html/DecSyn.fp_red.html#SN_NoForbid.PProj_imp">SN<sub>NoForbid</sub>.PProj<sub>imp</sub></a>,
+<a
+href="./html/DecSyn.fp_red.html#SN_NoForbid.PInd_imp">SN<sub>NoForbid</sub>.PInd<sub>imp</sub></a>
+(the <span class="math inline"><em>P</em></span> property is defined as
+<span class="math inline"><em>S</em><em>N</em></span>)
 </dd>
-<dt>Lemma 3.5 (sn antisubstitution)</dt>
+<dt>Lemma 3.5 (SN renaming)</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">sn_unmorphing</code>
+<a
+href="./html/DecSyn.fp_red.html#sn_renaming">sn<sub>renaming</sub></a>
 </dd>
-<dt>Lemma 3.6 (sn preservation)</dt>
+<dt>Lemma 3.6 (SN antisubstitution)</dt>
 <dd>
-<a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">RERed.sn_preservation</code>, <code
-class="verbatim">epar_sn_preservation</code>, <code
-class="verbatim">red_sn_preservation</code>
+<a
+href="./html/DecSyn.fp_red.html#sn_unmorphing">sn<sub>unmorphing</sub></a>
+</dd>
+<dt>Lemma 3.7 (SN inversion)</dt>
+<dd>
+<a href="./html/DecSyn.fp_red.html#P_AppInv">P<sub>AppInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_PairInv">P<sub>PairInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_ProjInv">P<sub>ProjInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_BindInv">P<sub>BindInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_SucInv">P<sub>SucInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_AbsInv">P<sub>AbsInv</sub></a>, <a
+href="./html/DecSyn.fp_red.html#P_IndInv">P<sub>IndInv</sub></a>
+</dd>
+<dt>Lemma 3.8 (sn preservation)</dt>
+<dd>
+<p>split into two separate lemmas</p>
+<dl>
+<dt>preservation for parallel <span
+class="math inline"><em>η</em></span>-reduction</dt>
+<dd>
+<a
+href="./html/DecSyn.fp_red.html#epar_sn_preservation">epar<sub>snpreservation</sub></a>
+</dd>
+<dt>preservation for parallel <span
+class="math inline"><em>β</em></span>-reduction</dt>
+<dd>
+<a
+href="./html/DecSyn.fp_red.html#red_sn_preservation">red<sub>snpreservation</sub></a>
+</dd>
+</dl>
 </dd>
 <dt>Lemma 3.7 (restrictive-<span class="math inline"><em>η</em></span>
 and normal form)</dt>
