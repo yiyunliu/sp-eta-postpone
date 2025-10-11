@@ -1455,7 +1455,7 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
     - hauto lq:on ctrs:NeEPar.R_nonelim, NeEPar.R_elim use:RReds.SucCong, P_SucInv.
   Qed.
 
-  Lemma eta_postponement a b c :
+  Lemma η_postponement a b c :
     P a ->
     EPar.R a b ->
     RRed.R b c ->
@@ -1630,34 +1630,35 @@ Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
       by apply EPar.SucCong.
   Qed.
 
-  Lemma η_postponement_star a b c :
+  Lemma η_postponement_strengthened a b c :
     P a ->
     EPar.R a b ->
-    rtc RRed.R b c ->
-    exists d, rtc RRed.R a d /\ EPar.R d c.
+    RRed.R b c ->
+    exists d, rtc RRed.R a d /\ NeEPar.R_nonelim d c.
   Proof.
-    move => + + h. move : a.
-    elim : b c / h.
-    - sfirstorder.
-    - move => a0 a1 a2 ha ha' iha u hu hu'.
-      move : eta_postponement (hu) ha hu'; repeat move/[apply].
-      move => [d [h0 h1]].
-      have : P d by sfirstorder use:P_RReds.
-      move : iha h1; repeat move/[apply].
-      sfirstorder use:@relations.rtc_transitive.
+    move => h0 h1 h2.
+    have : exists d, rtc RRed.R a d /\ EPar.R d c by eauto using η_postponement.
+    move => [d [h3 /η_split]].
+    move /(_ ltac:(eauto using P_RReds)).
+    sfirstorder use:@relations.rtc_transitive.
   Qed.
 
-  Lemma η_postponement_star' a b c :
+  Lemma η_postponement_star a b c :
     P a ->
     EPar.R a b ->
     rtc RRed.R b c ->
     exists d, rtc RRed.R a d /\ NeEPar.R_nonelim d c.
   Proof.
-    move => h0 h1 h2.
-    have : exists d, rtc RRed.R a d /\ EPar.R d c by eauto using η_postponement_star.
-    move => [d [h3 /η_split]].
-    move /(_ ltac:(eauto using P_RReds)).
-    sfirstorder use:@relations.rtc_transitive.
+    move => + + h. move : a.
+    elim : b c / h.
+    - sfirstorder use:η_split.
+    - move => a0 a1 a2 ha ha' iha u hu hu'.
+      move : η_postponement_strengthened (hu) ha hu'; repeat move/[apply].
+      move => [d [h0 h1]].
+      have : P d by sfirstorder use:P_RReds.
+      have : EPar.R d a1 by sfirstorder use:NeEPar.ToEPar.
+      move : iha h1; repeat move/[apply].
+      sfirstorder use:@relations.rtc_transitive.
   Qed.
 
 End UniqueNF.
@@ -2849,8 +2850,29 @@ Proof.
   - move => h0 h1 ih hP.
     have  : SN b by qauto use:epar_sn_preservation.
     move => {}/ih [b' [ihb0 ihb1]].
-    hauto lq:on ctrs:rtc use:SN_UniqueNF.η_postponement_star'.
+    hauto lq:on ctrs:rtc use:SN_UniqueNF.η_postponement_star.
   - hauto lq:on ctrs:rtc use:red_sn_preservation, RPar.FromRRed.
+Qed.
+
+Lemma rered_standardization' (a u : PTm) :
+  SN a ->
+  rtc RERed.R a u ->
+  nf u ->
+  exists u0, nf u0 /\ rtc RRed.R a u0  /\ rtc ERed.R u0 u.
+Proof.
+  move => + h. elim : a u /h.
+  by eauto using rtc_refl.
+  move => a b c /RERed.ToBetaEtaPar.
+  case.
+  - move => h0 h1 ih hP.
+    have  : SN b by qauto use:epar_sn_preservation.
+    move : ih; repeat move/[apply].
+    move => [u0 [hnf [h2 h3]]].
+    move : SN_UniqueNF.η_postponement_star hP h0 h2. repeat move/[apply].
+    move => [d [h2 h4]]. exists d. split => //.
+    sfirstorder use:NeEPar.R_elim_nf.
+    qauto use:NeEPar.ToEPar, EReds.FromEPar, @relations.rtc_transitive.
+  - hauto lq:on lq:on ctrs:rtc use:red_sn_preservation, RPar.FromRRed.
 Qed.
 
 Lemma rered_confluence (a b c : PTm) :
@@ -2863,57 +2885,16 @@ Proof.
   have [] : SN b /\ SN c by qauto use:REReds.sn_preservation.
   move => /LoReds.FromSN [bv [/LoReds.ToRReds /REReds.FromRReds hbv  hbv']].
   move => /LoReds.FromSN [cv [/LoReds.ToRReds /REReds.FromRReds hcv  hcv']].
-  have [] : SN b /\ SN c by sfirstorder use:REReds.sn_preservation.
-  move : rered_standardization hbv; repeat move/[apply]. move => [bv' [hb0 hb1]].
-  move : rered_standardization hcv; repeat move/[apply]. move => [cv' [hc0 hc1]].
-
-  have [] : rtc RERed.R a bv' /\ rtc RERed.R a cv'
-    by sfirstorder use:@relations.rtc_transitive, REReds.FromRReds.
-  move : rered_standardization (hP). repeat move/[apply]. move => [bv'' [hb3 hb4]].
-  move : rered_standardization (hP). repeat move/[apply]. move => [cv'' [hc3 hc4]].
-  have hb2 : rtc NeEPar.R_nonelim bv'' bv by hauto lq:on use:@relations.rtc_transitive.
-  have hc2 : rtc NeEPar.R_nonelim cv'' cv by hauto lq:on use:@relations.rtc_transitive.
-  have [hc5 hb5] : nf cv'' /\ nf bv'' by sfirstorder use:NeEPars.R_nonelim_nf.
-  have ? : bv'' = cv'' by sfirstorder use:red_uniquenf. subst.
-  apply NeEPars.ToEReds in hb2, hc2.
-  move : ered_confluence (hb2) (hc2); repeat move/[apply].
+  have {}hb : rtc RERed.R a bv by eauto using relations.rtc_transitive.
+  have {}hc : rtc RERed.R a cv by eauto using relations.rtc_transitive.
+  move : rered_standardization' (hP) (hb) (hbv'); repeat move/[apply]. move => [bv' [nfbv' [hb0 hb1]]].
+  move : rered_standardization' (hP) (hc) (hcv'); repeat move/[apply]. move => [cv' [nfcv' [hc0 hc1]]].
+  have ? : bv' = cv' by eauto using red_uniquenf. subst.
+  move : ered_confluence (hb1) (hc1); repeat move/[apply].
   move => [v [hv hv']].
-  exists v. split.
-  move /NeEPars.ToEReds /REReds.FromEReds : hb1.
-  move /REReds.FromRReds : hb0. move /REReds.FromEReds : hv. eauto using relations.rtc_transitive.
-  move /NeEPars.ToEReds /REReds.FromEReds : hc1.
-  move /REReds.FromRReds : hc0. move /REReds.FromEReds : hv'. eauto using relations.rtc_transitive.
+  exists v.
+  hauto use:REReds.FromEReds,REReds.FromEReds,@relations.rtc_transitive.
 Qed.
-
-(* Beta joinability *)
-Module BJoin.
-  Definition R (a b : PTm) := exists c, rtc RRed.R a c /\ rtc RRed.R b c.
-  Lemma refl (a : PTm) : R a a.
-  Proof. sfirstorder use:@rtc_refl unfold:R. Qed.
-
-  Lemma symmetric (a b : PTm) : R a b -> R b a.
-  Proof. sfirstorder unfold:R. Qed.
-
-  Lemma transitive (a b c : PTm) : R a b -> R b c -> R a c.
-  Proof.
-    rewrite /R.
-    move => [ab [ha +]] [bc [+ hc]].
-    move : red_confluence; repeat move/[apply].
-    move => [v [h0 h1]].
-    exists v. sfirstorder use:@relations.rtc_transitive.
-  Qed.
-
-  (* Lemma AbsCong n (a b : PTm (S n)) : *)
-  (*   R a b -> *)
-  (*   R (PAbs a) (PAbs b). *)
-  (* Proof. hauto lq:on use:RReds.AbsCong unfold:R. Qed. *)
-
-  (* Lemma AppCong n (a0 a1 b0 b1 : PTm) : *)
-  (*   R a0 a1 -> *)
-  (*   R b0 b1 -> *)
-  (*   R (PApp a0 b0) (PApp a1 b1). *)
-  (* Proof. hauto lq:on use:RReds.AppCong unfold:R. Qed. *)
-End BJoin.
 
 Module DJoin.
   Definition R (a b : PTm) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
@@ -3110,12 +3091,6 @@ Module DJoin.
     rtc RRed.R b a -> R a b.
   Proof.
     hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R.
-  Qed.
-
-  Lemma FromBJoin (a b : PTm) :
-    BJoin.R a b -> R a b.
-  Proof.
-    hauto lq:on ctrs:rtc use:REReds.FromRReds unfold:R, BJoin.R.
   Qed.
 
   Lemma substing (a b : PTm) (ρ : nat -> PTm) :

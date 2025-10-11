@@ -1183,7 +1183,7 @@ Proof.
       hauto lq:on use:LRFacts.join.
       apply DJoin.cong.
       apply DJoin.FromRedSNs.
-      hauto lq:on ctrs:rtc unfold:BJoin.R.
+      hauto lq:on ctrs:rtc.
     + hauto lq:on use:@relations.rtc_r, LRFacts.back_closs.
 Qed.
 

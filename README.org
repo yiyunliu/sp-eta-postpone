@@ -116,7 +116,6 @@ proven a posteriori as the lemma [[./html/DecSyn.fp_red.html#ne_nf][ne_nf]].
 - Strong weak head reduction: [[./html/DecSyn.fp_red.html#TRedSN][TRedSN]]
 **** Joinability and Subtyping
 - Joinability (w.r.t $\beta\eta$-reduction, Def. 3.1): [[./html/DecSyn.fp_red.html#DJoin][DJoin]]
-- Joinability (w.r.t $\beta$-reduction): [[./html/DecSyn.fp_red.html#BJoin][BJoin]]
 - Joinability (w.r.t $\eta$-reduction): [[./html/DecSyn.fp_red.html#EJoin][EJoin]]
 
 - One-step subtyping (Page 12): [[./html/DecSyn.fp_red.html#Sub1][Sub1]]
