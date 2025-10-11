@@ -9,6 +9,9 @@ COQMAKEFILE=CoqMakefile
 # COQDOCJS_LN?=false
 # -include coqdocjs/Makefile.doc
 
+theories: $(COQMAKEFILE) FORCE
+	$(MAKE) -f $(COQMAKEFILE)
+
 coqdoc: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE) html
 # ifeq ($(COQDOCJS_LN),true)
@@ -16,10 +19,6 @@ coqdoc: $(COQMAKEFILE) FORCE
 # else
 #	cp -R $(EXTRA_DIR)/resources html
 # endif
-
-theories: $(COQMAKEFILE) FORCE
-	$(MAKE) -f $(COQMAKEFILE)
-
 
 README.html: README.org pandoc.css
 	pandoc -s --metadata title='Algorithmic conversion with surjective pairing' --css pandoc.css README.org --output README.html
