@@ -1,21 +1,21 @@
 COQMAKEFILE=CoqMakefile
-COQDOCJS_DIR ?= coqdocjs
-EXTRA_DIR = $(COQDOCJS_DIR)/extra
-COQDOCFLAGS ?= \
-  --toc --toc-depth 2 --html --interpolate \
-  --index indexpage --no-lib-name --parse-comments \
-  --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
-export COQDOCFLAGS
-COQDOCJS_LN?=false
--include coqdocjs/Makefile.doc
+# COQDOCJS_DIR ?= coqdocjs
+# EXTRA_DIR = $(COQDOCJS_DIR)/extra
+# COQDOCFLAGS ?= \
+#   --toc --toc-depth 2 --html --interpolate \
+#   --index indexpage --no-lib-name --parse-comments \
+#   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
+# export COQDOCFLAGS
+# COQDOCJS_LN?=false
+# -include coqdocjs/Makefile.doc
 
 coqdoc: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE) html
-ifeq ($(COQDOCJS_LN),true)
-	ln -sf ../$(EXTRA_DIR)/resources html
-else
-	cp -R $(EXTRA_DIR)/resources html
-endif
+# ifeq ($(COQDOCJS_LN),true)
+#	ln -sf ../$(EXTRA_DIR)/resources html
+# else
+#	cp -R $(EXTRA_DIR)/resources html
+# endif
 
 theories: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE)
