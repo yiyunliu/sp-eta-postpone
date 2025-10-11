@@ -1,3 +1,4 @@
+#+OPTIONS: ^:nil
 This repository contains the Rocq mechanization of the results from the paper
 "Algorithmic Conversion with Surjective Pairing: A Syntactic and
 Untyped Approach".
@@ -35,6 +36,12 @@ work.
 - coq-hammer-tactics 1.3.2
 - coq-autosubst-ocaml 1.1
 
+Note that if you don't plan to modify and regenerate the =syntax.v=
+file from =syntax.sig= using =autosubst=, you can choose not to install =coq-autosubst-ocaml=.
+However, you need to be careful not to accidentally run =make deepclean=,
+which will delete the auto-generated syntax files. Instead, run =make
+clean= if you want to keep the auto-generated files.
+
 *** Validating the proofs
 After the dependencies are installed, run the following command to
 validate the proof development.  The =-j2= flag allows =make= to
@@ -44,12 +51,20 @@ beyond =-j2= does not reduce the compilation time.
 make -j2
 #+end_src
 
+It is expected that the compilation process will generate a lot of
+warnings about notations and the ssreflect library. The compilation is
+successful as long as the command terminates with the following
+output.
+#+begin_src sh
+# ... lots of warnings ...
+make[1]: Leaving directory '****'
+#+end_src
 
-Note that if you don't plan to modify and regenerate the =syntax.v=
-file from =syntax.sig= using =autosubst=, you can choose not to install =coq-autosubst-ocaml=.
-However, you need to be careful not to accidentally run =make deepclean=,
-which will delete the auto-generated syntax files. Instead, run =make
-clean= if you want to keep the auto-generated files.
+
+On a Linux laptop with an Intel 12700k, the compilation takes 67
+seconds. If you are running the command inside the attached VM and
+your host device has an ARM CPU (e.g. Mac M-series), then it'll take
+around 10x longer since emulating x86 instructions can be quite slow.
 
 ** Definitions
 
@@ -275,7 +290,7 @@ above completeness and soundness results.
 - Corollary 3.6 (completeness of reduce-and-compare) :: [[./html/DecSyn.soundness.v.html#synsub_to_usub][synsub_to_usub]]
 *** Section 4
 - Lemma 4.1 ($\Pi$-subtyping) :: [[./html/DecSyn.algorithmic.html#Sub_Bind_InvL][Sub_Bind_InvL]], [[./html/DecSyn.algorithmic.html#Sub_Bind_InvR][Sub_Bind_InvR]]
-- Lemma 4.2 (univ-subtyping) :: [[./html/DecSyn.algorithmic.html#Sub_Bind_UnivL][Sub_Bind_UnivL]], [[./html/DecSyn.algorithmic.html#Sub_Bind_UnivR][Sub_Bind_UnivR]]
+- Lemma 4.2 (univ-subtyping) :: [[./html/DecSyn.algorithmic.html#Sub_Univ_InvR][Sub_Univ_InvR]]
 - Lemma 4.3 (soundness for algorithmic equality) :: [[./html/DecSyn.algorithmic.html#coqeq_sound_mutual][coqeq_sound_mutual]]
 - Lemma 4.4 (soundness for algorithmic subtyping) :: [[./html/DecSyn.algorithmic.html#coqleq_sound_mutual][coqleq_sound_mutual]]
 - Lemma 4.5 (metric implies domain) :: [[./html/DecSyn.algorithmic.html#sn_term_metric][sn_term_metric]]
@@ -302,3 +317,45 @@ An alternative method is to run =coqchk=, which can be invoked on all
 =make validate=. However, =coqchk= doesn't work that well with module
 types and will report axioms that we didn't actually use in the
 development.
+
+#+begin_src sh
+,* Theory: Set is predicative
+
+,* Theory: Rewrite rules are not allowed
+
+,* Axioms:
+    DecSyn.logrel.LRFacts.functional
+    DecSyn.logrel.LRFacts.Bind_inv_nopf
+    DecSyn.logrel.LRFacts.back_clos
+    DecSyn.logrel.LRFacts.Bind_nopf
+    DecSyn.logrel.LRFacts.adequacy
+    DecSyn.logrel.LRFacts.back_closs
+    Coq.Logic.FunctionalExtensionality.functional_extensionality_dep
+    Coq.Reals.ClassicalDedekindReals.sig_not_dec
+    DecSyn.logrel.LRFacts.join
+    DecSyn.logrel.LRFacts.case
+    DecSyn.logrel.LRFacts.sub
+    Coq.Reals.ClassicalDedekindReals.sig_forall_dec
+    DecSyn.logrel.LRFacts.cumulative
+    DecSyn.logrel.LRFacts.Univ_inv
+    DecSyn.logrel.LRFacts.SNe_inv
+    DecSyn.logrel.LRFacts.Bind_inv
+    Coq.Logic.Eqdep.Eq_rect_eq.eq_rect_eq
+    DecSyn.fp_red.NoForbid_FactSN.P_RReds
+    DecSyn.fp_red.NoForbid_FactSN.P_EPars
+    DecSyn.logrel.LRFacts.Nat_inv
+
+,* Constants/Inductives relying on type-in-type: <none>
+
+,* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+
+,* Inductives whose positivity is assumed: <none>
+
+make[1]: Leaving directory '****'
+#+end_src
+
+Again, all the axiom reported are false positives and you should
+always trust =Print Assumptions= when it comes to axiom usage. Still,
+the output provides the useful information that our development does
+not rely on any of the dangerous or inconsistent features that would
+make our theorems trivially true.
