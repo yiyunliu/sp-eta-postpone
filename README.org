@@ -22,7 +22,7 @@ eval $(opam env)
 After the dependencies are installed, run the following command to
 validate the proof development.  The =-j2= flag allows =make= to
 validate up to 2 files in parallel. According to our testing, going
-beyond =-j2= does not reduce the compilation time significantly.
+beyond =-j2= does not reduce the compilation time.
 #+begin_src sh
 make -j2
 #+end_src
@@ -266,27 +266,31 @@ above completeness and soundness results.
   proof scripts
 - Corollary 3.6 (completeness of reduce-and-compare) :: [[./html/DecSyn.soundness.v.html#synsub_to_usub][synsub_to_usub]]
 *** Section 4
-- Lemma 4.1 ($\Pi$-subtyping) :: [[file:theories/logrel.v][logrel.v]], =Sub_Bind_Inv{L,R}=
-- Lemma 4.2 (univ-subtyping) :: [[file:theories/logrel.v][logrel.v]], =Sub_Univ_Inv{L,R}=
-- Lemma 4.3 (soundness for algorithmic equality) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqeq_sound_mutual=
-- Lemma 4.4 (soundness for algorithmic subtyping) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_sound_mutual=
-- Lemma 4.5 (metric implies domain) :: [[file:theories/algorithmic.v][algorithmic.v]], =sn_term_metric=
-- Lemma 4.6 (termination of Coquand's algorithm) :: [[file:theories/executable.v][executable.v]], =check_sub=
-- Lemma 4.7 (completeness of Coquand's algorithm) :: [[file:theories/algorithmic.v][algorithmic.v]], =coqeq_complete'=
+- Lemma 4.1 ($\Pi$-subtyping) :: [[./html/DecSyn.algorithmic.html#Sub_Bind_InvL][Sub_Bind_InvL]], [[./html/DecSyn.algorithmic.html#Sub_Bind_InvR][Sub_Bind_InvR]]
+- Lemma 4.2 (univ-subtyping) :: [[./html/DecSyn.algorithmic.html#Sub_Bind_UnivL][Sub_Bind_UnivL]], [[./html/DecSyn.algorithmic.html#Sub_Bind_UnivR][Sub_Bind_UnivR]]
+- Lemma 4.3 (soundness for algorithmic equality) :: [[./html/DecSyn.algorithmic.html#coqeq_sound_mutual][coqeq_sound_mutual]]
+- Lemma 4.4 (soundness for algorithmic subtyping) :: [[./html/DecSyn.algorithmic.html#coqleq_sound_mutual][coqleq_sound_mutual]]
+- Lemma 4.5 (metric implies domain) :: [[./html/DecSyn.algorithmic.html#sn_term_metric][sn_term_metric]]
+- Lemma 4.6 (termination of Coquand's algorithm) :: [[./html/DecSyn.executable.html#check_sub][check_sub]]
+  (termination is implicit in our mechanization in the sense that we can construct
+  the Bove-Capretta domain from the typing judgment, which we can then
+  feed to the =check_sub= function)
+- Lemma 4.7 (completeness of Coquand's algorithm) :: [[./html/DecSyn.algorithmic.html#coqeq_complete'][coqeq_complete']]
 - Lemma 4.8 (completeness of Coquand's algorithmic subtyping) ::
-  [[file:theories/algorithmic.v][algorithmic.v]], =coqleq_complete'=
+[[./html/DecSyn.algorithmic.html#coqleq_complete'][coqleq_complete']]
 - Lemma 4.9 (completeness of Coquand's algorithmic subtyping) ::
-  [[file:theories/algorithmic.v][algorithmic.v]], lemmas near the end of the file
+[[./html/DecSyn.algorithmic.html#coqleq_complete_unty][coqleq_complete_unty]], [[./html/DecSyn.algorithmic.html#coqleq_complete][coqleq_complete]], [[./html/DecSyn.algorithmic.html#coqleq_sound][coqleq_sound]]
 - Theorem 4.1 :: by composing 4.9 and 4.6
 *** Section 5
-- Proposition 5.1 :: [[file:theories/cosn.v][cosn.v]]  =Safe_NoForbid=
+- Proposition 5.1 :: [[./html/DecSyn.cosn.html#Safe_NoForbid][Safe_NoForbid]]
 
 ** Validating axiom usage
 We claim that our development is axiom-free. To validate that claim,
 one can use the =Print Assumptions= command on the theorems and
 confirm that no axioms are displayed.
 
-An alternative method is to run =coqchk=, which can be done by running
+An alternative method is to run =coqchk=, which can be invoked on all
+=.vo= files by running
 =make validate=. However, =coqchk= doesn't work that well with module
 types and will report axioms that we didn't actually use in the
 development.
