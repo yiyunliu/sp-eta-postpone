@@ -102,14 +102,14 @@ accepted by the termination checker, the injection from ne to nf is
 proven a posteriori as the lemma [[./html/DecSyn.fp_red.html#ne_nf][ne_nf]].
 
 **** Reductions
-- $\beta$-reduction: [[./html/DecSyn.fp_red.html#RRed][RRed]]
-- $\eta$-reduction: [[./html/DecSyn.fp_red.html#ERed][ERed]]
-- parallel $\beta$-reduction: [[./html/DecSyn.fp_red.html#RPar][RPar]]
-- parallel $\eta$-reduction: [[./html/DecSyn.fp_red.html#EPar][EPar]]
-- parallel $\beta\eta$-reduction: [[./html/DecSyn.fp_red.html#RERed][RERed]]
-- leftmost-outermost $\beta$-reduction: [[./html/DecSyn.fp_red.html#LoRed][LoRed]]
+- $\beta$-reduction ($\leadsto_\beta$): [[./html/DecSyn.fp_red.html#RRed][RRed]]
+- $\eta$-reduction ($\leadsto_\eta$): [[./html/DecSyn.fp_red.html#ERed][ERed]]
+- parallel $\beta$-reduction ($\Rightarrow_\beta$): [[./html/DecSyn.fp_red.html#RPar][RPar]]
+- parallel $\eta$-reduction ($\Rightarrow_\eta$): [[./html/DecSyn.fp_red.html#EPar][EPar]]
+- $\beta\eta$-reduction ($\leadsto_{\beta\eta}$): [[./html/DecSyn.fp_red.html#RERed][RERed]]
+- leftmost-outermost $\beta$-reduction ($\leadsto_{\beta}$): [[./html/DecSyn.fp_red.html#LoRed][LoRed]]
 - weak-head $\beta$-reduction: [[./html/DecSyn.common.html#HRed][HRed]]
-- restrictive parallel $\eta$-reductions (Fig. 6): [[./html/DecSyn.fp_red.html#NeEPar][NeEPar]]
+- restrictive parallel $\eta$-reductions ($\Rightarrow_r$, $\Rightarrow_{\bar{r}}$): [[./html/DecSyn.fp_red.html#NeEPar][NeEPar]]
 **** Strong normalization (Sec. 3.2)
 - Strong normal forms: [[./html/DecSyn.fp_red.html#SN][SN]]
 - Strong neutral forms: [[./html/DecSyn.fp_red.html#SNe][SNe]]

@@ -194,6 +194,10 @@ for concision, but we include them here for completeness.</p>
 <ol>
 <li><p>Normal form predicates (Fig. 5)</p>
 <ul>
+<li>normal forms (nf): <a
+href="./html/DecSyn.fp_red.html#nf">nf</a></li>
+<li>neutral forms (nf): <a
+href="./html/DecSyn.fp_red.html#ne">ne</a></li>
 <li>canonical forms (canf): <a
 href="./html/DecSyn.common.html#ishf">ishf</a></li>
 <li>weak-head neutral forms (whne): <a
@@ -206,27 +210,41 @@ class="verbatim">ishne</code></li>
 href="./html/DecSyn.common.html#HRed.nf">HRed.nf</a> in place of the
 above definition of whnf, where the former means the term would no
 longer reduce with weak-head reduction. These two definitions coincide
-for precisely the set of terms that are non-stuck.</p></li>
+for precisely the set of terms that are non-stuck.</p>
+<p>Also, instead of defining <a
+href="./html/DecSyn.fp_red.html#nf">nf</a> and <a
+href="./html/DecSyn.fp_red.html#ne">ne</a> as inductive predicates, we
+define them as mutually recursive fixpoints. For the definition to be
+accepted by the termination checker, the injection from ne to nf is
+proven a posteriori as the lemma <a
+href="./html/DecSyn.fp_red.html#ne_nf">ne<sub>nf</sub></a>.</p></li>
 <li><p>Reductions</p>
 <ul>
-<li><span class="math inline"><em>β</em></span>-reduction: <a
+<li><span class="math inline"><em>β</em></span>-reduction (<span
+class="math inline">⤳<sub><em>β</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#RRed">RRed</a></li>
-<li><span class="math inline"><em>η</em></span>-reduction: <a
+<li><span class="math inline"><em>η</em></span>-reduction (<span
+class="math inline">⤳<sub><em>η</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#ERed">ERed</a></li>
-<li>parallel <span class="math inline"><em>β</em></span>-reduction: <a
+<li>parallel <span class="math inline"><em>β</em></span>-reduction
+(<span class="math inline">⇒<sub><em>β</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#RPar">RPar</a></li>
-<li>parallel <span class="math inline"><em>η</em></span>-reduction: <a
+<li>parallel <span class="math inline"><em>η</em></span>-reduction
+(<span class="math inline">⇒<sub><em>η</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#EPar">EPar</a></li>
-<li>parallel <span
-class="math inline"><em>β</em><em>η</em></span>-reduction: <a
+<li><span class="math inline"><em>β</em><em>η</em></span>-reduction
+(<span class="math inline">⤳<sub><em>β</em><em>η</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#RERed">RERed</a></li>
 <li>leftmost-outermost <span
-class="math inline"><em>β</em></span>-reduction: <a
+class="math inline"><em>β</em></span>-reduction (<span
+class="math inline">⤳<sub><em>β</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#LoRed">LoRed</a></li>
 <li>weak-head <span class="math inline"><em>β</em></span>-reduction: <a
 href="./html/DecSyn.common.html#HRed">HRed</a></li>
 <li>restrictive parallel <span
-class="math inline"><em>η</em></span>-reductions (Fig. 6): <a
+class="math inline"><em>η</em></span>-reductions (<span
+class="math inline">⇒<sub><em>r</em></sub></span>, <span
+class="math inline">⇒<sub><em>r̄</em></sub></span>): <a
 href="./html/DecSyn.fp_red.html#NeEPar">NeEPar</a></li>
 </ul></li>
 <li><p>Strong normalization (Sec. 3.2)</p>
@@ -243,9 +261,6 @@ href="./html/DecSyn.fp_red.html#TRedSN">TRedSN</a></li>
 <li><p>Joinability (w.r.t <span
 class="math inline"><em>β</em><em>η</em></span>-reduction, Def. 3.1): <a
 href="./html/DecSyn.fp_red.html#DJoin">DJoin</a></p></li>
-<li><p>Joinability (w.r.t <span
-class="math inline"><em>β</em></span>-reduction): <a
-href="./html/DecSyn.fp_red.html#BJoin">BJoin</a></p></li>
 <li><p>Joinability (w.r.t <span
 class="math inline"><em>η</em></span>-reduction): <a
 href="./html/DecSyn.fp_red.html#EJoin">EJoin</a></p></li>
@@ -469,13 +484,13 @@ class="verbatim">η_split</code>
 class="math inline"><em>η</em></span>-postponement)</dt>
 <dd>
 <a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">eta_postponement</code>
+class="verbatim">η_postponement</code>
 </dd>
 <dt>Corollary 3.1 (strengthened <span
 class="math inline"><em>η</em></span>-postponement)</dt>
 <dd>
 <a href="theories/fp_red.v">fp<sub>red</sub>.v</a>, <code
-class="verbatim">eta_postponement_star'</code>
+class="verbatim">η_postponement_star'</code>
 </dd>
 <dt>Corollary 3.2 (<span
 class="math inline"><em>η</em></span>-postponement for normal
