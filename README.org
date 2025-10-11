@@ -5,26 +5,24 @@ Untyped Approach".
 While the documentation is written in =org= mode, it is recommended
 that you use the generated =README.html= file so you can access the
 hyperlinks into the generated coqdoc files to navigate the development
-in your web browser. Firefox seems to struggle to render some of the
-larger coqdocjs files. If you experience any performance issues,
-consider opening the html file with Chromium/Chrome.
+in your web browser.
+
+As mentioned in the paper, while the natural numbers are omitted from
+the text, they can be found in the mechanization.
 
 
 ** Quick start
+
+*** Installing dependencies
+You can skip this section if you are compiling the proof scripts from
+the configured VM.
+
 Inside a fresh =opam= switch, run the following commands to install
 the required dependencies.
 #+begin_src sh
 opam update
 opam install -y coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml
 eval $(opam env)
-#+end_src
-
-After the dependencies are installed, run the following command to
-validate the proof development.  The =-j2= flag allows =make= to
-validate up to 2 files in parallel. According to our testing, going
-beyond =-j2= does not reduce the compilation time.
-#+begin_src sh
-make -j2
 #+end_src
 
 The termination proof can be brittle because we expect the =inversion=
@@ -36,6 +34,16 @@ work.
 - coq-stdpp 1.11.0
 - coq-hammer-tactics 1.3.2
 - coq-autosubst-ocaml 1.1
+
+*** Validating the proofs
+After the dependencies are installed, run the following command to
+validate the proof development.  The =-j2= flag allows =make= to
+validate up to 2 files in parallel. According to our testing, going
+beyond =-j2= does not reduce the compilation time.
+#+begin_src sh
+make -j2
+#+end_src
+
 
 Note that if you don't plan to modify and regenerate the =syntax.v=
 file from =syntax.sig= using =autosubst=, you can choose not to install =coq-autosubst-ocaml=.
