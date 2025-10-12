@@ -1,24 +1,26 @@
 COQMAKEFILE=CoqMakefile
-# COQDOCJS_DIR ?= coqdocjs
-# EXTRA_DIR = $(COQDOCJS_DIR)/extra
-# COQDOCFLAGS ?= \
-#   --toc --toc-depth 2 --html --interpolate \
-#   --index indexpage --no-lib-name --parse-comments \
-#   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
-# export COQDOCFLAGS
-# COQDOCJS_LN?=false
-# -include coqdocjs/Makefile.doc
+COQDOCJS_DIR ?= coqdocjs
+EXTRA_DIR = $(COQDOCJS_DIR)/extra
+COQDOCFLAGS ?= \
+  --toc --toc-depth 2 --html --interpolate \
+  --index indexpage --no-lib-name --parse-comments \
+  --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
+export COQDOCFLAGS
+COQDOCJS_LN?=false
 
 theories: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE)
 
-coqdoc: $(COQMAKEFILE) FORCE
-	$(MAKE) -f $(COQMAKEFILE) html
-# ifeq ($(COQDOCJS_LN),true)
-#	ln -sf ../$(EXTRA_DIR)/resources html
-# else
-#	cp -R $(EXTRA_DIR)/resources html
-# endif
+
+coqdoc: $(COQMAKEFILE)
+	$(MAKE) -f $^ html
+	cd coqdocjs/coqdocjs-static &&	npm install && \
+		find ../..//html/ -name '*.html' -exec node index.js --inplace {} \;
+ifeq ($(COQDOCJS_LN),true)
+	ln -sf ../$(EXTRA_DIR)/resources html
+else
+	cp -R $(EXTRA_DIR)/resources html
+endif
 
 README.html: README.org pandoc.css
 	pandoc -s --metadata title='Algorithmic conversion with surjective pairing' --css pandoc.css README.org --output README.html
@@ -42,7 +44,7 @@ export:
 theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/unscoped.v : syntax.sig
 	autosubst -f -v ge813 -s ucoq -o theories/Autosubst2/syntax.v syntax.sig
 
-.PHONY: clean FORCE export deepclean
+.PHONY: clean FORCE export deepclean coqdoc
 
 clean:
 	test ! -f $(COQMAKEFILE) || ( $(MAKE) -f $(COQMAKEFILE) clean && rm $(COQMAKEFILE) )
