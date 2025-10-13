@@ -257,7 +257,9 @@ above completeness and soundness results.
   + preservation for parallel $\eta$-reduction :: [[./html/DecSyn.fp_red.html#epar_sn_preservation][epar_sn_preservation]]
   + preservation for parallel $\beta$-reduction :: [[./html/DecSyn.fp_red.html#red_sn_preservation][red_sn_preservation]]
 - Lemma 3.9 (restrictive-$\eta$ and normal form) :: [[./html/DecSyn.fp_red.html#NeEPar.R_elim_nf][NeEPar.R_elim_nf]]
-- Lemma 3.10 ($\eta$-decomposition) :: [[./html/DecSyn.fp_red.html#94f0c3df8362a7b158dcddfe72d0bd43][UniqueNF.η_split]]
+- Lemma 3.10 ($\eta$-decomposition) :: [[./html/DecSyn.fp_red.html#94f0c3df8362a7b158dcddfe72d0bd43][UniqueNF.η_split]]. Note: we
+  parameterize the proof over the $P$ predicate as mentioned in
+  Sec. 5.3. The $P$ predicate is instantiated to $SN$ in [[./html/DecSyn.fp_red.html#SN_NoForbid][SN_NoForbid]]
 - Lemma 3.11 ($\eta$-postponement) :: [[./html/DecSyn.fp_red.html#UniqueNF.358dc2826f57a708afef6c267d5b924f][UniqueNF.η_postponement]]
 - Corollary 3.1 (strengthened $\eta$-postponement) :: [[./html/DecSyn.fp_red.html#4033bdffc216f18a15ba122e3b94bf46][UniqueNF.η_postponement_strengthened]]
 - Corollary 3.2 ($\eta$-postponement for normal forms) :: [[./html/DecSyn.fp_red.html#rered_standardization'][rered_standardization']]
@@ -272,13 +274,11 @@ above completeness and soundness results.
 - Corollary 3.3 (transitivity of untyped subtyping) :: [[./html/DecSyn.fp_red.html#Sub.transitive][Sub.transitive]]
 - Lemma 3.19 (noconfusion for untyped subtyping) :: The Sub.*_noconf
   lemmas starting with [[./html/DecSyn.fp_red.html#Sub.sne_nat_noconf][Sub.sne_nat_noconf]]
-- Lemma 3.20 (untyped injectivity of type constructors) ::
-  [[./html/DecSyn.fp_red.html#Sub.bind_inj][Sub.bind_inj]], [[./html/DecSyn.fp_red.html#Sub.univ_inj][Sub.univ_inj]]
+- Lemma 3.20 (untyped injectivity of type constructors) ::  [[./html/DecSyn.fp_red.html#Sub.bind_inj][Sub.bind_inj]], [[./html/DecSyn.fp_red.html#Sub.univ_inj][Sub.univ_inj]]
 - Lemma 3.21 (adequacy) :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.adequacy][LogRelFactsImpl.adequacy]]
 - Lemma 3.22 (backward closure) :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.back_clos][LogRelFactsImpl.back_clos]]
 - Lemma 3.23 (logical predicate cases) :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.case][LogRelFactsImpl.case]]
-- Lemma 3.24 (logical predicate is preserved by subtyping) ::
-[[./html/DecSyn.logrel.html#LogRelFactsImpl.sub][LogRelFactsImpl.sub]]
+- Lemma 3.24 (logical predicate is preserved by subtyping) :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.sub][LogRelFactsImpl.sub]]
 - Corollary 3.4 (logical predicate is functional)  :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.functional][LogRelFactsImpl.functional]]
 - Lemma 3.25 (logical predicate is cumulative) :: [[./html/DecSyn.logrel.html#LogRelFactsImpl.cumulative][LogRelFactsImpl.cumulative]]
 - Lemma 3.26 (semantic weakening) :: [[./html/DecSyn.logrel.html#weakening_Sem][weakening_Sem]]
@@ -294,16 +294,17 @@ above completeness and soundness results.
 - Lemma 4.3 (soundness for algorithmic equality) :: [[./html/DecSyn.algorithmic.html#coqeq_sound_mutual][coqeq_sound_mutual]]
 - Lemma 4.4 (soundness for algorithmic subtyping) :: [[./html/DecSyn.algorithmic.html#coqleq_sound_mutual][coqleq_sound_mutual]]
 - Lemma 4.5 (metric implies domain) :: [[./html/DecSyn.algorithmic.html#sn_term_metric][sn_term_metric]]
-- Lemma 4.6 (termination of Coquand's algorithm) :: [[./html/DecSyn.executable.html#check_sub][check_sub]]
+- Lemma 4.6 (termination of Coquand's algorithm) :: [[./html/DecSyn.executable.html#check_sub_r][check_sub_r]]
   (termination is implicit in our mechanization in the sense that we can construct
   the Bove-Capretta domain from the typing judgment, which we can then
-  feed to the =check_sub= function)
+  feed to the [[./html/DecSyn.executable.html#check_sub_r][check_sub_r]] function)
 - Lemma 4.7 (completeness of Coquand's algorithm) :: [[./html/DecSyn.algorithmic.html#coqeq_complete'][coqeq_complete']]
-- Lemma 4.8 (completeness of Coquand's algorithmic subtyping) ::
-[[./html/DecSyn.algorithmic.html#coqleq_complete'][coqleq_complete']]
-- Lemma 4.9 (completeness of Coquand's algorithmic subtyping) ::
-[[./html/DecSyn.algorithmic.html#coqleq_complete_unty][coqleq_complete_unty]], [[./html/DecSyn.algorithmic.html#coqleq_complete][coqleq_complete]], [[./html/DecSyn.algorithmic.html#coqleq_sound][coqleq_sound]]
-- Theorem 4.1 :: by composing 4.9 and 4.6
+- Lemma 4.8 (completeness of Coquand's algorithmic subtyping) :: [[./html/DecSyn.algorithmic.html#coqleq_complete'][coqleq_complete']]
+- Lemma 4.9 (completeness of Coquand's algorithmic subtyping) :: [[./html/DecSyn.algorithmic.html#coqleq_complete_unty][coqleq_complete_unty]], [[./html/DecSyn.algorithmic.html#coqleq_complete][coqleq_complete]], [[./html/DecSyn.algorithmic.html#coqleq_sound][coqleq_sound]]
+- Theorem 4.1 (type conversion is decidable) :: In Rocq, we have to go
+  an extra mile by defining the computable function [[./html/DecSyn.conv_dec.html#check_sub_r_wt][check_sub_r_wt]]
+  (a wrapper around [[./html/DecSyn.executable.html#check_sub_r][check_sub_r]]) and then prove that it agrees with
+  the inductive subtyping relation in [[./html/DecSyn.conv_dec.html#Conv_dec][Conv_dec]]
 *** Section 5
 - Proposition 5.1 :: [[./html/DecSyn.cosn.html#Safe_NoForbid][Safe_NoForbid]]
 
