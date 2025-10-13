@@ -7,19 +7,25 @@ COQDOCFLAGS ?= \
   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
 export COQDOCFLAGS
 COQDOCJS_LN?=false
+COQDOCJS_STATIC?=true
 
 theories: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE)
 
-
 coqdoc: $(COQMAKEFILE)
 	$(MAKE) -f $^ html
-	cd coqdocjs/coqdocjs-static &&	npm install && \
-		find ../..//html/ -name '*.html' -exec node index.js --inplace {} \;
 ifeq ($(COQDOCJS_LN),true)
 	ln -sf ../$(EXTRA_DIR)/resources html
 else
 	cp -R $(EXTRA_DIR)/resources html
+endif
+ifeq ($(COQDOCJS_STATIC),true)
+	cd coqdocjs/coqdocjs-static &&	npm install && \
+		find ../../html/ -name '*.html' | \
+		parallel node index.js --inplace {}
+	rm -f html/resources/preprocess.js
+	rm -r html/resources/config.js
+	grep -v preprocess $(EXTRA_DIR)/resources/coqdocjs.js > html/resources/coqdocjs.js
 endif
 
 README.html: README.org pandoc.css

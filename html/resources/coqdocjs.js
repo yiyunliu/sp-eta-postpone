@@ -1,5 +1,4 @@
-var coqdocjs = coqdocjs || {};
-(function(){
+/*jshint esversion: 6 */
 
 function toArray(nl){
     return Array.prototype.slice.call(nl);
@@ -25,9 +24,7 @@ function updateView(){
 }
 
 function foldProofs() {
-  var hasCommands = true;
-  var nodes = document.getElementsByClassName("command");
-  for (const proof of document.getElementsByClassName("proof")) {
+  for (const proof of toArray(document.getElementsByClassName("proof"))) {
       proof.addEventListener("click", function(proof){return function(e){
         if (e.target.parentNode.tagName.toLowerCase() === "a")
           return;
@@ -49,8 +46,8 @@ function toggleProofs(){
 }
 
 function fixTitle(){
-  var url = "/" + window.location.pathname;
-  var basename = url.substring(url.lastIndexOf('/')+1, url.lastIndexOf('.'));
+  let url = "/" + window.location.pathname;
+  let basename = url.substring(url.lastIndexOf('/')+1, url.lastIndexOf('.'));
   if (basename === "toc") {document.title = "Table of Contents";}
   else if (basename === "indexpage") {document.title = "Index";}
   else {document.title = basename;}
@@ -64,6 +61,3 @@ function postprocess(){
 
 fixTitle();
 document.addEventListener('DOMContentLoaded', postprocess);
-
-coqdocjs.toggleProofs = toggleProofs;
-})();
