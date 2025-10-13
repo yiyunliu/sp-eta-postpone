@@ -1,3 +1,6 @@
+(** * The fundamental theorem *)
+(** The actual proof of individual cases can be found in logrel.v *)
+
 Require Import Autosubst2.unscoped Autosubst2.syntax.
 Require Import fp_red logrel typing.
 From Hammer Require Import Tactics.

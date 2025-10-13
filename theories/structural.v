@@ -1,3 +1,5 @@
+(** * Structural rules for the typing relation (renaming, substitution) *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing.
 From Hammer Require Import Tactics.
 Require Import ssreflect.

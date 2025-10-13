@@ -1,3 +1,5 @@
+(** * Proof of preservation/subject reduction *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural fp_red admissible.
 From Hammer Require Import Tactics.
 Require Import ssreflect.

@@ -1,3 +1,4 @@
+(** * Definitions and properties of untyped relations *)
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
 
@@ -22,6 +23,7 @@ Ltac2 spec_refl () :=
 
 Ltac spec_refl := ltac2:(Control.enter spec_refl).
 
+(** ** Parallel eta-reduction  *)
 Module EPar.
   Inductive R : PTm -> PTm ->  Prop :=
   (****************** Eta ***********************)
@@ -127,6 +129,7 @@ Module EPar.
 
 End EPar.
 
+(** ** The inductive characterization of strong normalization  *)
 Inductive SNe : PTm -> Prop :=
 | N_Var i :
   SNe (VarPTm i)
@@ -589,6 +592,7 @@ Proof.
   - sauto q:on.
 Qed.
 
+(** ** beta-reduction *)
 Module RRed.
   Inductive R : PTm -> PTm ->  Prop :=
   (****************** Beta ***********************)
@@ -723,6 +727,7 @@ Module RRed.
 
 End RRed.
 
+(** ** Parallel beta-reduction *)
 Module RPar.
   Inductive R : PTm -> PTm ->  Prop :=
   (****************** Beta ***********************)
@@ -1102,6 +1107,7 @@ Module RReds.
 End RReds.
 
 
+(** ** Restrictive parallel eta-reduction *)
 Module NeEPar.
   Inductive R_nonelim : PTm -> PTm ->  Prop :=
   (****************** Eta ***********************)
@@ -1207,6 +1213,7 @@ Module NeEPar.
 
 End NeEPar.
 
+(** ** The abstract signature that is sufficient for eta-postponement to hold *)
 Module Type NoForbid.
   Parameter P : PTm -> Prop.
 
@@ -1309,6 +1316,7 @@ End SN_NoForbid.
 
 Module NoForbid_FactSN := NoForbid_Fact SN_NoForbid.
 
+(** ** Proof of eta-postponement parameterized by an abstract predicate P *)
 Module UniqueNF (M : NoForbid) (MFacts : NoForbid_FactSig M).
   Import M MFacts.
   #[local]Hint Resolve P_EPar P_RRed PApp_imp PProj_imp : forbid.
@@ -1665,6 +1673,7 @@ End UniqueNF.
 
 Module SN_UniqueNF := UniqueNF SN_NoForbid NoForbid_FactSN.
 
+(** ** eta-reduction *)
 Module ERed.
   Inductive R : PTm -> PTm ->  Prop :=
 
@@ -2079,6 +2088,7 @@ Module EJoin.
 
 End EJoin.
 
+(** ** betaeta-reduction *)
 Module RERed.
   Inductive R : PTm -> PTm ->  Prop :=
   (****************** Beta ***********************)
@@ -2425,6 +2435,7 @@ Module REReds.
 
 End REReds.
 
+(** ** Leftmost-outermost beta-reduction *)
 Module LoRed.
   Inductive R : PTm -> PTm ->  Prop :=
   (****************** Beta ***********************)
@@ -2896,6 +2907,7 @@ Proof.
   hauto use:REReds.FromEReds,REReds.FromEReds,@relations.rtc_transitive.
 Qed.
 
+(** ** betaeta-joinability *)
 Module DJoin.
   Definition R (a b : PTm) := exists c, rtc RERed.R a c /\ rtc RERed.R b c.
 
@@ -3237,6 +3249,7 @@ Module DJoin.
   Qed.
 End DJoin.
 
+(** ** One-step reductionless subtyping *)
 Module Sub1.
   Inductive R : PTm -> PTm -> Prop :=
   | Refl a :
@@ -3364,6 +3377,7 @@ Module ESub.
 
 End ESub.
 
+(** ** Untyped subtyping *)
 Module Sub.
   Definition R (a b : PTm) := exists c d, rtc RERed.R a c /\ rtc RERed.R b d /\ Sub1.R c d.
 

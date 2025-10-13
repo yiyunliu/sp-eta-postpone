@@ -6,11 +6,22 @@ Untyped Approach".
 While the documentation is written in =org= mode, it is recommended
 that you use the generated =README.html= file so you can access the
 hyperlinks into the generated coqdoc files to navigate the development
-in your web browser.
+in your web browser by launching a local web server using [[https://docs.python.org/3/library/http.server.html][python]] or
+[[https://github.com/emikulic/darkhttpd][darkhttpd]]. Note that if you instead load the file directly with your
+web server, the toggle proof functionality of coqdocjs will not work
+because of CORS restrictions of javascript modules!
+
+#+begin_src sh
+# starting a local server with python listening to port 8080
+python -m http.server --bind 127.0.0.1 8080 --directory .
+# alternatively, starting a local server with darkhttpd listening to port 8080
+darkhttpd . --addr 127.0.0.1 --port 8080
+#+end_src
+You can then access the document from your web browser with the url =http://127.0.0.1:8080=.
 
 As mentioned in the paper, while the natural numbers are omitted from
-the text, they can be found in the mechanization.
-
+the text, they can be found in the mechanization and the [[./specification.pdf][specification]]
+pdf file.
 
 ** Quick start
 
@@ -22,7 +33,7 @@ Inside a fresh =opam= switch, run the following commands to install
 the required dependencies.
 #+begin_src sh
 opam update
-opam install -y coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml
+opam install -y coq-hammer-tactics coq-stdpp coq-autosubst-ocaml
 eval $(opam env)
 #+end_src
 
@@ -163,6 +174,7 @@ least one term is not neutral.
   text):
   + When both inputs are neutral: [[./html/DecSyn.algorithmic.html#CoqEq_Neu][CoqEq_Neu]] ($a \sim b$ in the mechanization)
   + Otherwise: [[./html/DecSyn.algorithmic.html#CoqEq][CoqEq]] ($a \leftrightarrow b$ in the mechanization)
+- Termination metric: [[./html/DecSyn.algorithmic.html#sn_term_metric][sn_term_metric]]
 
 The relations are all formulated on arbitrary terms.  The neutral and
 normal form restrictions in $f_0 \sim f_1$ are proven a posteriori as

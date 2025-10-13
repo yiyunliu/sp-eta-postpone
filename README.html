@@ -100,19 +100,32 @@ and Untyped Approach".</p>
 class="verbatim">org</code> mode, it is recommended that you use the
 generated <code class="verbatim">README.html</code> file so you can
 access the hyperlinks into the generated coqdoc files to navigate the
-development in your web browser.</p>
+development in your web browser by launching a local web server using <a
+href="https://docs.python.org/3/library/http.server.html">python</a> or
+<a href="https://github.com/emikulic/darkhttpd">darkhttpd</a>. Note that
+if you instead load the file directly with your web server, the toggle
+proof functionality of coqdocjs will not work because of CORS
+restrictions of javascript modules!</p>
+<div class="sourceCode" id="cb1" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># starting a local server with python listening to port 8080</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> http.server <span class="at">--bind</span> 127.0.0.1 8080 <span class="at">--directory</span> .</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># alternatively, starting a local server with darkhttpd listening to port 8080</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">darkhttpd</span> . <span class="at">--addr</span> 127.0.0.1 <span class="at">--port</span> 8080</span></code></pre></div>
+<p>You can then access the document from your web browser with the url
+<code class="verbatim">http://127.0.0.1:8080</code>.</p>
 <p>As mentioned in the paper, while the natural numbers are omitted from
-the text, they can be found in the mechanization.</p>
+the text, they can be found in the mechanization and the <a
+href="./specification.pdf">specification</a> pdf file.</p>
 <h2 id="quick-start">Quick start</h2>
 <h3 id="installing-dependencies">Installing dependencies</h3>
 <p>You can skip this section if you are compiling the proof scripts from
 the configured VM.</p>
 <p>Inside a fresh <code class="verbatim">opam</code> switch, run the
 following commands to install the required dependencies.</p>
-<div class="sourceCode" id="cb1" data-org-language="sh"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> update</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> install <span class="at">-y</span> coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="va">$(</span><span class="ex">opam</span> env<span class="va">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> update</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> install <span class="at">-y</span> coq-hammer-tactics coq-stdpp coq-autosubst-ocaml</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="va">$(</span><span class="ex">opam</span> env<span class="va">)</span></span></code></pre></div>
 <p>The termination proof can be brittle because we expect the <code
 class="verbatim">inversion</code> to produce the subproofs of the domain
 relation that make the termination checker happy.</p>
@@ -139,15 +152,15 @@ validate the proof development. The <code class="verbatim">-j2</code>
 flag allows <code class="verbatim">make</code> to validate up to 2 files
 in parallel. According to our testing, going beyond <code
 class="verbatim">-j2</code> does not reduce the compilation time.</p>
-<div class="sourceCode" id="cb2" data-org-language="sh"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">-j2</span></span></code></pre></div>
+<div class="sourceCode" id="cb3" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">-j2</span></span></code></pre></div>
 <p>It is expected that the compilation process will generate a lot of
 warnings about notations and the ssreflect library. The compilation is
 successful as long as the command terminates with the following
 output.</p>
-<div class="sourceCode" id="cb3" data-org-language="sh"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ... lots of warnings ...</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="va">make</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span><span class="ex">:</span> Leaving directory <span class="st">&#39;****&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ... lots of warnings ...</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="va">make</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span><span class="ex">:</span> Leaving directory <span class="st">&#39;****&#39;</span></span></code></pre></div>
 <p>On a Linux laptop with an Intel 12700k, the compilation takes 67
 seconds. If you are running the command inside the attached VM and your
 host device has an ARM CPU (e.g. Mac M-series), then it'll take around
@@ -316,6 +329,8 @@ mechanization)</li>
 (<span class="math inline"><em>a</em> ↔︎ <em>b</em></span> in the
 mechanization)</li>
 </ul></li>
+<li>Termination metric: <a
+href="./html/DecSyn.algorithmic.html#sn_term_metric">sn_term_metric</a></li>
 </ul>
 <p>The relations are all formulated on arbitrary terms. The neutral and
 normal form restrictions in <span
@@ -739,40 +754,40 @@ running <code class="verbatim">make validate</code>. However, <code
 class="verbatim">coqchk</code> doesn't work that well with module types
 and will report axioms that we didn't actually use in the
 development.</p>
-<div class="sourceCode" id="cb4" data-org-language="sh"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Theory: Set is predicative</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Theory: Rewrite rules are not allowed</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Axioms:</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.functional</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_inv_nopf</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.back_clos</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_nopf</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.adequacy</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.back_closs</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Logic.FunctionalExtensionality.functional_extensionality_dep</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Reals.ClassicalDedekindReals.sig_not_dec</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.join</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.case</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.sub</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Reals.ClassicalDedekindReals.sig_forall_dec</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.cumulative</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Univ_inv</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.SNe_inv</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_inv</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Logic.Eqdep.Eq_rect_eq.eq_rect_eq</span></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.fp_red.NoForbid_FactSN.P_RReds</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.fp_red.NoForbid_FactSN.P_EPars</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Nat_inv</span></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Constants/Inductives relying on type-in-type: <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Constants/Inductives relying on unsafe <span class="er">(</span><span class="fu">co</span><span class="kw">)</span><span class="ex">fixpoints:</span> <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Inductives whose positivity is assumed: <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="va">make</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span><span class="ex">:</span> Leaving directory <span class="st">&#39;****&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb5" data-org-language="sh"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Theory: Set is predicative</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Theory: Rewrite rules are not allowed</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Axioms:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.functional</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_inv_nopf</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.back_clos</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_nopf</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.adequacy</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.back_closs</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Logic.FunctionalExtensionality.functional_extensionality_dep</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Reals.ClassicalDedekindReals.sig_not_dec</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.join</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.case</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.sub</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Reals.ClassicalDedekindReals.sig_forall_dec</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.cumulative</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Univ_inv</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.SNe_inv</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Bind_inv</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Coq.Logic.Eqdep.Eq_rect_eq.eq_rect_eq</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.fp_red.NoForbid_FactSN.P_RReds</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.fp_red.NoForbid_FactSN.P_EPars</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="ex">DecSyn.logrel.LRFacts.Nat_inv</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Constants/Inductives relying on type-in-type: <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Constants/Inductives relying on unsafe <span class="er">(</span><span class="fu">co</span><span class="kw">)</span><span class="ex">fixpoints:</span> <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> Inductives whose positivity is assumed: <span class="op">&lt;</span>none<span class="op">&gt;</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="va">make</span><span class="op">[</span><span class="dv">1</span><span class="op">]</span><span class="ex">:</span> Leaving directory <span class="st">&#39;****&#39;</span></span></code></pre></div>
 <p>Again, all the axiom reported are false positives and you should
 always trust <code class="verbatim">Print Assumptions</code> when it
 comes to axiom usage. Still, the output provides the useful information

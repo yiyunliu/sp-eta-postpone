@@ -1,3 +1,4 @@
+(** * Typing specification *)
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 
 Reserved Notation "Γ ⊢ a ∈ A" (at level 70).
