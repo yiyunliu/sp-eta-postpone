@@ -28,8 +28,8 @@ ifeq ($(COQDOCJS_STATIC),true)
 	grep -v preprocess $(EXTRA_DIR)/resources/coqdocjs.js > html/resources/coqdocjs.js
 endif
 
-README.html: README.org pandoc.css
-	pandoc -s --metadata title='Algorithmic conversion with surjective pairing' --css pandoc.css README.org --output README.html
+README.html: README.org
+	pandoc -s --metadata title='Algorithmic conversion with surjective pairing' README.org --output README.html
 
 
 validate: $(COQMAKEFILE) FORCE
