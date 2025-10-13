@@ -1,3 +1,8 @@
+(** * Logical predicate and "semantic" soundness *)
+(** We use a logical predicate to prove strong normalization for well-typed terms.
+ While the fundamental theorem is often referred to as semantic soundness, our
+ modeling of conversion as untyped subtyping is not quite as semantic as it normally is.  *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax.
 Require Import common fp_red.
 From Hammer Require Import Tactics.
@@ -6,20 +11,24 @@ From stdpp Require Import relations (rtc(..), rtc_subrel).
 Import Psatz.
 
 
+(** Function space  *)
 Definition ProdSpace (PA : PTm -> Prop)
   (PF : PTm -> (PTm -> Prop) -> Prop) b : Prop :=
   forall a PB, PA a -> PF a PB -> PB (PApp b a).
 
+(** Dependent pair space *)
 Definition SumSpace (PA : PTm -> Prop)
   (PF : PTm -> (PTm -> Prop) -> Prop) t : Prop :=
   (exists v, rtc TRedSN t v /\ SNe v) \/ exists a b, rtc TRedSN t (PPair a b) /\ PA a /\ (forall PB, PF a PB -> PB b).
 
+(** Inspired by Girard's reduciblity candidates  *)
 Definition CR (P : PTm -> Prop) :=
   (forall a, P a -> SN a) /\
     (forall a, SNe a -> P a).
 
 Definition BindSpace p := if p is PPi then ProdSpace else SumSpace.
 
+(** An equivalence relation between predicates on terms/subsets of terms  *)
 Notation "S0 ≐ S1" := (forall (A : PTm), S0 A <-> S1 A) (at level 70, no associativity).
 
 Lemma redsn_preservation_mutual :
@@ -36,14 +45,20 @@ Proof. induction 2; sfirstorder use:redsn_preservation_mutual ctrs:rtc. Qed.
 #[export]Hint Resolve Sub.sne_bind_noconf Sub.sne_univ_noconf Sub.bind_univ_noconf
   Sub.bind_sne_noconf Sub.univ_sne_noconf Sub.univ_bind_noconf Sub.nat_bind_noconf Sub.bind_nat_noconf Sub.sne_nat_noconf Sub.nat_sne_noconf Sub.univ_nat_noconf Sub.nat_univ_noconf: noconf.
 
-(* Make sure that the motive used in the induction principle of InterpUniv is  *)
+(** Make sure that the motive used in the induction principle of InterpUniv is oblivious
+ of the syntactic differences between predicates. *)
 Definition ind_motive_okay (P : nat -> PTm -> (PTm -> Prop) -> Prop) :=
   forall i A S S', S ≐ S' -> P i A S <-> P i A S'.
 
+(** ** The declarative signature of the logical predicate  *)
+(** Since the logical predicate can't be defined directly, we first specify a clean interface
+ for its introduction rules and induction principle. *)
 Module Type LogRel.
+  (** *** The logical predicate *)
   Parameter InterpUniv : nat -> PTm -> (PTm -> Prop) -> Prop.
   Notation "⟦ A ⟧ i ↘ S" := (InterpUniv i A S) (at level 70, no associativity).
 
+  (** *** Introduction rules *)
   Axiom InterpUniv_Ne : forall i (A : PTm),
     SNe A ->
     ⟦ A ⟧ i ↘ (fun a => exists v, rtc TRedSN a v /\ SNe v).
@@ -68,6 +83,7 @@ Module Type LogRel.
   Axiom InterpUniv_Conv : forall i A S S',
     ⟦ A  ⟧ i ↘ S -> S ≐ S' -> ⟦ A  ⟧ i ↘ S'.
 
+  (** *** Induction principles *)
   Axiom InterpUniv_ind
   : forall (P : nat -> PTm -> (PTm -> Prop) -> Prop),
        ind_motive_okay P ->
@@ -88,6 +104,7 @@ Module Type LogRel.
 
 End LogRel.
 
+(** ** A signature containing the facts we'd like to derive from the logical predicate *)
 Module Type LogRelFacts (M : LogRel).
   Import M.
 
@@ -161,6 +178,7 @@ Module Type LogRelFacts (M : LogRel).
 
 End LogRelFacts.
 
+(** ** Proofs of the properties about the logical predicate from the abstract interface [LogRel] *)
 Module LogRelFactsImpl (M : LogRel) : LogRelFacts M.
 
   Import M.
@@ -562,6 +580,7 @@ Module LogRelFactsImpl (M : LogRel) : LogRelFacts M.
 
 End LogRelFactsImpl.
 
+(** ** An implementation of the [LogRel] signature with an explicit recursor [InterpExt] *)
 Module LogRelImpl : LogRel.
   Reserved Notation "⟦ A ⟧ i ;; I ↘ S" (at level 70).
 
@@ -729,9 +748,14 @@ Module LogRelImpl : LogRel.
   Proof. apply InterpExt_Conv. Qed.
 End LogRelImpl.
 
+(** ** Instantiating [LogRelFacts] with the concrete implementation [LogRelImpl] *)
+(** Now we have all the facts we need about the logical predicate without ever touching
+ the messy definition in [LogRelImpl]! *)
 Module LRFacts := LogRelFactsImpl LogRelImpl.
 Import LogRelImpl.
 
+
+(** ** Semantic typing defined in terms of the logical predicate  *)
 Definition ρ_ok (Γ : list PTm) (ρ : nat -> PTm) := forall i k A PA,
     lookup i Γ A ->
     ⟦ subst_PTm ρ A ⟧ k ↘ PA -> PA (ρ i).
@@ -796,6 +820,7 @@ Proof.
   split; apply : LRFacts.cumulative; eauto.
 Qed.
 
+(** ** Structural properties about closing substitutions and semantic typing  *)
 Lemma ρ_ok_id Γ :
   ρ_ok Γ VarPTm.
 Proof.
@@ -993,7 +1018,8 @@ Lemma SemLEq_SN_Sub Γ (a b : PTm) :
   SN a /\ SN b /\ Sub.R a b.
 Proof. hauto l:on use:SemLEq_SemWt, SemWt_SN. Qed.
 
-(* Semantic typing rules *)
+(** ** Semantic typing rules *)
+(** Each rule corresponds to one case of the fundamental theorem *)
 Lemma ST_Var' Γ (i : nat) A j :
   lookup i Γ A ->
   Γ ⊨ A ∈ PUniv j ->
@@ -1885,6 +1911,8 @@ Proof.
   apply : ST_Conv'; eauto. hauto l:on use:SBind_inv1.
 Qed.
 
+(** Add everything to the hint database so we can solve the fundamental theorem with one application
+ of [eauto] *)
 #[export]Hint Resolve ST_Var ST_Bind ST_Abs ST_App ST_Pair ST_Proj1 ST_Proj2 ST_Univ ST_Conv
   SE_Refl SE_Symmetric SE_Transitive SE_Bind SE_Abs SE_App SE_Proj1 SE_Proj2
   SE_Conv SSu_Pi_Proj1 SSu_Pi_Proj2 SSu_Sig_Proj1 SSu_Sig_Proj2 SSu_Eq SSu_Transitive SSu_Pi SSu_Sig SemWff_nil SemWff_cons SSu_Univ SE_AppAbs SE_ProjPair1 SE_ProjPair2 SE_AppEta SE_PairEta ST_Nat ST_Ind ST_Suc ST_Zero SE_IndCong SE_SucCong SE_IndZero SE_IndSuc SE_SucCong SE_PairExt SE_FunExt : sem.
