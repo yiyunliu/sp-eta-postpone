@@ -1,3 +1,8 @@
+(** * Typing rules that are admissible *)
+(** To strengthen the induction hypothesis for certain proofs, our typing specification includes
+ premises that are otherwise redundant. This file contains the proofs justifying the more concise
+ introduction rules where the redundant premises have been removed. *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural.
 From Hammer Require Import Tactics.
 Require Import ssreflect.

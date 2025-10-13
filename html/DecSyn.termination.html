@@ -1,7 +1,10 @@
-<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head>
-<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-<link href="resources/coqdoc.css" rel="stylesheet" type="text/css">
-<link href="resources/coqdocjs.css" rel="stylesheet" type="text/css">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
 <script type="module" src="resources/coqdocjs.js"></script>
 </head>
 
@@ -24,18 +27,17 @@
 <h1 class="libtitle">DecSyn.termination</h1>
 
 <div class="code">
-<span class="id" title="keyword" type="keyword">Require</span> <span class="id" title="keyword" type="keyword">Import</span> <a class="idref" href="DecSyn.common.html#"><span class="id" title="library" type="library">common</span></a> <a class="idref" href="DecSyn.Autosubst2.core.html#"><span class="id" title="library" type="library">Autosubst2.core</span></a> <a class="idref" href="DecSyn.Autosubst2.unscoped.html#"><span class="id" title="library" type="library">Autosubst2.unscoped</span></a> <a class="idref" href="DecSyn.Autosubst2.syntax.html#"><span class="id" title="library" type="library">Autosubst2.syntax</span></a> <a class="idref" href="DecSyn.algorithmic.html#"><span class="id" title="library" type="library">algorithmic</span></a> <a class="idref" href="DecSyn.fp_red.html#"><span class="id" title="library" type="library">fp_red</span></a> <a class="idref" href="DecSyn.executable.html#"><span class="id" title="library" type="library">executable</span></a>.<br>
-<span class="id" title="keyword" type="keyword">From</span> <span class="id" title="var" type="var">Hammer</span> <span class="id" title="keyword" type="keyword">Require</span> <span class="id" title="keyword" type="keyword">Import</span> <span class="id" title="library" type="library">Tactics</span>.<br>
-<span class="id" title="keyword" type="keyword">Require</span> <span class="id" title="keyword" type="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.ssr.ssreflect.html#"><span class="id" title="library" type="library">ssreflect</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.ssr.ssrbool.html#"><span class="id" title="library" type="library">ssrbool</span></a>.<br>
-<span class="id" title="keyword" type="keyword">From</span> <span class="id" title="var" type="var">stdpp</span> <span class="id" title="keyword" type="keyword">Require</span> <span class="id" title="keyword" type="keyword">Import</span> <span class="id" title="library" type="library">relations</span> (<span class="id" title="var" type="var">nsteps</span> (..), <span class="id" title="var" type="var">rtc</span>(..)).<br>
-<span class="id" title="keyword" type="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.micromega.Psatz.html#"><span class="id" title="module" type="module">Psatz</span></a>.<br>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="DecSyn.common.html#"><span class="id" title="library">common</span></a> <a class="idref" href="DecSyn.Autosubst2.core.html#"><span class="id" title="library">Autosubst2.core</span></a> <a class="idref" href="DecSyn.Autosubst2.unscoped.html#"><span class="id" title="library">Autosubst2.unscoped</span></a> <a class="idref" href="DecSyn.Autosubst2.syntax.html#"><span class="id" title="library">Autosubst2.syntax</span></a> <a class="idref" href="DecSyn.algorithmic.html#"><span class="id" title="library">algorithmic</span></a> <a class="idref" href="DecSyn.fp_red.html#"><span class="id" title="library">fp_red</span></a> <a class="idref" href="DecSyn.executable.html#"><span class="id" title="library">executable</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">Hammer</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Tactics</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.ssr.ssreflect.html#"><span class="id" title="library">ssreflect</span></a> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.ssr.ssrbool.html#"><span class="id" title="library">ssrbool</span></a>.<br/>
+<span class="id" title="keyword">From</span> <span class="id" title="var">stdpp</span> <span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">relations</span> (<span class="id" title="var">nsteps</span> (..), <span class="id" title="var">rtc</span>(..)).<br/>
+<span class="id" title="keyword">Import</span> <a class="idref" href="http://coq.inria.fr/doc/V8.20.1/stdlib//Coq.micromega.Psatz.html#"><span class="id" title="module">Psatz</span></a>.<br/>
 </div>
 </div>
 <div id="footer">
   Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/coq-community/coqdocjs">CoqdocJS</a>
 </div>
 </div>
+</body>
 
-
-
-</body></html>
+</html>

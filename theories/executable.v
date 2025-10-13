@@ -1,3 +1,5 @@
+(** * Computable equality and subtyping *)
+(** This file contains the computable counterparts of the inductively defined algorithmic conversion.  *)
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common.
 Require Import ssreflect ssrbool.
 Require Import Arith.PeanoNat (Nat.eq_dec).
@@ -32,6 +34,8 @@ Local Obligation Tactic := try solve [sfirstorder | check_equal_triv ].
 Scheme Equality for BTag.
 Scheme Equality for PTag.
 
+(** ** Computable algorithmic equality *)
+(** Note that equations wouldn't have helped here because we don't want functional extensionality. *)
 Program Fixpoint check_equal (a b : PTm) (h : algo_dom a b) {struct h} : bool :=
   match a, b with
   | VarPTm i, VarPTm j => Nat.eq_dec i j
@@ -142,6 +146,7 @@ Proof.
   exfalso. hauto l:on use:hred_complete.
 Qed.
 
+(** A side effect of not using propositional irrelevance *)
 Lemma check_equal_irrel :
   (forall a b (dom : algo_dom a b), forall dom', check_equal a b dom = check_equal a b dom') /\
     (forall a b (dom : algo_dom_r a b), forall dom', check_equal_r a b dom =  check_equal_r a b dom').
@@ -207,6 +212,7 @@ Proof.
     eapply check_equal_irrel.
 Qed.
 
+(** Without equations, we need to roll our own equality lemmas.  *)
 Lemma check_equal_abs_abs a b h : check_equal (PAbs a) (PAbs b) (A_AbsAbs a b h) = check_equal_r a b h.
 Proof. reflexivity. Qed.
 
@@ -297,6 +303,7 @@ Ltac check_sub_triv :=
 
 Local Obligation Tactic := try solve [check_sub_triv | sfirstorder].
 
+(** ** Computable algorithmic subtyping *)
 Program Fixpoint check_sub (a b : PTm) (h : salgo_dom a b) {struct h} :=
   match a, b with
   | PBind PPi A0 B0, PBind PPi A1 B1 =>

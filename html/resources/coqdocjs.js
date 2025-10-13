@@ -1,4 +1,5 @@
 /*jshint esversion: 6 */
+import { preprocess } from "./preprocess.js";
 
 function toArray(nl){
     return Array.prototype.slice.call(nl);
@@ -54,6 +55,7 @@ function fixTitle(){
 }
 
 function postprocess(){
+  preprocess(document, Node);
   foldProofs();
   document.getElementById("toggle-proofs").addEventListener("click", toggleProofs);
   updateView();

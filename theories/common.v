@@ -1,3 +1,5 @@
+(** * Some common structures shared by most parts of the development *)
+
 Require Import Autosubst2.unscoped Autosubst2.syntax Autosubst2.core ssreflect ssrbool.
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
@@ -5,6 +7,7 @@ Import Ltac2.Control.
 From Hammer Require Import Tactics.
 From stdpp Require Import relations (rtc(..)).
 
+(** ** The lookup relation for the typing context  *)
 Inductive lookup : nat -> list PTm -> PTm -> Prop :=
 | here A Γ : lookup 0 (cons A Γ) (ren_PTm shift A)
 | there i Γ A B :
@@ -59,6 +62,7 @@ Proof.
   move => p ihp ξ []//=. hauto lq:on inv:PTm, nat ctrs:- use:up_injective.
 Qed.
 
+(** ** Definitions of canonical ([ishf]) and weak-head neutral ([ishne]) forms  *)
 Definition ishf (a : PTm) :=
   match a with
   | PPair _ _ => true
@@ -102,6 +106,8 @@ Definition isabs (a : PTm) :=
   | _ => false
   end.
 
+(** [tm_nonconf] returns true for the cases where algorithmic equality shouldn't immediatley
+ halt with [false] *)
 Definition tm_nonconf (a b : PTm) : bool :=
   match a, b with
   | PAbs _, _ => (~~ ishf b) || isabs b
@@ -150,6 +156,7 @@ Proof.
   apply ext_PTm. case => //=.
 Qed.
 
+(** ** Definition of weak-head reduction *)
 Module HRed.
     Inductive R : PTm -> PTm ->  Prop :=
   (****************** Beta ***********************)
@@ -179,6 +186,7 @@ Module HRed.
     Definition nf a := forall b, ~ R a b.
 End HRed.
 
+(** ** Bove-Capretta domains for equalities  *)
 Inductive algo_dom : PTm -> PTm -> Prop :=
 | A_AbsAbs a b :
   algo_dom_r a b ->
@@ -332,6 +340,7 @@ Proof.
   apply /contra /stm_tm_nonconf.
 Qed.
 
+(** ** Bove-Capretta domains for subtyping  *)
 Inductive salgo_dom : PTm -> PTm -> Prop :=
 | S_UnivCong i j :
   (* -------------------------- *)
@@ -506,6 +515,8 @@ Ltac solve_conf := intros; split;
 
 Ltac solve_basic := hauto q:on ctrs:salgo_dom, salgo_dom_r, algo_dom use:algo_dom_sym.
 
+(** A nice little hack that allows us to inject from [algo_dom] to [salgo_dom].
+ Doesn't make much of difference on paper but makes mechanization easier *)
 Lemma algo_dom_salgo_dom :
   (forall a b, algo_dom a b -> salgo_dom a b /\ salgo_dom b a) /\
     (forall a b, algo_dom_r a b -> salgo_dom_r a b /\ salgo_dom_r b a).
@@ -517,6 +528,7 @@ Proof.
   - hauto lq:on ctrs:salgo_dom_r use:S_HRedR'.
 Qed.
 
+(** ** A computable version of [HRed.R]  *)
 Fixpoint hred (a : PTm) : option (PTm) :=
     match a with
     | VarPTm i => None

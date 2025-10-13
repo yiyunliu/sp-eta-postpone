@@ -7,7 +7,7 @@ COQDOCFLAGS ?= \
   --with-header $(EXTRA_DIR)/header.html --with-footer $(EXTRA_DIR)/footer.html
 export COQDOCFLAGS
 COQDOCJS_LN?=false
-COQDOCJS_STATIC?=true
+COQDOCJS_STATIC?=false
 
 theories: $(COQMAKEFILE) FORCE
 	$(MAKE) -f $(COQMAKEFILE)

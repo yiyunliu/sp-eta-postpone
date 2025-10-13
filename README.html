@@ -518,7 +518,12 @@ href="./html/DecSyn.fp_red.html#NeEPar.R_elim_nf">NeEPar.R_elim_nf</a>
 class="math inline"><em>η</em></span>-decomposition)</dt>
 <dd>
 <a
-href="./html/DecSyn.fp_red.html#94f0c3df8362a7b158dcddfe72d0bd43">UniqueNF.η_split</a>
+href="./html/DecSyn.fp_red.html#94f0c3df8362a7b158dcddfe72d0bd43">UniqueNF.η_split</a>.
+Note: we parameterize the proof over the <span
+class="math inline"><em>P</em></span> predicate as mentioned in Sec.
+5.3. The <span class="math inline"><em>P</em></span> predicate is
+instantiated to <span class="math inline"><em>S</em><em>N</em></span> in
+<a href="./html/DecSyn.fp_red.html#SN_NoForbid">SN_NoForbid</a>
 </dd>
 <dt>Lemma 3.11 (<span
 class="math inline"><em>η</em></span>-postponement)</dt>
@@ -612,12 +617,9 @@ href="./html/DecSyn.logrel.html#LogRelFactsImpl.case">LogRelFactsImpl.case</a>
 </dd>
 <dt>Lemma 3.24 (logical predicate is preserved by subtyping)</dt>
 <dd>
-
+<a
+href="./html/DecSyn.logrel.html#LogRelFactsImpl.sub">LogRelFactsImpl.sub</a>
 </dd>
-</dl>
-<p><a
-href="./html/DecSyn.logrel.html#LogRelFactsImpl.sub">LogRelFactsImpl.sub</a></p>
-<dl>
 <dt>Corollary 3.4 (logical predicate is functional)</dt>
 <dd>
 <a
@@ -685,10 +687,12 @@ href="./html/DecSyn.algorithmic.html#sn_term_metric">sn_term_metric</a>
 </dd>
 <dt>Lemma 4.6 (termination of Coquand's algorithm)</dt>
 <dd>
-<a href="./html/DecSyn.executable.html#check_sub">check_sub</a>
+<a href="./html/DecSyn.executable.html#check_sub_r">check_sub_r</a>
 (termination is implicit in our mechanization in the sense that we can
 construct the Bove-Capretta domain from the typing judgment, which we
-can then feed to the <code class="verbatim">check_sub</code> function)
+can then feed to the <a
+href="./html/DecSyn.executable.html#check_sub_r">check_sub_r</a>
+function)
 </dd>
 <dt>Lemma 4.7 (completeness of Coquand's algorithm)</dt>
 <dd>
@@ -697,27 +701,25 @@ href="./html/DecSyn.algorithmic.html#coqeq_complete&#39;">coqeq_complete'</a>
 </dd>
 <dt>Lemma 4.8 (completeness of Coquand's algorithmic subtyping)</dt>
 <dd>
-
+<a
+href="./html/DecSyn.algorithmic.html#coqleq_complete&#39;">coqleq_complete'</a>
 </dd>
-</dl>
-<p><a
-href="./html/DecSyn.algorithmic.html#coqleq_complete&#39;">coqleq_complete'</a></p>
-<dl>
 <dt>Lemma 4.9 (completeness of Coquand's algorithmic subtyping)</dt>
 <dd>
-
-</dd>
-</dl>
-<p><a
+<a
 href="./html/DecSyn.algorithmic.html#coqleq_complete_unty">coqleq_complete_unty</a>,
 <a
 href="./html/DecSyn.algorithmic.html#coqleq_complete">coqleq_complete</a>,
-<a
-href="./html/DecSyn.algorithmic.html#coqleq_sound">coqleq_sound</a></p>
-<dl>
-<dt>Theorem 4.1</dt>
+<a href="./html/DecSyn.algorithmic.html#coqleq_sound">coqleq_sound</a>
+</dd>
+<dt>Theorem 4.1 (type conversion is decidable)</dt>
 <dd>
-by composing 4.9 and 4.6
+In Rocq, we have to go an extra mile by defining the computable function
+<a href="./html/DecSyn.conv_dec.html#check_sub_r_wt">check_sub_r_wt</a>
+(a wrapper around <a
+href="./html/DecSyn.executable.html#check_sub_r">check_sub_r</a>) and
+then prove that it agrees with the inductive subtyping relation in <a
+href="./html/DecSyn.conv_dec.html#Conv_dec">Conv_dec</a>
 </dd>
 </dl>
 <h3 id="section-5">Section 5</h3>

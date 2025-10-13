@@ -1,3 +1,5 @@
+(** * Equivalence between the computable functions and the inductive specifications *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common executable algorithmic.
 Require Import ssreflect ssrbool.
 From stdpp Require Import relations (rtc(..)).
@@ -31,6 +33,7 @@ Proof.
   induction 2 => //=; destruct u => //=.
 Qed.
 
+(** ** Soundness of the computable equality w.r.t the inductive spec  *)
 Lemma check_equal_sound :
   (forall a b (h : algo_dom a b), check_equal a b h -> a ↔ b) /\
   (forall a b (h : algo_dom_r a b), check_equal_r a b h -> a ⇔ b).
@@ -96,6 +99,7 @@ Qed.
 
 Ltac ce_solv := move => *; autorewrite with ce_prop in *; hauto qb:on rew:off inv:CoqEq, CoqEq_Neu.
 
+(** ** Completeness of the computable equality w.r.t the inductive spec  *)
 Lemma check_equal_complete :
   (forall a b (h : algo_dom a b), ~ check_equal a b h -> ~ a ↔ b) /\
   (forall a b (h : algo_dom_r a b), ~ check_equal_r a b h -> ~ a ⇔ b).
@@ -180,6 +184,7 @@ Qed.
 
 Ltac simp_sub := with_strategy opaque [check_equal] simpl in *.
 
+(** ** Soundness of the computable subtyping w.r.t the inductive spec  *)
 Lemma check_sub_sound :
   (forall a b (h : salgo_dom a b), check_sub a b h -> a ⋖ b) /\
     (forall a b (h : salgo_dom_r a b), check_sub_r a b h -> a ≪ b).
@@ -211,6 +216,7 @@ Proof.
     sauto lq:on rew:off.
 Qed.
 
+(** ** Completeness of the computable subtyping w.r.t the inductive spec  *)
 Lemma check_sub_complete :
   (forall a b (h : salgo_dom a b), check_sub a b h = false -> ~ a ⋖ b) /\
     (forall a b (h : salgo_dom_r a b), check_sub_r a b h = false -> ~ a ≪ b).

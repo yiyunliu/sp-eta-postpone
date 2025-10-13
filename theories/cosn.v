@@ -1,3 +1,9 @@
+(** * A more relaxed set of terms where $\eta$-postponement holds *)
+(** Our $\eta$-postponement proofs are parameterized by an abstract predicate $P$. This
+ file shows that the predicate [safe], which contains non-terminating terms, is a sufficient
+ condition for $\eta$-postponement to hold, potentially allowing us to generalize our confluence result
+ to weakly normalizing systems. *)
+
 From Ltac2 Require Ltac2.
 Import Ltac2.Notations.
 

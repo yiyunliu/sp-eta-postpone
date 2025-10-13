@@ -1,3 +1,5 @@
+(** * Definition of Coquand's algorithm and its correctness *)
+
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax
   common typing preservation admissible fp_red structural soundness.
 From Hammer Require Import Tactics.
@@ -5,6 +7,7 @@ Require Import ssreflect ssrbool.
 Require Import Psatz.
 From stdpp Require Import relations (rtc(..), nsteps(..)).
 
+(** ** Properties about weak-head reduction *)
 Module HRed.
   Lemma ToRRed (a b : PTm) : HRed.R a b -> RRed.R a b.
   Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
@@ -331,7 +334,7 @@ Proof.
 Qed.
 
 
-(* Coquand's algorithm with subtyping *)
+(** ** Coquand's algorithm for equalities *)
 Reserved Notation "a ∼ b" (at level 70).
 Reserved Notation "a ↔ b" (at level 70).
 Reserved Notation "a ⇔ b" (at level 70).
@@ -471,6 +474,8 @@ Lemma coqeq_symmetric_mutual :
     (forall (a b : PTm), a ⇔ b -> b ⇔ a).
 Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
 
+
+(** *** Soundness of Coquand's equality algorithm  *)
 Lemma coqeq_sound_mutual :
     (forall (a b : PTm ), a ∼ b -> forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> exists C,
        Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ≡ b ∈ C) /\
@@ -708,6 +713,9 @@ Proof.
     hauto lq:on use:HReds.ToEq, E_Symmetric, E_Transitive.
 Qed.
 
+(** *** Goguen's termination metric for equalities  *)
+(** Our goal here is to hide the rather messy arithmetic behind the nicer Bove-Capretta domain
+ [algo_dom_r] *)
 Definition term_metric k (a b : PTm) :=
   exists i j va vb, nsteps LoRed.R i a va /\ nsteps LoRed.R j b vb /\ nf va /\ nf vb /\ size_PTm va + size_PTm vb + i + j <= k.
 
@@ -797,6 +805,8 @@ Proof. induction 1; sfirstorder. Qed.
 Lemma hf_not_hne (a : PTm) :
   ishf a -> ishne a -> False.
 Proof. case : a => //=. Qed.
+
+(** *** Helpers for inverting derivations and ruling out impossible cases  *)
 
 Lemma T_AbsPair_Imp Γ a (b0 b1 : PTm) A :
   Γ ⊢ PAbs a ∈ A ->
@@ -1269,6 +1279,7 @@ Proof.
   hauto lq:on rew:off use:ne_nf b:on solve+:lia.
 Qed.
 
+(** *** Lemma that hides the arithmetic of [term_metric] *)
 Lemma term_metric_algo_dom : forall k a b, term_metric k a b -> algo_dom_r a b.
 Proof.
   move => [:hneL].
@@ -1330,6 +1341,7 @@ Lemma hne_ind_inj P0 P1 u0 u1 b0 b1 c0 c1 :
   DJoin.R P0 P1 /\ DJoin.R u0 u1 /\ DJoin.R b0 b1 /\ DJoin.R c0 c1.
 Proof. hauto q:on use:REReds.hne_ind_inv. Qed.
 
+(** *** Completeness of Coquand's equality algorithm  *)
 Lemma coqeq_complete' :
   (forall a b, algo_dom a b -> DJoin.R a b -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b)) /\
     (forall a b, algo_dom_r a b -> DJoin.R a b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b).
@@ -1628,6 +1640,7 @@ Proof.
   hauto lq:on use:regularity, coqeq_complete'.
 Qed.
 
+(** ** Coquand's algorithm extended with subtyping *)
 Reserved Notation "a ≪ b" (at level 70).
 Reserved Notation "a ⋖ b" (at level 70).
 Inductive CoqLEq : PTm -> PTm -> Prop :=
@@ -1669,6 +1682,7 @@ Scheme coqleq_ind := Induction for CoqLEq Sort Prop
 
 Combined Scheme coqleq_mutual from coqleq_ind, coqleq_r_ind.
 
+(** *** Soundness of Coquand's algorithm extended with subtyping *)
 Lemma coqleq_sound_mutual :
     (forall (a b : PTm), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
     (forall (a b : PTm), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
@@ -1742,6 +1756,7 @@ Proof.
   destruct a,b => //=; sfirstorder b:on.
 Qed.
 
+(** *** Completeness of Coquand's algorithm extended with subtyping *)
 Lemma coqleq_complete' :
   (forall a b, salgo_dom a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ⋖ b) /\
   (forall a b, salgo_dom_r a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ≪ b).
@@ -1820,6 +1835,8 @@ Proof.
     apply /Sub.FromJoin /DJoin.FromRRed0. by apply HRed.ToRRed.
 Qed.
 
+
+(** *** Putting everything together *)
 Lemma coqleq_complete_unty Γ (A B : PTm) i :
   Γ ⊢ A ∈ PUniv i ->
   Γ ⊢ B ∈ PUniv i ->
@@ -1847,3 +1864,7 @@ Proof.
     by sfirstorder use:T_Univ_Raise.
   sfirstorder use:coqleq_sound_mutual.
 Qed.
+
+(** On pen and paper, the three equivalence results from above, when combined with the termination of
+ reduction, allows us to conclude the decidability of type conversion. In Rocq, we need to
+ go through the Bove-Capretta method to obtain the executable function [DecSyn.conv_dec.Conv_dec]. *)
