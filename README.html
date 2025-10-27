@@ -268,8 +268,9 @@ the configured VM.</p>
 following commands to install the required dependencies.</p>
 <div class="sourceCode" id="cb2" data-org-language="sh"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> update</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> install <span class="at">-y</span> coq-hammer-tactics coq-stdpp coq-autosubst-ocaml</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="va">$(</span><span class="ex">opam</span> env<span class="va">)</span></span></code></pre></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> repo add rocq-released https://rocq-prover.org/opam/released</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">opam</span> install <span class="at">-y</span> coq-hammer-tactics coq-stdpp coq-autosubst-ocaml</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">eval</span> <span class="va">$(</span><span class="ex">opam</span> env<span class="va">)</span></span></code></pre></div>
 <p>The termination proof can be brittle because we expect the <code
 class="verbatim">inversion</code> to produce the subproofs of the domain
 relation that make the termination checker happy.</p>

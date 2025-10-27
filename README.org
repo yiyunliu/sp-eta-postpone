@@ -33,6 +33,7 @@ Inside a fresh =opam= switch, run the following commands to install
 the required dependencies.
 #+begin_src sh
 opam update
+opam repo add rocq-released https://rocq-prover.org/opam/released
 opam install -y coq-hammer-tactics coq-stdpp coq-autosubst-ocaml
 eval $(opam env)
 #+end_src
