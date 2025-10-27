@@ -225,8 +225,8 @@ Proof.
   move => + + h. move E  : (PProj p a) h => u h.
   move : p a E.
   elim : u / h => //=.
-  hauto lq:on inv:SNe,PTm.
-  hauto lq:on inv:TRedSN.
+  hauto q:on inv:SNe,PTm.
+  hauto q:on inv:TRedSN.
 Qed.
 
 Lemma PApp_imp a b :
@@ -236,8 +236,8 @@ Lemma PApp_imp a b :
 Proof.
   move => + + h. move E : (PApp a b) h => u h.
   move : a b E. elim  : u /h=>//=.
-  hauto lq:on inv:SNe,PTm.
-  hauto lq:on inv:TRedSN.
+  hauto q:on inv:SNe,PTm.
+  hauto q:on inv:TRedSN.
 Qed.
 
 Lemma PInd_imp P (a : PTm) b c :
@@ -249,8 +249,8 @@ Proof.
   move => + + + h. move E : (PInd P a b c) h => u h.
   move : P a b c E.
   elim : u /h => //=.
-  hauto lq:on inv:SNe,PTm.
-  hauto lq:on inv:TRedSN.
+  hauto q:on inv:SNe,PTm.
+  hauto q:on inv:TRedSN.
 Qed.
 
 Lemma PProjAbs_imp p (a : PTm) :
@@ -3148,10 +3148,10 @@ Module DJoin.
     have ? : SN (PProj PR (PPair a0 b0)) by hauto lq:on db:sn.
     have ? : SN (PProj PL (PPair a1 b1)) by hauto lq:on db:sn.
     have ? : SN (PProj PR (PPair a1 b1)) by hauto lq:on db:sn.
-    have h0L : RRed.R (PProj PL (PPair a0 b0)) a0 by eauto with red.
-    have h0R : RRed.R (PProj PR (PPair a0 b0)) b0 by eauto with red.
-    have h1L : RRed.R (PProj PL (PPair a1 b1)) a1 by eauto with red.
-    have h1R : RRed.R (PProj PR (PPair a1 b1)) b1 by eauto with red.
+    have h0L : RRed.R (PProj PL (PPair a0 b0)) a0 by sfirstorder db: red.
+    have h0R : RRed.R (PProj PR (PPair a0 b0)) b0 by sfirstorder db: red.
+    have h1L : RRed.R (PProj PL (PPair a1 b1)) a1 by sfirstorder db: red.
+    have h1R : RRed.R (PProj PR (PPair a1 b1)) b1 by sfirstorder db: red.
     move => h2.
     move /ProjCong in h2.
     have h2L := h2 PL.
