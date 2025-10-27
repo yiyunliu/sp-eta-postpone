@@ -2,8 +2,8 @@
 
 Require Import Autosubst2.core Autosubst2.unscoped Autosubst2.syntax common typing structural fp_red admissible.
 From Hammer Require Import Tactics.
-Require Import ssreflect.
-Require Import Psatz.
+From Stdlib Require Import ssreflect.
+From Stdlib Require Import Psatz.
 
 
 Lemma Ind_Inv Γ P (a : PTm) b c U :

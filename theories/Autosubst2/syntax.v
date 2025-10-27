@@ -306,7 +306,8 @@ Qed.
 Fixpoint compRenRen_PTm (xi_PTm : nat -> nat) (zeta_PTm : nat -> nat)
 (rho_PTm : nat -> nat)
 (Eq_PTm : forall x, funcomp zeta_PTm xi_PTm x = rho_PTm x) (s : PTm) {struct
- s} : ren_PTm zeta_PTm (ren_PTm xi_PTm s) = ren_PTm rho_PTm s :=
+ s} :
+ren_PTm zeta_PTm (ren_PTm xi_PTm s) = ren_PTm rho_PTm s :=
   match s with
   | VarPTm s0 => ap (VarPTm) (Eq_PTm s0)
   | PAbs s0 =>
@@ -358,7 +359,8 @@ Qed.
 Fixpoint compRenSubst_PTm (xi_PTm : nat -> nat) (tau_PTm : nat -> PTm)
 (theta_PTm : nat -> PTm)
 (Eq_PTm : forall x, funcomp tau_PTm xi_PTm x = theta_PTm x) (s : PTm) {struct
- s} : subst_PTm tau_PTm (ren_PTm xi_PTm s) = subst_PTm theta_PTm s :=
+ s} :
+subst_PTm tau_PTm (ren_PTm xi_PTm s) = subst_PTm theta_PTm s :=
   match s with
   | VarPTm s0 => Eq_PTm s0
   | PAbs s0 =>
@@ -480,7 +482,8 @@ exact (fun n =>
                 (eq_sym
                    (compSubstRen_PTm tau_PTm shift
                       (funcomp (ren_PTm shift) tau_PTm) (fun x => eq_refl)
-                      (sigma n'))) (ap (ren_PTm shift) (Eq n')))
+                      (sigma n')))
+                (ap (ren_PTm shift) (Eq n')))
        | O => eq_refl
        end).
 Qed.
@@ -525,7 +528,8 @@ subst_PTm tau_PTm (subst_PTm sigma_PTm s) = subst_PTm theta_PTm s :=
            (up_PTm_PTm (up_PTm_PTm tau_PTm))
            (up_PTm_PTm (up_PTm_PTm theta_PTm))
            (up_subst_subst_PTm_PTm _ _ _
-              (up_subst_subst_PTm_PTm _ _ _ Eq_PTm)) s3)
+              (up_subst_subst_PTm_PTm _ _ _ Eq_PTm))
+           s3)
   end.
 
 Lemma renRen_PTm (xi_PTm : nat -> nat) (zeta_PTm : nat -> nat) (s : PTm) :
@@ -704,18 +708,12 @@ Class Up_PTm X Y :=
 #[global]
 Instance VarInstance_PTm : (Var _ _) := @VarPTm.
 
-Notation "[ sigma_PTm ]" := (subst_PTm sigma_PTm)
-( at level 1, left associativity, only printing)  : fscope.
-
 Notation "s [ sigma_PTm ]" := (subst_PTm sigma_PTm s)
 ( at level 7, left associativity, only printing)  : subst_scope.
 
 Notation "↑__PTm" := up_PTm (only printing)  : subst_scope.
 
 Notation "↑__PTm" := up_PTm_PTm (only printing)  : subst_scope.
-
-Notation "⟨ xi_PTm ⟩" := (ren_PTm xi_PTm)
-( at level 1, left associativity, only printing)  : fscope.
 
 Notation "s ⟨ xi_PTm ⟩" := (ren_PTm xi_PTm s)
 ( at level 7, left associativity, only printing)  : subst_scope.
@@ -798,7 +796,8 @@ Ltac asimpl := check_no_evars;
                 repeat
                  unfold VarInstance_PTm, Var, ids, Ren_PTm, Ren1, ren1,
                   Up_PTm_PTm, Up_PTm, up_PTm, Subst_PTm, Subst1, subst1 
-                  in *; asimpl'; minimize.
+                  in *;
+                asimpl'; minimize.
 
 Tactic Notation "asimpl" "in" hyp(J) := revert J; asimpl; intros J.
 

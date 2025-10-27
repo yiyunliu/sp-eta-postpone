@@ -48,7 +48,7 @@ export:
 	git archive --output supplementary.tar master --prefix supplementary/source/
 
 theories/Autosubst2/syntax.v theories/Autosubst2/core.v theories/Autosubst2/unscoped.v : syntax.sig
-	autosubst -f -v ge813 -s ucoq -o theories/Autosubst2/syntax.v syntax.sig
+	autosubst -f -v ge813 -s urocq -o theories/Autosubst2/syntax.v syntax.sig
 
 .PHONY: clean FORCE export deepclean coqdoc
 
