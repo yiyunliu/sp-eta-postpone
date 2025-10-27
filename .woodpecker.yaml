@@ -4,9 +4,9 @@ when:
 
 steps:
   - name: build
-    image: coqorg/coq:8.20.1-ocaml-4.14.2-flambda
+    image: rocq/rocq-prover:9.0.1-ocaml-4.14.2-flambda
     commands:
-      - opam install -y coq-hammer-tactics coq-equations coq-stdpp coq-autosubst-ocaml
+      - opam install -y coq-hammer-tactics coq-stdpp rocq-autosubst-ocaml
       - eval $(opam env)
       - sudo chown -R 1000:1000 .
-      - make -j2
+      - make -j2 theories
