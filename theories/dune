@@ -1,0 +1,4 @@
+(coq.theory
+  (name decsyn)
+  (synopsis "Mechanized decidable conversion of a system with surjective pairing"))
+(include_subdirs qualified)
