@@ -10,24 +10,24 @@ From stdpp Require Import relations (rtc(..), nsteps(..)).
 (** ** Properties about weak-head reduction *)
 Module HRed.
   Lemma ToRRed (a b : PTm) : HRed.R a b -> RRed.R a b.
-  Proof. induction 1; hauto lq:on ctrs:RRed.R. Qed.
+  Proof using. induction 1; hauto lq:on ctrs:RRed.R. Qed.
 
   Lemma preservation Γ (a b A : PTm) : Γ ⊢ a ∈ A -> HRed.R a b -> Γ ⊢ b ∈ A.
-  Proof.
+  Proof using.
     sfirstorder use:subject_reduction, ToRRed.
   Qed.
 
   Lemma ToEq Γ (a b : PTm ) A : Γ ⊢ a ∈ A -> HRed.R a b -> Γ ⊢ a ≡ b ∈ A.
-  Proof. sfirstorder use:ToRRed, RRed_Eq. Qed.
+  Proof using. sfirstorder use:ToRRed, RRed_Eq. Qed.
 
 End HRed.
 
 Module HReds.
   Lemma preservation Γ (a b A : PTm) : Γ ⊢ a ∈ A -> rtc HRed.R a b -> Γ ⊢ b ∈ A.
-  Proof. induction 2; sfirstorder use:HRed.preservation. Qed.
+  Proof using. induction 2; sfirstorder use:HRed.preservation. Qed.
 
   Lemma ToEq Γ (a b : PTm) A : Γ ⊢ a ∈ A -> rtc HRed.R a b -> Γ ⊢ a ≡ b ∈ A.
-  Proof.
+  Proof using.
     induction 2; sauto lq:on use:HRed.ToEq, E_Transitive, HRed.preservation.
   Qed.
 End HReds.
@@ -36,21 +36,21 @@ Lemma T_Conv_E Γ (a : PTm) A B i :
   Γ ⊢ a ∈ A ->
   Γ ⊢ A ≡ B ∈ PUniv i \/ Γ ⊢ B ≡ A ∈ PUniv i ->
   Γ ⊢ a ∈ B.
-Proof. qauto use:T_Conv, Su_Eq, E_Symmetric. Qed.
+Proof using. qauto use:T_Conv, Su_Eq, E_Symmetric. Qed.
 
 Lemma E_Conv_E Γ (a b : PTm) A B i :
   Γ ⊢ a ≡ b ∈ A ->
   Γ ⊢ A ≡ B ∈ PUniv i \/ Γ ⊢ B ≡ A ∈ PUniv i ->
   Γ ⊢ a ≡ b ∈ B.
-Proof. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
+Proof using. qauto use:E_Conv, Su_Eq, E_Symmetric. Qed.
 
 Lemma lored_embed Γ (a b : PTm) A :
   Γ ⊢ a ∈ A -> LoRed.R a b -> Γ ⊢ a ≡ b ∈ A.
-Proof. sfirstorder use:LoRed.ToRRed, RRed_Eq. Qed.
+Proof using. sfirstorder use:LoRed.ToRRed, RRed_Eq. Qed.
 
 Lemma loreds_embed Γ (a b : PTm ) A :
   Γ ⊢ a ∈ A -> rtc LoRed.R a b -> Γ ⊢ a ≡ b ∈ A.
-Proof.
+Proof using.
   move => + h. move : Γ A.
   elim : a b /h.
   - sfirstorder use:E_Refl.
@@ -63,7 +63,7 @@ Qed.
 Lemma Zero_Inv Γ U :
   Γ ⊢ PZero ∈ U ->
   Γ ⊢ PNat ≲ U.
-Proof.
+Proof using.
   move E : PZero => u hu.
   move : E.
   elim : Γ u U /hu=>//=.
@@ -74,7 +74,7 @@ Qed.
 Lemma Sub_Bind_InvR Γ p (A : PTm ) B C :
   Γ ⊢ PBind p A B ≲ C ->
   exists i A0 B0, Γ ⊢ C ≡ PBind p A0 B0 ∈ PUniv i.
-Proof.
+Proof using.
   move => /[dup] h.
   move /synsub_to_usub.
   move => [h0 [h1 h2]].
@@ -129,7 +129,7 @@ Qed.
 Lemma Sub_Univ_InvR Γ i C :
   Γ ⊢ PUniv i ≲ C ->
   exists j k, Γ ⊢ C ≡ PUniv j ∈ PUniv k.
-Proof.
+Proof using.
   move => /[dup] h.
   move /synsub_to_usub.
   move => [h0 [h1 h2]].
@@ -175,7 +175,7 @@ Qed.
 Lemma Sub_Bind_InvL Γ p (A : PTm) B C :
   Γ ⊢ C ≲ PBind p A B ->
   exists i A0 B0, Γ ⊢ PBind p A0 B0 ≡ C ∈ PUniv i.
-Proof.
+Proof using.
   move => /[dup] h.
   move /synsub_to_usub.
   move => [h0 [h1 h2]].
@@ -232,7 +232,7 @@ Lemma T_Abs_Inv Γ (a0 a1 : PTm) U :
   Γ ⊢ PAbs a0 ∈ U ->
   Γ ⊢ PAbs a1 ∈ U ->
   exists Δ V, Δ ⊢ a0 ∈ V /\ Δ ⊢ a1 ∈ V.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][wt0]hU0.
   move /Abs_Inv => [A1][B1][wt1]hU1.
   move /Sub_Bind_InvR : (hU0) => [i][A2][B2]hE.
@@ -256,7 +256,7 @@ Qed.
 Lemma Abs_Pi_Inv Γ (a : PTm) A B :
   Γ ⊢ PAbs a ∈ PBind PPi A B ->
   (cons A Γ) ⊢ a ∈ B.
-Proof.
+Proof using.
   move => h.
   have [i hi] : exists i, Γ ⊢ PBind PPi A B ∈ PUniv i by hauto use:regularity.
   have  [{}i {}hi] : exists i, Γ ⊢ A ∈ PUniv i by hauto use:Bind_Inv.
@@ -277,7 +277,7 @@ Lemma T_Abs_Neu_Inv Γ (a u : PTm) U :
   Γ ⊢ PAbs a ∈ U ->
   Γ ⊢ u ∈ U ->
   exists Δ V, Δ ⊢ a ∈ V /\ Δ ⊢ PApp (ren_PTm shift u) (VarPTm var_zero)  ∈ V.
-Proof.
+Proof using.
   move => /[dup] ha' + hu.
   move /Abs_Inv => [A0][B0][ha]hSu.
   move /Sub_Bind_InvR : (hSu) => [i][A2][B2]hE.
@@ -303,12 +303,12 @@ Lemma T_Univ_Raise Γ (a : PTm) i j :
   Γ ⊢ a ∈ PUniv i ->
   i <= j ->
   Γ ⊢ a ∈ PUniv j.
-Proof. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
+Proof using. hauto lq:on rew:off use:T_Conv, Su_Univ, wff_mutual. Qed.
 
 Lemma Bind_Univ_Inv Γ p (A : PTm) B i :
   Γ ⊢ PBind p A B ∈ PUniv i ->
   Γ ⊢ A ∈ PUniv i /\ (cons A Γ) ⊢ B ∈ PUniv i.
-Proof.
+Proof using.
   move /Bind_Inv.
   move => [i0][hA][hB]h.
   move /synsub_to_usub : h => [_ [_ /Sub.univ_inj ? ]].
@@ -318,7 +318,7 @@ Qed.
 Lemma Pair_Sig_Inv Γ (a b : PTm) A B :
   Γ ⊢ PPair a b ∈ PBind PSig A B ->
   Γ ⊢ a ∈ A /\ Γ ⊢ b ∈ subst_PTm (scons a VarPTm) B.
-Proof.
+Proof using.
   move => /[dup] h0 h1.
   have [i hr] : exists i, Γ ⊢ PBind PSig A B ∈ PUniv i by sfirstorder use:regularity.
   move /T_Proj1 in h0.
@@ -445,7 +445,7 @@ Lemma CE_HRedL (a a' b : PTm)  :
   HRed.R a a' ->
   a' ⇔ b ->
   a ⇔ b.
-Proof.
+Proof using.
   hauto lq:on ctrs:rtc, CoqEq_R inv:CoqEq_R.
 Qed.
 
@@ -453,13 +453,13 @@ Lemma CE_HRedR (a b b' : PTm) :
   HRed.R b b' ->
   a ⇔ b' ->
   a ⇔ b.
-Proof.
+Proof using.
   hauto lq:on ctrs:rtc, CoqEq_R inv:CoqEq_R.
 Qed.
 
 Lemma CE_Nf a b :
   a ↔ b -> a ⇔ b.
-Proof. hauto l:on ctrs:rtc. Qed.
+Proof using. hauto l:on ctrs:rtc. Qed.
 
 Scheme
   coqeq_neu_ind := Induction for CoqEq_Neu Sort Prop
@@ -472,7 +472,7 @@ Lemma coqeq_symmetric_mutual :
     (forall (a b : PTm), a ∼ b -> b ∼ a) /\
     (forall (a b : PTm), a ↔ b -> b ↔ a) /\
     (forall (a b : PTm), a ⇔ b -> b ⇔ a).
-Proof. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
+Proof using. apply coqeq_mutual; qauto l:on ctrs:CoqEq,CoqEq_R, CoqEq_Neu. Qed.
 
 
 (** *** Soundness of Coquand's equality algorithm  *)
@@ -481,7 +481,7 @@ Lemma coqeq_sound_mutual :
        Γ ⊢ C ≲ A /\ Γ ⊢ C ≲ B /\ Γ ⊢ a ≡ b ∈ C) /\
     (forall (a b : PTm ), a ↔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A) /\
     (forall (a b : PTm ), a ⇔ b -> forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> Γ ⊢ a ≡ b ∈ A).
-Proof.
+Proof using.
   move => [:hAppL hPairL].
   apply coqeq_mutual.
   - move => i Γ A B hi0 hi1.
@@ -721,16 +721,16 @@ Definition term_metric k (a b : PTm) :=
 
 Lemma term_metric_sym k (a b : PTm) :
   term_metric k a b -> term_metric k b a.
-Proof. hauto lq:on unfold:term_metric solve+:lia. Qed.
+Proof using. hauto lq:on unfold:term_metric solve+:lia. Qed.
 
 Lemma ne_hne (a : PTm) : ne a -> ishne a.
-Proof. elim : a => //=; sfirstorder b:on. Qed.
+Proof using. elim : a => //=; sfirstorder b:on. Qed.
 
 Lemma hf_hred_lored (a b : PTm) :
   ~~ ishf a ->
   LoRed.R a b ->
   HRed.R a b \/ ishne a.
-Proof.
+Proof using.
   move => + h. elim : a b/ h=>//=.
   - hauto l:on use:HRed.AppAbs.
   - hauto l:on use:HRed.ProjPair.
@@ -748,7 +748,7 @@ Qed.
 Lemma term_metric_case k (a b : PTm) :
   term_metric k a b ->
   (ishf a \/ ishne a) \/ exists k' a', HRed.R a a' /\ term_metric k' a' b /\ k' < k.
-Proof.
+Proof using.
   move=>[i][j][va][vb][h0] [h1][h2][h3]h4.
   case : a h0 => //=; try firstorder.
   - inversion h0 as [|A B C D E F]; subst.
@@ -778,7 +778,7 @@ Lemma A_Conf' a b :
   ishf b \/ ishne b ->
   tm_conf a b ->
   algo_dom_r a b.
-Proof.
+Proof using.
   move => ha hb.
   move => ?.
   apply A_NfNf.
@@ -787,12 +787,12 @@ Qed.
 
 Lemma hne_nf_ne (a : PTm ) :
   ishne a -> nf a -> ne a.
-Proof. case : a => //=. Qed.
+Proof using. case : a => //=. Qed.
 
 Lemma lored_nsteps_renaming k (a b : PTm) (ξ : nat -> nat) :
   nsteps LoRed.R k a b ->
   nsteps LoRed.R k (ren_PTm ξ a) (ren_PTm ξ b).
-Proof.
+Proof using.
   induction 1; hauto lq:on ctrs:nsteps use:LoRed.renaming.
 Qed.
 
@@ -800,11 +800,11 @@ Lemma hred_hne (a b : PTm) :
   HRed.R a b ->
   ishne a ->
   False.
-Proof. induction 1; sfirstorder. Qed.
+Proof using. induction 1; sfirstorder. Qed.
 
 Lemma hf_not_hne (a : PTm) :
   ishf a -> ishne a -> False.
-Proof. case : a => //=. Qed.
+Proof using. case : a => //=. Qed.
 
 (** *** Helpers for inverting derivations and ruling out impossible cases  *)
 
@@ -812,7 +812,7 @@ Lemma T_AbsPair_Imp Γ a (b0 b1 : PTm) A :
   Γ ⊢ PAbs a ∈ A ->
   Γ ⊢ PPair b0 b1 ∈ A ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
@@ -824,7 +824,7 @@ Lemma T_AbsZero_Imp Γ a (A : PTm) :
   Γ ⊢ PAbs a ∈ A ->
   Γ ⊢ PZero ∈ A ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Zero_Inv => hbU.
   move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
@@ -836,7 +836,7 @@ Lemma T_AbsSuc_Imp Γ a b (A : PTm) :
   Γ ⊢ PAbs a ∈ A ->
   Γ ⊢ PSuc b ∈ A ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Suc_Inv => [_ hbU].
   move /Sub_Bind_InvR : haU => [i][A2][B2]h2.
@@ -847,7 +847,7 @@ Qed.
 Lemma Nat_Inv Γ A:
   Γ ⊢ PNat ∈ A ->
   exists i, Γ ⊢ PUniv i ≲ A.
-Proof.
+Proof using.
   move E : PNat => u hu.
   move : E.
   elim : Γ u A / hu=>//=.
@@ -859,7 +859,7 @@ Lemma T_AbsNat_Imp Γ a (A : PTm ) :
   Γ ⊢ PAbs a ∈ A ->
   Γ ⊢ PNat ∈ A ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Nat_Inv => [i hA].
   move /Sub_Univ_InvR : hA => [j][k]hA.
@@ -871,7 +871,7 @@ Lemma T_PairBind_Imp Γ (a0 a1 : PTm ) p A0 B0 U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PBind p A0 B0  ∈ U ->
   False.
-Proof.
+Proof using.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Bind_Inv => [i][_ [_ haU]].
   move /Sub_Univ_InvR : haU => [j][k]hU.
@@ -883,7 +883,7 @@ Lemma T_PairNat_Imp Γ (a0 a1 : PTm) U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PNat ∈ U ->
   False.
-Proof.
+Proof using.
   move/Pair_Inv => [A1][B1][_][_]hbU.
   move /Nat_Inv => [i]/Sub_Univ_InvR[j][k]hU.
   have : Γ ⊢ PBind PSig A1 B1 ≲ PUniv j by eauto using Su_Transitive, Su_Eq.
@@ -894,7 +894,7 @@ Lemma T_PairZero_Imp Γ (a0 a1 : PTm ) U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PZero ∈ U ->
   False.
-Proof.
+Proof using.
   move/Pair_Inv=>[A1][B1][_][_]hbU.
   move/Zero_Inv. move/Sub_Bind_InvR : hbU=>[i][A0][B0]*.
   have : Γ ⊢ PNat ≲ PBind PSig A0 B0 by eauto using Su_Transitive, Su_Eq.
@@ -905,7 +905,7 @@ Lemma T_PairSuc_Imp Γ (a0 a1 : PTm ) b U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PSuc b ∈ U ->
   False.
-Proof.
+Proof using.
   move/Pair_Inv=>[A1][B1][_][_]hbU.
   move/Suc_Inv=>[_ hU]. move/Sub_Bind_InvR : hbU=>[i][A0][B0]*.
   have : Γ ⊢ PNat ≲ PBind PSig A0 B0 by eauto using Su_Transitive, Su_Eq.
@@ -915,7 +915,7 @@ Qed.
 Lemma Univ_Inv Γ i U :
   Γ ⊢ PUniv i ∈ U ->
   Γ ⊢ PUniv i ∈ PUniv (S i)  /\ Γ ⊢ PUniv (S i) ≲ U.
-Proof.
+Proof using.
   move E : (PUniv i) => u hu.
   move : i E. elim : Γ u U / hu => n //=.
   - hauto l:on use:E_Refl, Su_Eq, T_Univ.
@@ -926,7 +926,7 @@ Lemma T_PairUniv_Imp Γ (a0 a1 : PTm) i U :
   Γ ⊢ PPair a0 a1 ∈ U ->
   Γ ⊢ PUniv i ∈ U ->
   False.
-Proof.
+Proof using.
   move /Pair_Inv => [A1][B1][_][_]hbU.
   move /Univ_Inv => [h0 h1].
   move /Sub_Univ_InvR : h1 => [j [k hU]].
@@ -939,7 +939,7 @@ Lemma T_AbsUniv_Imp Γ a i (A : PTm) :
   Γ ⊢ PAbs a ∈ A ->
   Γ ⊢ PUniv i ∈ A ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A0][B0][_]haU.
   move /Univ_Inv => [h0 h1].
   move /Sub_Univ_InvR : h1 => [j [k hU]].
@@ -950,25 +950,25 @@ Qed.
 
 Lemma T_AbsUniv_Imp' Γ (a : PTm) i  :
   Γ ⊢ PAbs a ∈ PUniv i -> False.
-Proof.
+Proof using.
   hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf, Abs_Inv.
 Qed.
 
 Lemma T_ZeroUniv_Imp' Γ i :
   Γ ⊢ PZero ∈ PUniv i -> False.
-Proof.
+Proof using.
   hauto lq:on use:synsub_to_usub, Sub.univ_nat_noconf, Zero_Inv.
 Qed.
 
 Lemma T_SucUniv_Imp' Γ (a : PTm) i :
   Γ ⊢ PSuc a ∈ PUniv i -> False.
-Proof.
+Proof using.
   hauto lq:on use:synsub_to_usub, Sub.univ_nat_noconf, Suc_Inv.
 Qed.
 
 Lemma T_PairUniv_Imp' Γ (a b : PTm) i  :
   Γ ⊢ PPair a b ∈ PUniv i -> False.
-Proof.
+Proof using.
   hauto lq:on use:synsub_to_usub, Sub.bind_univ_noconf, Pair_Inv.
 Qed.
 
@@ -976,7 +976,7 @@ Lemma T_AbsBind_Imp Γ a p A0 B0 (U : PTm ) :
   Γ ⊢ PAbs a ∈ U ->
   Γ ⊢ PBind p A0 B0 ∈ U ->
   False.
-Proof.
+Proof using.
   move /Abs_Inv => [A1][B1][_ ha].
   move /Bind_Inv => [i [_ [_ h]]].
   move /Sub_Univ_InvR : h => [j [k hU]].
@@ -987,7 +987,7 @@ Qed.
 
 Lemma lored_nsteps_suc_inv k (a : PTm ) b :
   nsteps LoRed.R k (PSuc a) b -> exists b', nsteps LoRed.R k a b' /\ b = PSuc b'.
-Proof.
+Proof using.
   move E : (PSuc a) => u hu.
   move : a E.
   elim : u b /hu.
@@ -997,7 +997,7 @@ Qed.
 
 Lemma lored_nsteps_abs_inv k (a : PTm) b :
   nsteps LoRed.R k (PAbs a) b -> exists b', nsteps LoRed.R k a b' /\ b = PAbs b'.
-Proof.
+Proof using.
   move E : (PAbs a) => u hu.
   move : a E.
   elim : u b /hu.
@@ -1007,11 +1007,11 @@ Qed.
 
 Lemma lored_hne_preservation (a b : PTm) :
     LoRed.R a b -> ishne a -> ishne b.
-Proof.  induction 1; sfirstorder. Qed.
+Proof using.  induction 1; sfirstorder. Qed.
 
 Lemma loreds_hne_preservation (a b : PTm ) :
   rtc LoRed.R a b -> ishne a -> ishne b.
-Proof. induction 1; hauto lq:on ctrs:rtc use:lored_hne_preservation. Qed.
+Proof using. induction 1; hauto lq:on ctrs:rtc use:lored_hne_preservation. Qed.
 
 Lemma lored_nsteps_bind_inv k p (a0 : PTm ) b0 C :
     nsteps LoRed.R k (PBind p a0 b0) C ->
@@ -1020,7 +1020,7 @@ Lemma lored_nsteps_bind_inv k p (a0 : PTm ) b0 C :
         C = PBind p a1 b1 /\
         nsteps LoRed.R i a0 a1 /\
         nsteps LoRed.R j b0 b1.
-Proof.
+Proof using.
   move E : (PBind p a0 b0) => u hu. move : p a0 b0 E.
   elim : k u C / hu.
   - sauto lq:on.
@@ -1043,7 +1043,7 @@ Lemma lored_nsteps_ind_inv k P0 (a0 : PTm) b0 c0 U :
       nsteps LoRed.R ia a0 a1 /\
       nsteps LoRed.R ib b0 b1 /\
       nsteps LoRed.R ic c0 c1.
-Proof.
+Proof using.
   move E : (PInd P0 a0 b0 c0) => u hu.
   move : P0 a0 b0 c0 E.
   elim : k u U / hu.
@@ -1072,7 +1072,7 @@ Lemma lored_nsteps_app_inv k (a0 b0 C : PTm) :
         C = PApp a1 b1 /\
         nsteps LoRed.R i a0 a1 /\
         nsteps LoRed.R j b0 b1.
-Proof.
+Proof using.
   move E : (PApp a0 b0) => u hu. move : a0 b0 E.
   elim : k u C / hu.
   - sauto lq:on.
@@ -1095,7 +1095,7 @@ Lemma lored_nsteps_proj_inv k p (a0 C : PTm) :
       i <= k /\
         C = PProj p a1 /\
         nsteps LoRed.R i a0 a1.
-Proof.
+Proof using.
   move E : (PProj p a0) => u hu. move : a0 E.
   elim : k u C / hu.
   - sauto lq:on.
@@ -1158,7 +1158,7 @@ Qed.
 Lemma term_metric_abs : forall k a b,
     term_metric k (PAbs a) (PAbs b) ->
     exists k', k' < k /\ term_metric k' a b.
-Proof.
+Proof using.
   move => k a b [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_abs_inv in hva, hvb.
   move : hva => [a'][hva]?. subst.
@@ -1170,7 +1170,7 @@ Qed.
 Lemma term_metric_pair : forall k a0 b0 a1 b1,
     term_metric k (PPair a0 b0) (PPair a1 b1) ->
     exists k', k' < k /\ term_metric k' a0 a1 /\ term_metric k' b0 b1.
-Proof.
+Proof using.
   move => k a0 b0 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_pair_inv in hva, hvb.
   decompose record hva => {hva}.
@@ -1182,7 +1182,7 @@ Qed.
 Lemma term_metric_bind : forall k p0 a0 b0 p1 a1 b1,
     term_metric k (PBind p0 a0 b0) (PBind p1 a1 b1) ->
     exists k', k' < k /\ term_metric k' a0 a1 /\ term_metric k' b0 b1.
-Proof.
+Proof using.
   move => k p0 a0 b0 p1 a1 b1 [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_bind_inv in hva, hvb.
   decompose record hva => {hva}.
@@ -1194,7 +1194,7 @@ Qed.
 Lemma term_metric_suc : forall k a b,
     term_metric k (PSuc a) (PSuc b) ->
     exists k', k' < k /\ term_metric k' a b.
-Proof.
+Proof using.
   move => k a b [i][j][va][vb][hva][hvb][nfa][nfb]h.
   apply lored_nsteps_suc_inv in hva, hvb.
   move : hva => [a'][hva]?. subst.
@@ -1207,7 +1207,7 @@ Lemma term_metric_abs_neu k (a0 : PTm) u :
   term_metric k (PAbs a0) u ->
   ishne u ->
   exists j, j < k /\ term_metric j a0 (PApp (ren_PTm shift u) (VarPTm var_zero)).
-Proof.
+Proof using.
   move => [i][j][va][vb][h0][h1][h2][h3]h4 neu.
   have neva : ne vb by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
   move /lored_nsteps_abs_inv : h0 => [a1][h01]?. subst.
@@ -1227,7 +1227,7 @@ Lemma term_metric_pair_neu k (a0 b0 : PTm) u :
   term_metric k (PPair a0 b0) u ->
   ishne u ->
   exists j, j < k /\ term_metric j (PProj PL u) a0 /\ term_metric j (PProj PR u) b0.
-Proof.
+Proof using.
   move => [i][j][va][vb][h0][h1][h2][h3]h4 neu.
   have neva : ne vb by hauto lq:on use:hne_nf_ne, loreds_hne_preservation, @relations.rtc_nsteps.
   move /lored_nsteps_pair_inv : h0 => [i0][j0][a1][b1][?][?][?][?]?. subst.
@@ -1239,7 +1239,7 @@ Lemma term_metric_app k (a0 b0 a1 b1 : PTm) :
   ishne a0 ->
   ishne a1 ->
   exists j, j < k /\ term_metric j a0 a1 /\ term_metric j b0 b1.
-Proof.
+Proof using.
   move => [i][j][va][vb][h0][h1][h2][h3]h4.
   move => hne0 hne1.
   move : lored_nsteps_app_inv h0 (hne0);repeat move/[apply].
@@ -1254,7 +1254,7 @@ Lemma term_metric_proj k p0 p1 (a0 a1 : PTm) :
   ishne a0 ->
   ishne a1 ->
   exists j, j < k /\ term_metric j a0 a1.
-Proof.
+Proof using.
   move => [i][j][va][vb][h0][h1][h2][h3]h4 hne0 hne1.
   move : lored_nsteps_proj_inv h0 (hne0);repeat move/[apply].
   move => [i0][a2][hi][?]ha02. subst.
@@ -1269,7 +1269,7 @@ Lemma term_metric_ind k P0 (a0 : PTm ) b0 c0 P1 a1 b1 c1 :
   ishne a1 ->
   exists j, j < k /\ term_metric j P0 P1 /\ term_metric j a0 a1 /\
          term_metric j b0 b1 /\ term_metric j c0 c1.
-Proof.
+Proof using.
   move => [i][j][va][vb][h0][h1][h2][h3]h4 hne0 hne1.
   move /lored_nsteps_ind_inv /(_ hne0) : h0.
   move =>[iP][ia][ib][ic][P2][a2][b2][c2][?][?][?][?][?][?][?][?]?. subst.
@@ -1281,7 +1281,7 @@ Qed.
 
 (** *** Lemma that hides the arithmetic of [term_metric] *)
 Lemma term_metric_algo_dom : forall k a b, term_metric k a b -> algo_dom_r a b.
-Proof.
+Proof using.
   move => [:hneL].
   elim /Wf_nat.lt_wf_ind.
   move => n ih a b h.
@@ -1333,13 +1333,13 @@ Qed.
 Lemma ce_neu_neu_helper a b :
   ishne a -> ishne b ->
   (forall Γ A B, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b) -> (forall Γ A, Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b) /\ (forall Γ A B, ishne a -> ishne b -> Γ ⊢ a ∈ A -> Γ ⊢ b ∈ B -> a ∼ b).
-Proof. sauto lq:on. Qed.
+Proof using. sauto lq:on. Qed.
 
 Lemma hne_ind_inj P0 P1 u0 u1 b0 b1 c0 c1 :
   ishne u0 -> ishne u1 ->
   DJoin.R (PInd P0 u0 b0 c0) (PInd P1 u1 b1 c1) ->
   DJoin.R P0 P1 /\ DJoin.R u0 u1 /\ DJoin.R b0 b1 /\ DJoin.R c0 c1.
-Proof. hauto q:on use:REReds.hne_ind_inv. Qed.
+Proof using. hauto q:on use:REReds.hne_ind_inv. Qed.
 
 (** *** Completeness of Coquand's equality algorithm  *)
 Lemma coqeq_complete' :
@@ -1613,10 +1613,10 @@ Qed.
 
 Lemma coqeq_sound : forall Γ (a b : PTm) A,
     Γ ⊢ a ∈ A -> Γ ⊢ b ∈ A -> a ⇔ b -> Γ ⊢ a ≡ b ∈ A.
-Proof. sfirstorder use:coqeq_sound_mutual. Qed.
+Proof using. sfirstorder use:coqeq_sound_mutual. Qed.
 
 Lemma sn_term_metric (a b : PTm) : SN a -> SN b -> exists k, term_metric k a b.
-Proof.
+Proof using.
   move /LoReds.FromSN => [va [ha0 ha1]].
   move /LoReds.FromSN => [vb [hb0 hb1]].
   eapply relations.rtc_nsteps in ha0.
@@ -1625,7 +1625,7 @@ Proof.
 Qed.
 
 Lemma sn_algo_dom a b : SN a -> SN b -> algo_dom_r a b.
-Proof.
+Proof using.
   move : sn_term_metric; repeat move/[apply].
   move => [k]+.
   eauto using term_metric_algo_dom.
@@ -1633,7 +1633,7 @@ Qed.
 
 Lemma coqeq_complete Γ (a b A : PTm) :
   Γ ⊢ a ≡ b ∈ A -> a ⇔ b.
-Proof.
+Proof using.
   move => h.
   have : algo_dom_r a b /\ DJoin.R a b by
     hauto lq:on use:fundamental_theorem, logrel.SemEq_SemWt, logrel.SemWt_SN, sn_algo_dom.
@@ -1686,7 +1686,7 @@ Combined Scheme coqleq_mutual from coqleq_ind, coqleq_r_ind.
 Lemma coqleq_sound_mutual :
     (forall (a b : PTm), a ⋖ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ) /\
     (forall (a b : PTm), a ≪ b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> Γ ⊢ a ≲ b ).
-Proof.
+Proof using.
   apply coqleq_mutual.
   - hauto lq:on use:wff_mutual ctrs:LEq.
   - move => A0 A1 B0 B1 hA ihA hB ihB Γ i.
@@ -1718,7 +1718,7 @@ Lemma CLE_HRedL (a a' b : PTm )  :
   HRed.R a a' ->
   a' ≪ b ->
   a ≪ b.
-Proof.
+Proof using.
   hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
 Qed.
 
@@ -1726,13 +1726,13 @@ Lemma CLE_HRedR (a a' b : PTm)  :
   HRed.R a a' ->
   b ≪ a' ->
   b ≪ a.
-Proof.
+Proof using.
   hauto lq:on ctrs:rtc, CoqLEq_R inv:CoqLEq_R.
 Qed.
 
 Lemma subvar_inj (i j : nat) :
     Sub.R (VarPTm i) (VarPTm j) -> i = j.
-Proof.
+Proof using.
   rewrite /Sub.R.
   move => [c][d][h0][h1]h2.
   apply REReds.var_inv in h0, h1. subst.
@@ -1742,7 +1742,7 @@ Qed.
 Lemma algo_dom_hf_hne (a b : PTm) :
   algo_dom a b ->
   (ishf a \/ ishne a) /\ (ishf b \/ ishne b).
-Proof.
+Proof using.
   inversion 1;subst => //=; by sfirstorder b:on.
 Qed.
 
@@ -1750,7 +1750,7 @@ Lemma algo_dom_neu_neu_nonconf a b :
   algo_dom a b ->
   neuneu_nonconf a b ->
   ishne a /\ ishne b.
-Proof.
+Proof using.
   move /algo_dom_hf_hne => h.
   move => h1.
   destruct a,b => //=; sfirstorder b:on.
@@ -1760,7 +1760,7 @@ Qed.
 Lemma coqleq_complete' :
   (forall a b, salgo_dom a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ⋖ b) /\
   (forall a b, salgo_dom_r a b -> Sub.R a b -> forall Γ i, Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv i -> a ≪ b).
-Proof.
+Proof using.
   apply salgo_dom_mutual.
   - move => i j /Sub.univ_inj.
     hauto lq:on ctrs:CoqLEq.
@@ -1842,7 +1842,7 @@ Lemma coqleq_complete_unty Γ (A B : PTm) i :
   Γ ⊢ B ∈ PUniv i ->
   Sub.R A B ->
   A ≪ B.
-Proof.
+Proof using.
   move => h *.
   have : salgo_dom_r A B by
     hauto lq:on use:fundamental_theorem, logrel.SemWt_SN, sn_algo_dom, algo_dom_salgo_dom.
@@ -1851,13 +1851,13 @@ Qed.
 
 Lemma coqleq_complete Γ (a b : PTm) :
   Γ ⊢ a ≲ b -> a ≪ b.
-Proof.
+Proof using.
   hauto use:coqleq_complete_unty, regularity, logrel.SemLEq_SemWt, fundamental_theorem.
 Qed.
 
 Lemma coqleq_sound : forall Γ (a b : PTm) i j,
     Γ ⊢ a ∈ PUniv i -> Γ ⊢ b ∈ PUniv j -> a ≪ b -> Γ ⊢ a ≲ b.
-Proof.
+Proof using.
   move => Γ a b i j.
   have [*] : i <= i + j /\ j <= i + j by lia.
   have : Γ ⊢ a ∈ PUniv (i + j) /\ Γ ⊢ b ∈ PUniv (i + j)
